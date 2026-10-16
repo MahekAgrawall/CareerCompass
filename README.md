@@ -6,6 +6,9 @@ CareerCompass is more than a role quiz. It matches you to high-fit tech roles, b
 compensation, generates a personalized AI skill roadmap, and turns that roadmap into a trackable,
 week-by-week study plan — with a context-aware AI mentor you can chat with throughout.
 
+The project is a **monorepo**: a **FastAPI** backend, a **React + TypeScript** single-page frontend,
+and the original **Streamlit** app preserved in `legacy/` for reference.
+
 ---
 
 ## ✨ Features
@@ -19,34 +22,40 @@ week-by-week study plan — with a context-aware AI mentor you can chat with thr
 | 🛠️ **Portfolio projects** | Each roadmap includes 3 hands-on project ideas with difficulty ratings and validated skills. |
 | 📅 **Study tracker** | Configure weekday vs weekend study hours and a role-specific tech stack; check off granular topics and subtopics. Progress, remaining hours, and projected weeks are computed live. |
 | ⚖️ **Side-by-side comparison** | Compare up to 3 roles on demand, competition, AI-future relevance, salary, and must-have skills. |
-| 💬 **Roadmap Copilot** | A multi-turn Gemini chat pre-loaded with your profile, target role, and roadmap — replies stream in live, and answers are always specific to you. |
+| 💬 **Roadmap Copilot** | A multi-turn Gemini chat pre-loaded with your profile, target role, and roadmap — replies stream in live. |
 | ⬇️ **Export & share** | Download any roadmap as a portable Markdown file. |
-| 🔗 **Deep links** | The current view lives in the URL (`?page=role_detail&id=backend_dev`), so refreshing or sharing a link returns you to the same page. |
-| 🔑 **Accounts & persistence** | Sign up / sign in (SQLite-backed), saved profiles, and a **My Roadmaps** library of every plan you generate. |
+| 🔗 **Deep links** | Every view is its own URL (`/roles/backend_dev`, `/tracker/backend_dev`), so refreshing or sharing a link returns you to the same page. |
+| 🔑 **Accounts & persistence** | Sign up / sign in (JWT bearer, SQLite-backed), saved profiles, and a **My Roadmaps** library of every plan you generate. |
 
 ---
 
 ## 🏗️ Architecture
 
-A clean, layered Streamlit application:
+A monorepo with a clean client/server split and a layered backend:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  UI layer          ui/views/*  (10 routed views)        │
-│                    ui/components.py  ui/theme.py        │
-├─────────────────────────────────────────────────────────┤
-│  Service layer     services/ai_service.py  (Gemini)     │
-│                    services/career_service.py (matching)│
-│                    services/tracker_service.py (syllabus)│
-│                    services/auth_service.py (accounts)  │
-├─────────────────────────────────────────────────────────┤
-│  Data layer        database/db.py  →  SQLite            │
-│                    data/roles.json (seed catalog)       │
-└─────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│  frontend/   React + TypeScript SPA (Vite + Tailwind)      │
+│              React Router · TanStack Query · JWT context   │
+└───────────────────────────┬────────────────────────────────┘
+                            │  REST / JSON  (Bearer JWT)
+┌───────────────────────────▼────────────────────────────────┐
+│  backend/    FastAPI                                       │
+│              app/routers/*  →  app/schemas.py              │
+│              app/dependencies.py (JWT) · app/security.py   │
+├────────────────────────────────────────────────────────────┤
+│  service layer   services/ai_service.py       (Gemini)     │
+│                  services/career_service.py   (matching)   │
+│                  services/tracker_service.py  (syllabus)   │
+│                  services/auth_service.py     (accounts)   │
+├────────────────────────────────────────────────────────────┤
+│  data layer      database/db.py  →  SQLite                 │
+│                  data/roles.json · data/stacks.json        │
+└────────────────────────────────────────────────────────────┘
 ```
 
-`app.py` is a thin controller: it configures the page, applies the theme, initializes the database,
-restores the session, and dispatches to a view through a simple `ROUTER` dict.
+`legacy/` holds the original Streamlit application (UI + the same services), kept as a working
+reference and design source.
 
 ---
 
@@ -54,13 +63,19 @@ restores the session, and dispatches to a view through a simple `ROUTER` dict.
 
 | Layer | Technology |
 |---|---|
-| Language | Python 3.11+ (developed on 3.14) |
-| UI framework | Streamlit 1.66 |
-| AI model | Google Gemini (`gemini-flash-lite-latest`) |
-| AI SDK | `google-generativeai` |
+| Backend language | Python 3.11+ (developed on 3.14) |
+| API framework | FastAPI + Uvicorn |
+| Validation | Pydantic v2 |
+| Auth | PyJWT (HS256 bearer tokens) + PBKDF2-HMAC-SHA256 password hashing |
+| AI | Google Gemini (`gemini-flash-lite-latest`) via `google-generativeai` |
+| Frontend language | TypeScript |
+| Frontend framework | React 18 |
+| Build tool | Vite 5 |
+| Styling | Tailwind CSS 3 |
+| Routing / data | React Router 6 · TanStack Query 5 |
 | Persistence | SQLite (embedded, zero-config) |
-| Config | `python-dotenv` |
-| Deployment | Streamlit Community Cloud (or any host) |
+| Config | `python-dotenv` (backend) · Vite env vars (frontend) |
+| CI | GitHub Actions |
 
 ---
 
@@ -69,50 +84,55 @@ restores the session, and dispatches to a view through a simple `ROUTER` dict.
 ```
 career-compass/
 │
-├── app.py                     ← App controller, session state & view router
-├── config.py                  ← Shared option vocabularies (interests, skills…)
-├── app_logging.py             ← Structured logging setup
-├── requirements.txt
-├── .env.example               ← Template for GEMINI_API_KEY
-├── .streamlit/config.toml     ← Theme + server defaults
-├── .github/workflows/ci.yml   ← CI: runs the test suite
+├── backend/
+│   ├── app/
+│   │   ├── main.py            ← FastAPI app, CORS, routers, /health
+│   │   ├── config.py          ← env-driven settings
+│   │   ├── schemas.py         ← Pydantic request/response models
+│   │   ├── security.py        ← JWT create/decode
+│   │   ├── dependencies.py    ← get_current_user / get_optional_user
+│   │   └── routers/           ← auth · roles · profile · match · roadmap · tracker · chat
+│   ├── services/              ← ai · career · tracker · auth (shared domain logic)
+│   ├── database/db.py         ← connection, schema, role seeding
+│   ├── data/                  ← roles.json · stacks.json
+│   ├── tests/test_api.py      ← FastAPI integration tests (unittest)
+│   ├── requirements.txt
+│   └── .env.example
 │
-├── database/
-│   └── db.py                  ← Connection, schema, and role seeding
+├── frontend/
+│   ├── src/
+│   │   ├── api/               ← fetch client, typed endpoints, mirrored types
+│   │   ├── components/        ← navbar, role cards, badges, alerts, layout…
+│   │   ├── pages/             ← home · auth · profile · matches · directory
+│   │   │                        role detail · compare · roadmap · roadmaps
+│   │   │                        tracker · chat
+│   │   ├── state/             ← Auth · Profile · Compare · Roadmap contexts
+│   │   └── lib/               ← option vocabularies, formatting, markdown export
+│   ├── package.json
+│   └── .env.example
 │
-├── services/
-│   ├── ai_service.py          ← Gemini roadmap, match explanation & copilot
-│   ├── career_service.py      ← Role queries, search/filter, smart matching
-│   ├── tracker_service.py     ← Study stacks, syllabus synthesis, progress math
-│   └── auth_service.py        ← Accounts, sessions, profiles, saved roadmaps
+├── legacy/                    ← original Streamlit app (UI/UX reference)
 │
-├── ui/
-│   ├── theme.py               ← Global CSS design system
-│   ├── components.py          ← Navbar, role cards, badges
-│   └── views/                 ← home · auth · profile · roles · directory
-│                                 role_detail · compare · roadmap · roadmaps
-│                                 tracker · chat
-│
-├── tests/                     ← unittest suite (services + end-to-end smoke)
-│
-└── data/
-    ├── roles.json             ← 15-role seed catalog
-    ├── stacks.json            ← Per-role specialization stacks
-    └── career_compass.db      ← SQLite database (created on first run)
+└── .github/workflows/ci.yml   ← backend tests + frontend type-check & build
 ```
 
 ---
 
 ## 🚀 Setup & Run Locally
 
+Requires **Python 3.11+** and **Node 18+**. Run the backend and frontend in two terminals.
+
 ### 1. Clone
+
 ```bash
 git clone https://github.com/YOUR_USERNAME/career-compass.git
 cd career-compass
 ```
 
-### 2. Create a virtual environment & install dependencies
+### 2. Backend (FastAPI)
+
 ```bash
+cd backend
 python -m venv .venv
 # Windows
 .venv\Scripts\activate
@@ -120,90 +140,112 @@ python -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
+cp .env.example .env        # then set GEMINI_API_KEY and a JWT_SECRET
+python -m uvicorn app.main:app --reload
 ```
 
-### 3. Get a free Gemini API key
-1. Go to [aistudio.google.com](https://aistudio.google.com)
-2. Sign in with Google → **Get API Key** → **Create API key**
-3. Copy the key
+The API serves at <http://localhost:8000> (interactive docs at `/docs`). The SQLite database and
+role catalog are created automatically on first launch.
 
-### 4. Configure the key
+Get a free Gemini key at [aistudio.google.com](https://aistudio.google.com) → **Get API Key**.
+AI features (roadmap, copilot) return `503` until `GEMINI_API_KEY` is set; everything else works without it.
+
+### 3. Frontend (React)
+
 ```bash
-cp .env.example .env
-# then edit .env and replace the placeholder:
-# GEMINI_API_KEY=your_real_key_here
+cd frontend
+npm install
+cp .env.example .env        # VITE_API_BASE_URL=http://localhost:8000
+npm run dev
 ```
 
-### 5. Run
+Open <http://localhost:5173>. The backend's `CORS_ORIGINS` already allows the Vite dev origin.
+
+### 4. Legacy Streamlit app (optional, reference)
+
 ```bash
-streamlit run app.py
+cd legacy
+pip install -r requirements.txt
+streamlit run app.py        # http://localhost:8501
 ```
-Open <http://localhost:8501>.
-
-The SQLite database and role catalog are created automatically on first launch — no manual migration step.
 
 ---
 
-## 🗂️ Data Model (SQLite)
+## 🔌 API Reference
 
-| Table | Purpose |
-|---|---|
-| `users` | Account credentials (hashed passwords) |
-| `profiles` | Candidate questionnaire answers (skills, interests, location, experience) |
-| `roles` | Role catalog seeded from `data/roles.json` |
-| `roadmaps` | Every AI roadmap a user generates (powers **My Roadmaps**) |
-| `study_schedules` | Per-user, per-role study hours and chosen tech stack |
-| `tracker_topics` | Granular syllabus topics with completion markers |
-| `user_sessions` | Remembered sign-in sessions |
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| `GET` | `/health` | — | Service health |
+| `POST` | `/auth/signup` | — | Create an account, returns a JWT |
+| `POST` | `/auth/login` | — | Authenticate, returns a JWT |
+| `GET` | `/auth/me` | ✅ | Current user + profile |
+| `GET` | `/roles` | — | Full role catalog |
+| `GET` | `/roles/categories` | — | Distinct categories |
+| `GET` | `/roles/{role_id}` | — | Single role |
+| `GET` | `/profile` | ✅ | Saved profile |
+| `PUT` | `/profile` | ✅ | Save profile |
+| `POST` | `/match` | — | Ranked role matches (+ optional AI explanation) |
+| `POST` | `/roadmap` | optional | Generate an AI roadmap (saved when authenticated) |
+| `GET` | `/roadmaps` | ✅ | Saved roadmap library |
+| `DELETE` | `/roadmaps/{id}` | ✅ | Delete a saved roadmap |
+| `GET` | `/tracker/stack/{role_id}` | — | Specialization stack schema |
+| `GET` | `/tracker/schedule/{role_id}` | optional | Study schedule |
+| `PUT` | `/tracker/schedule` | optional | Save schedule (+ rebuild syllabus) |
+| `GET` | `/tracker/topics/{role_id}` | optional | Syllabus topics + metrics |
+| `PATCH` | `/tracker/topics/{topic_id}` | optional | Toggle a topic |
+| `POST` | `/chat` | — | Copilot reply (non-streaming) |
+| `POST` | `/chat/stream` | — | Copilot reply (streamed text) |
 
----
-
-## 🎯 Roles Covered (15)
-
-| Category | Roles |
-|---|---|
-| Development | Backend Dev, Frontend Dev, Full Stack Dev, Forward-Deployed Engineer |
-| AI / ML | AI/GenAI (Agentic) Engineer, ML Engineer, Data Scientist |
-| Data & Analytics | Data Engineer, Data Analyst |
-| Infrastructure | Cloud Engineer, SRE / Platform Engineer |
-| Business | Business Analyst, Associate Product Manager |
-| Quality | QA / Automation Engineer |
-| Security | Cybersecurity Analyst |
-
----
-
-## 🤖 AI Integration Details
-
-- **Role match explanation** — Gemini explains, in natural language, why your matched roles fit your profile.
-- **Personalized roadmap** — a 3-phase plan (Immediate Focus → Level Up → High-Growth) tailored to skills you *don't* already have.
-- **Structured output** — uses `response_mime_type="application/json"` for reliable, parseable responses.
-- **Portfolio projects** — 3 role-specific project ideas with difficulty and validated skills.
-- **Roadmap Copilot** — a context-aware multi-turn chat pre-seeded with your profile, role, and roadmap.
-- **Graceful config handling** — if `GEMINI_API_KEY` is missing, the app shows a friendly setup prompt instead of crashing.
+Full OpenAPI schema is available at `/docs` and `/openapi.json`.
 
 ---
 
-## 🧪 Testing
+## 🔐 Auth & Security
 
-The suite uses the standard library's `unittest` (no extra dependencies). It covers
-hashing, matching, tracker math, AI response parsing and roadmap export, plus an
-end-to-end smoke test that renders **every view** headlessly:
+- **JWT bearer tokens** (HS256). The frontend stores the token in `sessionStorage`, so sign-in is
+  scoped to the browser tab and cleared when it closes — no cross-restart "remember me".
+- Passwords are stored with salted **PBKDF2-HMAC-SHA256** (200k iterations); legacy unsalted hashes
+  are upgraded automatically on next successful login.
+
+---
+
+## 🤖 AI Integration
+
+- **Role match explanation** — Gemini explains, in natural language, why your matched roles fit.
+- **Personalized roadmap** — a 3-phase plan tailored to skills you *don't* already have.
+- **Structured output** — `response_mime_type="application/json"` with JSON extract + validate + retry.
+- **Roadmap Copilot** — a context-aware multi-turn chat, streamed chunk-by-chunk.
+- **Graceful degradation** — a missing key surfaces a friendly `503`; the frontend shows setup
+  guidance, and the match grid still renders because the AI assessment loads independently.
+
+---
+
+## 🧪 Testing & CI
+
+Backend integration tests use the standard library's `unittest` (no extra dependencies):
 
 ```bash
+cd backend
 python -m unittest discover -s tests -t . -v
 ```
 
-GitHub Actions runs the same command on every push (see `.github/workflows/ci.yml`).
+The frontend is checked with the TypeScript compiler and a production build:
+
+```bash
+cd frontend
+npm run typecheck
+npm run build
+```
+
+GitHub Actions runs both on every push and pull request (see `.github/workflows/ci.yml`).
 
 ---
 
 ## ⚠️ Known Limitations & Roadmap
 
-Tracked honestly, because these are the next things to fix:
-
-- **Sessions** — sign-in is scoped to the current browser session (no persistent "remember me"); a cookie-based option is planned. Passwords are stored with salted **PBKDF2-HMAC-SHA256**.
 - **AI SDK** — `google-generativeai` is deprecated by Google; migrating to `google-genai` is planned.
-- **Theming** — a single polished light theme; a dark mode would require a Streamlit theme-config approach.
+- **Refresh tokens** — access tokens are long-lived for a demo; refresh-token rotation is future work.
+- **Theming** — a single polished light theme.
 
 ---
 

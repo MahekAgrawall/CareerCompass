@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-slate-50 font-sans text-slate-900 antialiased;
+    letter-spacing: -0.01em;
+  }
+
+  code,
+  pre,
+  kbd {
+    @apply font-mono;
+  }
+}
+
+@layer components {
+  .badge {
+    @apply mb-1.5 mr-1.5 inline-flex items-center rounded-md px-2.5 py-[3px] text-xs font-semibold;
+  }
+  .badge-demand {
+    @apply border border-red-200 bg-red-100 text-red-800;
+  }
+  .badge-comp {
+    @apply border border-amber-200 bg-amber-100 text-amber-800;
+  }
+  .badge-future {
+    @apply border border-green-200 bg-green-100 text-green-800;
+  }
+  .badge-match {
+    @apply border border-brand-200 bg-brand-50 font-bold text-brand-700;
+  }
+  .badge-niche {
+    @apply border border-purple-200 bg-purple-100 text-purple-800;
+  }
+  .badge-muted {
+    @apply border border-slate-200 bg-slate-100 text-slate-600;
+  }
+
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm transition duration-200;
+  }
+  .card-hover {
+    @apply hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply border border-brand-700 bg-brand-600 text-white hover:bg-brand-700 hover:shadow-[0_4px_12px_rgba(67,56,202,0.25)];
+  }
+  .btn-secondary {
+    @apply border border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50;
+  }
+  .btn-danger {
+    @apply border border-red-200 bg-white text-red-700 hover:bg-red-50;
+  }
+  .btn-ghost {
+    @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-semibold text-slate-700;
+  }
+  .caption {
+    @apply text-sm text-slate-500;
+  }
+
+  .hero-card {
+    @apply mb-7 rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-white;
+  }
+
+  .subtopic {
+    @apply relative mb-1 ml-6 text-sm text-slate-600;
+  }
+  .subtopic::before {
+    content: "•";
+    @apply absolute -left-3 font-bold text-slate-400;
+  }
+
+  .section-title {
+    @apply text-xl font-bold tracking-tight text-slate-900;
+  }
+
+  .chip {
+    @apply cursor-pointer select-none rounded-full border px-3 py-1.5 text-sm font-medium transition;
+  }
+  .chip-on {
+    @apply border-brand-600 bg-brand-600 text-white;
+  }
+  .chip-off {
+    @apply border-slate-300 bg-white text-slate-600 hover:border-brand-400 hover:text-brand-700;
+  }
+}

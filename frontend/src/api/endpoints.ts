@@ -1,0 +1,119 @@
+/** Typed, endpoint-per-function API surface. */
+import { api, apiStream } from "./client";
+import type {
+  ChatMessage,
+  MatchResponse,
+  MeResponse,
+  Profile,
+  Roadmap,
+  Role,
+  SavedRoadmap,
+  Schedule,
+  StackSchema,
+  TokenResponse,
+  Topic,
+  TrackerState,
+  User,
+} from "./types";
+
+// ── Meta ──────────────────────────────────────────────────────────────────────
+export const getHealth = () => api.get<{ status: string; service: string; version: string }>("/health");
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+export const signup = (name: string, email: string, password: string) =>
+  api.post<TokenResponse>("/auth/signup", { name, email, password });
+
+export const login = (email: string, password: string) =>
+  api.post<TokenResponse>("/auth/login", { email, password });
+
+export const getMe = () => api.get<MeResponse>("/auth/me");
+
+// ── Profile ───────────────────────────────────────────────────────────────────
+export const getProfile = () => api.get<Partial<Profile>>("/profile");
+export const saveProfile = (profile: Profile) => api.put<Profile>("/profile", profile);
+
+// ── Roles ─────────────────────────────────────────────────────────────────────
+export const listRoles = () => api.get<Role[]>("/roles");
+export const listCategories = () => api.get<string[]>("/roles/categories");
+export const getRole = (roleId: string) => api.get<Role>(`/roles/${encodeURIComponent(roleId)}`);
+
+// ── Matching ──────────────────────────────────────────────────────────────────
+export const matchRoles = (interests: string[], currentSkills: string[], explain = true) =>
+  api.post<MatchResponse>("/match", { interests, current_skills: currentSkills, explain });
+
+// ── Roadmap ───────────────────────────────────────────────────────────────────
+export const generateRoadmap = (roleId: string, profile: Partial<Profile>, signal?: AbortSignal) =>
+  api.post<Roadmap>("/roadmap", { role_id: roleId, profile }, { signal });
+
+export const listSavedRoadmaps = () => api.get<SavedRoadmap[]>("/roadmaps");
+
+export const deleteSavedRoadmap = (roadmapId: number) =>
+  api.del<void>(`/roadmaps/${roadmapId}`);
+
+// ── Tracker ───────────────────────────────────────────────────────────────────
+export const getStackSchema = (roleId: string) =>
+  api.get<StackSchema>(`/tracker/stack/${encodeURIComponent(roleId)}`);
+
+export const getTracker = (roleId: string) =>
+  api.get<TrackerState>(`/tracker/topics/${encodeURIComponent(roleId)}`);
+
+export const getSchedule = (roleId: string) =>
+  api.get<Schedule>(`/tracker/schedule/${encodeURIComponent(roleId)}`);
+
+export const saveSchedule = (payload: {
+  role_id: string;
+  weekday_hours: number;
+  weekend_hours: number;
+  target_languages: string[];
+}) =>
+  api.put<{ schedule: Schedule; topics: Topic[]; metrics: TrackerState["metrics"] }>(
+    "/tracker/schedule",
+    payload,
+  );
+
+export const toggleTopic = (topicId: number, isCompleted: boolean) =>
+  api.patch<{ id: number; is_completed: boolean }>(`/tracker/topics/${topicId}`, {
+    is_completed: isCompleted,
+  });
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+export const sendChat = (payload: {
+  roleId: string;
+  roadmap: Roadmap;
+  message: string;
+  history: ChatMessage[];
+  profile: Partial<Profile>;
+}) =>
+  api.post<{ reply: string }>("/chat", {
+    role_id: payload.roleId,
+    roadmap: payload.roadmap,
+    new_message: payload.message,
+    history: payload.history,
+    profile: payload.profile,
+  });
+
+export const streamChat = (
+  payload: {
+    roleId: string;
+    roadmap: Roadmap;
+    message: string;
+    history: ChatMessage[];
+    profile: Partial<Profile>;
+  },
+  onChunk: (text: string) => void,
+  signal?: AbortSignal,
+) =>
+  apiStream(
+    "/chat/stream",
+    {
+      role_id: payload.roleId,
+      roadmap: payload.roadmap,
+      new_message: payload.message,
+      history: payload.history,
+      profile: payload.profile,
+    },
+    onChunk,
+    signal,
+  );
+
+export type { User };
