@@ -1,23 +1,33 @@
-# Environment variables & API keys
+# ── Secrets & environment ─────────────────────────────────────────────────────
 .env
 *.env
+.env.local
+*.env.local
 
-# Python bytecode & cache
+# ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-
-# Virtual environment
-venv/
 .venv/
+venv/
 env/
+.pytest_cache/
 
-# Streamlit config
-.streamlit/secrets.toml
-
-# User accounts & session cache
-data/users.json
-data/session.json
+# ── Databases & local data ────────────────────────────────────────────────────
 *.db
 data/*.db
+legacy/data/*.db
+legacy/data/users.json
+legacy/data/session.json
+
+# ── Streamlit ─────────────────────────────────────────────────────────────────
+.streamlit/secrets.toml
+
+# ── Node / frontend ───────────────────────────────────────────────────────────
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+*.log
