@@ -255,6 +255,12 @@ cd backend
 python -m unittest discover -s tests -t . -v
 ```
 
+`tests/harness.py` redirects the app to a throwaway SQLite database in a temp directory,
+so the suite never reads or writes `backend/data/career_compass.db`. `test_api.py` covers
+the endpoint contracts (and per-user ownership); `test_e2e_journey.py` walks the full
+candidate journey end to end. An individual file also runs directly, e.g.
+`python tests/test_e2e_journey.py`.
+
 **Frontend** (TypeScript check + production build):
 ```powershell
 cd frontend

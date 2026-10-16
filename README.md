@@ -95,7 +95,7 @@ career-compass/
 │   ├── services/              ← ai · career · tracker · auth (shared domain logic)
 │   ├── database/db.py         ← connection, schema, role seeding
 │   ├── data/                  ← roles.json · stacks.json
-│   ├── tests/test_api.py      ← FastAPI integration tests (unittest)
+│   ├── tests/                 ← unittest: API integration + end-to-end journey
 │   ├── requirements.txt
 │   └── .env.example
 │
@@ -231,6 +231,15 @@ Backend integration tests use the standard library's `unittest` (no extra depend
 cd backend
 python -m unittest discover -s tests -t . -v
 ```
+
+The suite is fully isolated: `tests/harness.py` points the app at a throwaway SQLite
+database in a temporary directory, so no test can read or touch
+`backend/data/career_compass.db`. `tests/test_api.py` pins the endpoint contracts —
+auth, role catalog, matching, tracker, profiles and saved roadmaps, including that a
+user can only ever reach their own records. `tests/test_e2e_journey.py` walks the whole
+candidate journey end to end: browse → register → sign in → profile → ranked matches →
+role detail → study plan → tick off a topic → saved library, plus a check that progress
+survives a new session.
 
 The frontend is checked with the TypeScript compiler and a production build:
 

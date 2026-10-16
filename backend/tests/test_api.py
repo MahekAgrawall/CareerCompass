@@ -1,63 +1,23 @@
 """API integration tests (FastAPI TestClient).
 
-These tests run against a throwaway SQLite database inside a temporary directory,
-so they can never read or mutate a developer's real `backend/data/career_compass.db`.
+Every test runs against a throwaway SQLite database provided by `tests.harness`,
+so none of them can read or mutate a developer's real `backend/data/career_compass.db`.
 """
 import os
-import shutil
 import sys
-import tempfile
 import unittest
-import uuid
-import warnings
 
-warnings.filterwarnings("ignore")
+# Supports both package discovery and `python tests/test_api.py`.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, ROOT)
-os.chdir(ROOT)
+from tests.harness import client, signup, unique_email  # noqa: E402
 
-from fastapi.testclient import TestClient  # noqa: E402
-
-import database.db as db  # noqa: E402
-
-# Redirect persistence to an isolated temp DB *before* the app or init_db is used.
-_TMP_DIR = tempfile.mkdtemp(prefix="careercompass_tests_")
-db.DB_PATH = os.path.join(_TMP_DIR, "career_compass_test.db")
-
-# app.config requires a real JWT_SECRET (no insecure fallback). Supply a
-# test-only value unless the environment already provides one (e.g. in CI).
-os.environ.setdefault("JWT_SECRET", "test-only-secret-" + "0" * 40)
-
-from app.main import app  # noqa: E402
 from services import ai_service, auth_service  # noqa: E402
-
-client = TestClient(app)
-
-
-def setUpModule():
-    db.init_db()
-
-
-def tearDownModule():
-    shutil.rmtree(_TMP_DIR, ignore_errors=True)
-
-
-def _unique_email() -> str:
-    return f"test_{uuid.uuid4().hex[:10]}@example.com"
-
-
-def _signup(name: str = "Test User") -> dict:
-    """Creates a fresh account and returns an Authorization header for it."""
-    email = _unique_email()
-    r = client.post("/auth/signup", json={"name": name, "email": email, "password": "password123"})
-    assert r.status_code == 201, r.text
-    return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
 class AuthFlowTests(unittest.TestCase):
     def test_signup_login_me(self):
-        email = _unique_email()
+        email = unique_email()
         r = client.post("/auth/signup", json={"name": "Test User", "email": email, "password": "password123"})
         self.assertEqual(r.status_code, 201, r.text)
         body = r.json()
@@ -73,13 +33,13 @@ class AuthFlowTests(unittest.TestCase):
         self.assertEqual(login.status_code, 200)
 
     def test_duplicate_signup_rejected(self):
-        email = _unique_email()
+        email = unique_email()
         payload = {"name": "Dup", "email": email, "password": "password123"}
         self.assertEqual(client.post("/auth/signup", json=payload).status_code, 201)
         self.assertEqual(client.post("/auth/signup", json=payload).status_code, 400)
 
     def test_login_wrong_password(self):
-        email = _unique_email()
+        email = unique_email()
         client.post("/auth/signup", json={"name": "X", "email": email, "password": "password123"})
         r = client.post("/auth/login", json={"email": email, "password": "wrongpass"})
         self.assertEqual(r.status_code, 401)
@@ -88,7 +48,7 @@ class AuthFlowTests(unittest.TestCase):
         self.assertEqual(client.get("/auth/me").status_code, 401)
 
     def test_short_password_rejected(self):
-        r = client.post("/auth/signup", json={"name": "X", "email": _unique_email(), "password": "short"})
+        r = client.post("/auth/signup", json={"name": "X", "email": unique_email(), "password": "short"})
         self.assertEqual(r.status_code, 422)
 
 
@@ -129,7 +89,7 @@ class MatchTests(unittest.TestCase):
 
 class TrackerTests(unittest.TestCase):
     def test_stack_and_topics_and_toggle(self):
-        headers = _signup("Tracker User")
+        headers = signup("Tracker User")
 
         # The stack catalogue is public — it is static config, not user data.
         r = client.get("/tracker/stack/backend_dev")
@@ -147,7 +107,7 @@ class TrackerTests(unittest.TestCase):
         self.assertTrue(toggle.json()["is_completed"])
 
     def test_save_schedule(self):
-        headers = _signup("Scheduler")
+        headers = signup("Scheduler")
         r = client.put("/tracker/schedule", json={
             "role_id": "backend_dev",
             "weekday_hours": 2.0,
@@ -178,8 +138,8 @@ class TrackerAccessControlTests(unittest.TestCase):
         )
 
     def test_user_cannot_toggle_another_users_topic(self):
-        alice = _signup("Alice")
-        bob = _signup("Bob")
+        alice = signup("Alice")
+        bob = signup("Bob")
 
         topics = client.get("/tracker/topics/backend_dev", headers=alice).json()["topics"]
         self.assertTrue(topics)
@@ -199,13 +159,13 @@ class TrackerAccessControlTests(unittest.TestCase):
         self.assertEqual(ok.status_code, 200)
 
     def test_unknown_topic_id_returns_404(self):
-        headers = _signup("Nora")
+        headers = signup("Nora")
         r = client.patch("/tracker/topics/999999", json={"is_completed": True}, headers=headers)
         self.assertEqual(r.status_code, 404)
 
     def test_schedules_are_isolated_per_user(self):
-        alice = _signup("Alice S")
-        bob = _signup("Bob S")
+        alice = signup("Alice S")
+        bob = signup("Bob S")
 
         client.put("/tracker/schedule", json={
             "role_id": "backend_dev", "weekday_hours": 3.0,
@@ -227,8 +187,8 @@ class ProfileAccessControlTests(unittest.TestCase):
         self.assertEqual(client.put("/profile", json={}).status_code, 401)
 
     def test_profiles_are_private(self):
-        alice = _signup("P Alice")
-        bob = _signup("P Bob")
+        alice = signup("P Alice")
+        bob = signup("P Bob")
 
         client.put("/profile", json={
             "name": "Alice", "grad_year": "2025", "experience": "Student / Fresher",
@@ -246,8 +206,8 @@ class RoadmapAccessControlTests(unittest.TestCase):
         self.assertEqual(client.delete("/roadmaps/1").status_code, 401)
 
     def test_saved_roadmaps_are_scoped_to_the_owner(self):
-        alice = _signup("R Alice")
-        bob = _signup("R Bob")
+        alice = signup("R Alice")
+        bob = signup("R Bob")
 
         alice_id = client.get("/auth/me", headers=alice).json()["id"]
         auth_service.save_roadmap(
