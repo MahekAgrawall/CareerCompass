@@ -6,7 +6,13 @@ Handles database queries for roles, market intelligence retrieval, and smart can
 import json
 import re
 from typing import List, Dict, Any, Optional
+from config import SKILL_OPTIONS
 from database.db import get_connection
+
+# How much each half of the score is worth. Kept here (not in the UI) so the
+# explanation a candidate reads can never drift from the ranking they see.
+INTEREST_WEIGHT = 65
+SKILL_WEIGHT = 35
 
 
 def _row_to_role_dict(row) -> Dict[str, Any]:
@@ -125,21 +131,55 @@ def _terms_overlap(user_term: str, role_term: str) -> bool:
     return bool(_keywords(u) & _keywords(r))
 
 
+def suggested_skills_for(role_skills: List[str], user_skills: List[str]) -> List[str]:
+    """
+    Profile chips the candidate could add that this role genuinely scores on.
+
+    Relevance uses a *stricter* test than the scorer: whole-token overlap only,
+    never substring containment. That keeps the advice honest in both
+    directions — a suggestion is always a real scoring keyword of the role
+    (adding it therefore cannot lower the skill half of the score), while the
+    loose substring rule can never leak a bogus tip such as "Go" for a
+    MongoDB role.
+    """
+    def already_counted(chip: str) -> bool:
+        return any(_terms_overlap(chip, user_skill) for user_skill in user_skills)
+
+    def is_scoring_keyword_of_role(chip: str) -> bool:
+        tokens = _keywords(chip)
+        return any(tokens & _keywords(role_skill) for role_skill in role_skills)
+
+    return [
+        chip for chip in SKILL_OPTIONS
+        if not already_counted(chip) and is_scoring_keyword_of_role(chip)
+    ]
+
+
 def match_roles_smart(profile: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
     Ranks roles by interest fit (65% weight) and existing-skill fit (35% weight).
 
     Each result is a dict:
         {"role": role, "score": int,
-         "matched_interests": [...], "matched_skills": [...]}
+         "interest_score": int, "skill_score": int,
+         "matched_interests": [...], "matched_skills": [...],
+         "suggested_skills": [...]}
+
+    Matching is deliberately explainable: the two component scores are 0-100
+    percentages of what the candidate actually supplied, they are what the
+    final `score` is computed from, and `suggested_skills` names the profile
+    chips that would move the skill half. A candidate can therefore reproduce
+    the number on screen by hand.
 
     Roles with zero genuine interest alignment are excluded, so every result
     reflects at least one interest the candidate explicitly chose. Scores are
     honest — there is no artificial floor or ceiling.
     """
     roles = get_all_roles()
-    user_skills = [s.strip().lower() for s in profile.get("current_skills", []) if s.strip()]
-    user_interests = [i.strip().lower() for i in profile.get("interests", []) if i.strip()]
+    # Original casing is preserved in the output so the explanation can quote the
+    # candidate's own chips; every comparison below is case-insensitive anyway.
+    user_skills = [s.strip() for s in profile.get("current_skills", []) if s.strip()]
+    user_interests = [i.strip() for i in profile.get("interests", []) if i.strip()]
 
     if not user_interests:
         return []
@@ -162,17 +202,24 @@ def match_roles_smart(profile: Dict[str, Any]) -> List[Dict[str, Any]]:
             if any(_terms_overlap(us, rs) for rs in role_skills)
         ]
 
-        interest_score = len(matched_interests) / len(user_interests)
-        skill_score = (len(matched_skills) / len(user_skills)) if user_skills else 0.0
+        interest_score = int(round(len(matched_interests) / len(user_interests) * 100))
+        skill_score = int(round(len(matched_skills) / len(user_skills) * 100)) if user_skills else 0
 
-        score = int(round(interest_score * 65 + skill_score * 35))
+        # Computed from the rounded percentages the candidate can see, so the
+        # displayed components always add up to the displayed score. Integer
+        # half-up rounding (not Python's banker's rounding) because that is the
+        # arithmetic a reader does in their head.
+        score = (interest_score * INTEREST_WEIGHT + skill_score * SKILL_WEIGHT + 50) // 100
         score = max(0, min(100, score))
 
         results.append({
             "role": role,
             "score": score,
+            "interest_score": interest_score,
+            "skill_score": skill_score,
             "matched_interests": matched_interests,
             "matched_skills": matched_skills,
+            "suggested_skills": suggested_skills_for(role_skills, user_skills),
         })
 
     results.sort(key=lambda item: item["score"], reverse=True)

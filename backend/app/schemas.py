@@ -58,13 +58,21 @@ class MatchRequest(BaseModel):
 class MatchResult(BaseModel):
     role: Dict[str, Any]
     score: int
+    # Component scores (0-100) — the exact figures `score` is computed from.
+    interest_score: int
+    skill_score: int
     matched_interests: List[str]
     matched_skills: List[str]
+    # Profile chips that would raise the skill half of this match.
+    suggested_skills: List[str]
 
 
 class MatchResponse(BaseModel):
     results: List[MatchResult]
     explanation: str = ""
+    # Weights behind `score`, published so clients explain the same maths.
+    interest_weight: int
+    skill_weight: int
 
 
 # ── Roadmap ───────────────────────────────────────────────────────────────────

@@ -24,4 +24,6 @@ def match(payload: schemas.MatchRequest):
     return schemas.MatchResponse(
         results=[schemas.MatchResult(**item) for item in results],
         explanation=explanation,
+        interest_weight=career_service.INTEREST_WEIGHT,
+        skill_weight=career_service.SKILL_WEIGHT,
     )

@@ -93,7 +93,9 @@ class EndToEndJourneyTests(unittest.TestCase):
             "explain": False,
         }, headers=auth)
         self.assertEqual(matched.status_code, 200, matched.text)
-        results = matched.json()["results"]
+        body = matched.json()
+        weights = (body["interest_weight"], body["skill_weight"])
+        results = body["results"]
         self.assertTrue(results)
 
         scores = [item["score"] for item in results]
@@ -102,6 +104,12 @@ class EndToEndJourneyTests(unittest.TestCase):
             self.assertIn(item["role"]["id"], catalog_ids, "matches must be real roles")
             self.assertTrue(item["matched_interests"], "no match without interest synergy")
             self.assertTrue(0 <= item["score"] <= 100)
+            # Transparent matching: what the candidate is shown must add up.
+            self.assertEqual(
+                item["score"],
+                (item["interest_score"] * weights[0] + item["skill_score"] * weights[1] + 50) // 100,
+                "a match score nobody can reproduce is not a transparent score",
+            )
 
         # 6. Open a role detail page.
         chosen = ROLE_ID

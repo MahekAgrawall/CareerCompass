@@ -94,6 +94,12 @@ export default function MatchesPage() {
       <p className="caption mt-1">
         Filtered strictly according to your selected career interests and current technical baseline.
       </p>
+      {resultsQuery.data && (
+        <p className="caption mt-1">
+          Every match is explained: score = {resultsQuery.data.interest_weight}% interest fit +{" "}
+          {resultsQuery.data.skill_weight}% skill fit. Open “Why this matched” on any card to check the arithmetic.
+        </p>
+      )}
 
       <div className="my-4 space-y-3">
         {message && <Alert tone="warning">{message}</Alert>}

@@ -15,7 +15,7 @@ and the original **Streamlit** app preserved in `legacy/` for reference.
 
 | Feature | What it does |
 |---|---|
-| 🎯 **Interest-first role matching** | Ranks roles by how well they align with your *stated* interests (65% weight) and your existing skills (35% weight), and filters out roles with zero interest synergy. |
+| 🎯 **Interest-first, transparent role matching** | Ranks roles by how well they align with your *stated* interests (65% weight) and your existing skills (35% weight), and filters out roles with zero interest synergy. Every card shows the arithmetic: the two component scores, the interests and skills that counted, and the profile chips that would raise the match. |
 | 📚 **Role catalog** | 30 curated corporate and modern engineering roles across 8 categories — including AI/ML, data, cloud, security, hardware and product tracks — each with responsibilities, qualifications, growth paths, and hiring companies. |
 | 💰 **India salary benchmarks** | Fresher (0–1 yr), mid (1–3 yrs), and senior (3+ yrs) CTC ranges aggregated from AmbitionBox, Glassdoor, and LinkedIn India tech data. |
 | 🤖 **AI skill roadmap** | Google Gemini generates a structured 3-phase plan (Immediate → Level Up → Explore) with one curated free resource per skill. |
@@ -196,7 +196,7 @@ streamlit run app.py        # http://localhost:8501
 | `GET` | `/roles/{role_id}` | — | Single role |
 | `GET` | `/profile` | ✅ | Saved profile |
 | `PUT` | `/profile` | ✅ | Save profile |
-| `POST` | `/match` | — | Ranked role matches (+ optional AI explanation) |
+| `POST` | `/match` | — | Ranked role matches with a score breakdown (+ optional AI explanation) |
 | `POST` | `/roadmap` | optional | Generate an AI roadmap (saved when authenticated) |
 | `GET` | `/roadmaps` | ✅ | Saved roadmap library |
 | `DELETE` | `/roadmaps/{id}` | ✅ | Delete a saved roadmap |
@@ -223,7 +223,8 @@ Full OpenAPI schema is available at `/docs` and `/openapi.json`.
 
 ## 🤖 AI Integration
 
-- **Role match explanation** — Gemini explains, in natural language, why your matched roles fit.
+- **Role match explanation** — the score breakdown (interest vs skill fit, matched chips, what to add) is
+  computed deterministically and needs no API key; Gemini adds a natural-language assessment on top.
 - **Personalized roadmap** — a 3-phase plan tailored to skills you *don't* already have.
 - **Structured output** — `response_mime_type="application/json"` with JSON extract + validate + retry.
 - **Roadmap Copilot** — a context-aware multi-turn chat, streamed chunk-by-chunk.
@@ -255,7 +256,10 @@ role detail → study plan → tick off a topic → saved library, plus a check 
 survives a new session. `tests/test_tracker_syllabus.py` guards the study plans: every
 catalogued role has a tailored stack, every option maps onto real content, every
 combination produces a usable plan, and the original roles' shipped plans are pinned so
-adding content for newer roles cannot rewrite them.
+adding content for newer roles cannot rewrite them. `tests/test_matching.py` guards the
+transparency contract: the two component scores reproduce the published score, half-point
+scores round the way a reader rounds them, and every suggested skill is a real chip that
+cannot lower the match it was offered for.
 
 The frontend is checked with the TypeScript compiler and a production build:
 

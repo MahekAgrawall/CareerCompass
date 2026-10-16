@@ -77,13 +77,21 @@ export interface Role {
 export interface MatchResult {
   role: Role;
   score: number;
+  /** 0-100: share of the candidate's interests this role covers. */
+  interest_score: number;
+  /** 0-100: share of the candidate's skills this role uses. */
+  skill_score: number;
   matched_interests: string[];
   matched_skills: string[];
+  /** Profile chips that would raise the skill half of this match. */
+  suggested_skills: string[];
 }
 
 export interface MatchResponse {
   results: MatchResult[];
   explanation: string;
+  interest_weight: number;
+  skill_weight: number;
 }
 
 // ── Roadmap ───────────────────────────────────────────────────────────────────

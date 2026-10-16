@@ -12,6 +12,19 @@ interface RoleCardProps {
   onCompareFull?: () => void;
 }
 
+/** One component of the match score, shown as a 0-100 bar. */
+function ScoreBar({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-[4.5rem] shrink-0 text-slate-500">{label}</span>
+      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
+        <span className="block h-full rounded-full bg-brand-500" style={{ width: `${value}%` }} />
+      </span>
+      <span className="w-8 shrink-0 text-right font-semibold text-slate-700">{value}%</span>
+    </div>
+  );
+}
+
 export default function RoleCard({ role, match, onCompareFull }: RoleCardProps) {
   const { isSelected, add, toggle, count, max } = useCompare();
   const selected = isSelected(role.id);
@@ -28,14 +41,11 @@ export default function RoleCard({ role, match, onCompareFull }: RoleCardProps) 
     if (!add(role)) onCompareFull?.();
   };
 
-  const matchedBits: string[] = [];
-  if (match?.matched_skills?.length) {
-    matchedBits.push(`skills: ${match.matched_skills.slice(0, 3).join(", ")}`);
-  }
-  if (match?.matched_interests?.length) {
-    const pretty = match.matched_interests.slice(0, 2).map((i) => i.charAt(0).toUpperCase() + i.slice(1));
-    matchedBits.push(`interests: ${pretty.join(", ")}`);
-  }
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  const matchSummary = match
+    ? `${plural(match.matched_interests.length, "interest")} · ${plural(match.matched_skills.length, "skill")}`
+    : "";
+  const extraSuggestions = match ? match.suggested_skills.length - 4 : 0;
 
   const sal = role.salary;
 
@@ -65,8 +75,31 @@ export default function RoleCard({ role, match, onCompareFull }: RoleCardProps) 
 
       <p className="mt-2 text-sm leading-relaxed text-slate-600">{truncate(role.description, 125)}</p>
 
-      {matchedBits.length > 0 && (
-        <p className="mt-2 text-xs text-slate-500">✓ Matched on {matchedBits.join("  ·  ")}</p>
+      {match && (
+        <details className="mt-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+          <summary className="cursor-pointer font-semibold text-slate-600">
+            Why this matched · {matchSummary}
+          </summary>
+          <div className="mt-2 space-y-2 text-slate-600">
+            <ScoreBar label="Interests" value={match.interest_score} />
+            <ScoreBar label="Skills" value={match.skill_score} />
+            <p>
+              <span className="font-semibold text-slate-700">Interests matched: </span>
+              {match.matched_interests.join(", ")}
+            </p>
+            <p>
+              <span className="font-semibold text-slate-700">Skills this role uses: </span>
+              {match.matched_skills.length > 0 ? match.matched_skills.join(", ") : "none of your current skills yet"}
+            </p>
+            {match.suggested_skills.length > 0 && (
+              <p>
+                <span className="font-semibold text-slate-700">Add to raise this match: </span>
+                {match.suggested_skills.slice(0, 4).join(", ")}
+                {extraSuggestions > 0 && ` +${extraSuggestions} more`}
+              </p>
+            )}
+          </div>
+        </details>
       )}
 
       <p className="mt-3 text-sm font-semibold text-slate-700">
