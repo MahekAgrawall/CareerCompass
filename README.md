@@ -16,7 +16,7 @@ and the original **Streamlit** app preserved in `legacy/` for reference.
 | Feature | What it does |
 |---|---|
 | 🎯 **Interest-first role matching** | Ranks roles by how well they align with your *stated* interests (65% weight) and your existing skills (35% weight), and filters out roles with zero interest synergy. |
-| 📚 **Role catalog** | 15 curated corporate and modern engineering roles with responsibilities, qualifications, growth paths, and hiring companies. |
+| 📚 **Role catalog** | 30 curated corporate and modern engineering roles across 8 categories — including AI/ML, data, cloud, security, hardware and product tracks — each with responsibilities, qualifications, growth paths, and hiring companies. |
 | 💰 **India salary benchmarks** | Fresher (0–1 yr), mid (1–3 yrs), and senior (3+ yrs) CTC ranges aggregated from AmbitionBox, Glassdoor, and LinkedIn India tech data. |
 | 🤖 **AI skill roadmap** | Google Gemini generates a structured 3-phase plan (Immediate → Level Up → Explore) with one curated free resource per skill. |
 | 🛠️ **Portfolio projects** | Each roadmap includes 3 hands-on project ideas with difficulty ratings and validated skills. |
@@ -93,7 +93,7 @@ career-compass/
 │   │   ├── dependencies.py    ← get_current_user / get_optional_user
 │   │   └── routers/           ← auth · roles · profile · match · roadmap · tracker · chat
 │   ├── services/              ← ai · career · tracker · auth (shared domain logic)
-│   ├── database/db.py         ← connection, schema, role seeding
+│   ├── database/db.py         ← connection, schema, role-catalog sync
 │   ├── data/                  ← roles.json · stacks.json
 │   ├── tests/                 ← unittest: API integration + end-to-end journey
 │   ├── requirements.txt
@@ -144,8 +144,10 @@ cp .env.example .env        # set JWT_SECRET (required) and GEMINI_API_KEY (opti
 python -m uvicorn app.main:app --reload
 ```
 
-The API serves at <http://localhost:8000> (interactive docs at `/docs`). The SQLite database and
-role catalog are created automatically on first launch.
+The API serves at <http://localhost:8000> (interactive docs at `/docs`). The SQLite database is
+created automatically on first launch, and `backend/data/roles.json` — the catalog's source of
+truth — is synced into it on every startup, so adding or editing a role there is picked up by the
+next restart. Existing roles are updated in place and never deleted.
 
 `JWT_SECRET` is required — generate one with
 `python -c "import secrets; print(secrets.token_urlsafe(48))"`. The API refuses to start without it.
@@ -236,7 +238,11 @@ The suite is fully isolated: `tests/harness.py` points the app at a throwaway SQ
 database in a temporary directory, so no test can read or touch
 `backend/data/career_compass.db`. `tests/test_api.py` pins the endpoint contracts —
 auth, role catalog, matching, tracker, profiles and saved roadmaps, including that a
-user can only ever reach their own records. `tests/test_e2e_journey.py` walks the whole
+user can only ever reach their own records. `tests/test_roles_catalog.py` guards the
+catalog itself: every role carries the full content contract, the salary bands rise
+with seniority, every role is reachable from a real questionnaire answer, and an older
+database gains new roles on startup without losing saved work.
+`tests/test_e2e_journey.py` walks the whole
 candidate journey end to end: browse → register → sign in → profile → ranked matches →
 role detail → study plan → tick off a topic → saved library, plus a check that progress
 survives a new session.

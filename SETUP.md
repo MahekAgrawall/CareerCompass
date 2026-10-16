@@ -168,7 +168,7 @@ npm run dev
 ### 3.4 Verify
 
 Open <http://localhost:5173>. You should see the CareerCompass home page.
-Then try **All Roles** — if 15 roles load, the frontend is talking to the backend.
+Then try **All Roles** — if the full 30-role catalog loads, the frontend is talking to the backend.
 
 Leave this terminal running.
 
@@ -242,8 +242,9 @@ backend's `CORS_ORIGINS`.
 | Frontend loads but no roles appear | Backend isn't running, or `VITE_API_BASE_URL` is wrong. Check <http://127.0.0.1:8000/health>. |
 | Roadmap/Copilot: "AI is not configured" | Set `GEMINI_API_KEY` in `backend/.env` and restart the backend. |
 | Roadmap/Copilot: "took too long to respond" | The request to Gemini timed out (slow/offline connection). Check your network and try again. |
-| Want a clean database | Stop the backend, delete `backend/data/career_compass.db`, restart — it is recreated and reseeded. |
-| Existing database after an upgrade | Nothing to do. On startup `init_db()` appends any columns added since your database was created and keeps every existing row. |
+| Want a clean database | Stop the backend, delete `backend/data/career_compass.db`, restart — it is recreated and the role catalog is loaded from `roles.json` again. |
+| Existing database after an upgrade | Nothing to do. On startup `init_db()` appends any columns added since your database was created, refreshes the role catalog from `roles.json` in place, and keeps every existing row — user profiles, roadmaps and tracker progress included. |
+| Roles are missing after editing `roles.json` | Restart the backend. The catalog is read at startup, and roles are never deleted from the database (so saved roadmaps can't be orphaned), which also means removing a role from the JSON leaves its old row in place. |
 | `FutureWarning` about `google.generativeai` | Harmless; the SDK is deprecated and migration is planned. |
 
 ---

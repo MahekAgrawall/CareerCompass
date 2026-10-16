@@ -584,6 +584,591 @@
       },
       "matching_interests": ["testing", "automation", "coding", "software quality", "debugging"],
       "matching_skills": ["java", "python", "selenium", "sql", "testing", "jira", "postman"]
+    },
+    {
+      "id": "mobile_dev",
+      "title": "Mobile App Developer (Android / iOS)",
+      "category": "Development",
+      "icon": "📱",
+      "market_demand": "High 📈",
+      "competition_level": "High 🔴",
+      "future_relevance": "High (8.6/10 — India's Mobile-First Economy)",
+      "is_niche": false,
+      "niche_category": "Mainstream Core",
+      "description": "India runs on mobile — UPI payments, quick commerce, ed-tech and OTT all reach hundreds of millions of devices. You build those apps: native or cross-platform, obsessed with frame rates, battery drain, offline behaviour and store release cycles.",
+      "responsibilities": [
+        "Build and ship features across the app lifecycle: screens, navigation, state and offline caching",
+        "Integrate REST/GraphQL APIs, push notifications, payments and device hardware (camera, GPS, biometrics)",
+        "Profile and fix jank, memory leaks and battery drain on low-end Android devices",
+        "Write unit and UI/widget tests, and automate builds with Gradle, Fastlane or Xcode CI",
+        "Own releases: store review guidelines, staged rollouts and crash triage"
+      ],
+      "qualifications": [
+        "B.Tech CSE or equivalent with strong OOP and data-structure fundamentals",
+        "One shipped app or a portfolio of projects is the strongest possible signal",
+        "Kotlin/Swift fundamentals, or React Native / Flutter for cross-platform roles",
+        "Patience for device-specific and OS-version-specific bugs"
+      ],
+      "growth_path": ["Junior Mobile Developer", "Mobile Engineer", "Senior Mobile Engineer", "Mobile Tech Lead", "Head of Mobile Engineering"],
+      "salary": {
+        "fresher_0_1": {"min": 4, "max": 9, "label": "0–1 yr"},
+        "mid_1_3": {"min": 9, "max": 20, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 20, "max": 42, "label": "3+ yrs"}
+      },
+      "top_companies": ["Swiggy", "Zomato", "PhonePe", "Flipkart", "CRED", "Razorpay", "Zoho", "Samsung R&D"],
+      "skills": {
+        "must_have": ["Kotlin (Android) or Swift (iOS)", "REST APIs & JSON parsing", "Mobile UI state management", "Git & branching", "Debugging on real devices"],
+        "good_to_have": ["Jetpack Compose or SwiftUI", "React Native / Flutter", "Local storage (Room, CoreData, SQLite)", "Play Store / App Store release process", "Unit & UI testing"],
+        "can_have": ["Basic backend (Node.js / Firebase)", "CI/CD with Fastlane", "Performance profiling tools", "Accessibility on mobile"]
+      },
+      "matching_interests": ["coding", "apps", "ui", "frontend", "mobile", "problem solving"],
+      "matching_skills": ["java", "react", "javascript", "sql", "git"]
+    },
+    {
+      "id": "game_developer",
+      "title": "Game Developer (Unity / Unreal)",
+      "category": "Development",
+      "icon": "🎮",
+      "market_demand": "Moderate–High 📈",
+      "competition_level": "Moderate 🟡",
+      "future_relevance": "Stable (7.8/10 — India's Gaming & VFX Boom)",
+      "is_niche": true,
+      "niche_category": "Specialized Graphics",
+      "description": "India's gaming, esports and VFX market is scaling fast, and studios now hire engine-literate engineers rather than only artists. You write the gameplay systems, physics, AI behaviour and rendering paths that make a game feel good at 60 FPS on a mid-range phone.",
+      "responsibilities": [
+        "Build gameplay systems: player controllers, combat, inventory, level logic and UI in Unity (C#) or Unreal (C++/Blueprints)",
+        "Optimise rendering, physics and memory to hold frame-rate budgets on mobile and console targets",
+        "Implement game AI (pathfinding, state machines, behaviour trees) and networked multiplayer state sync",
+        "Build editor and pipeline tooling so designers can iterate without engineering help",
+        "Run playtests, instrument telemetry and tune difficulty and retention curves"
+      ],
+      "qualifications": [
+        "B.Tech CSE / BCA with strong maths (linear algebra, vectors, trigonometry)",
+        "A finished, playable game in your portfolio — a game-jam entry beats any certificate",
+        "Solid programming fundamentals in C# or C++, including memory and pointers",
+        "Genuine curiosity about how engines work under the hood"
+      ],
+      "growth_path": ["Junior Gameplay Programmer", "Gameplay Engineer", "Senior Gameplay / Engine Programmer", "Lead Game Engineer", "Technical Director"],
+      "salary": {
+        "fresher_0_1": {"min": 3.5, "max": 8, "label": "0–1 yr"},
+        "mid_1_3": {"min": 8, "max": 18, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 18, "max": 40, "label": "3+ yrs"}
+      },
+      "top_companies": ["Ubisoft India", "Rockstar India", "Zynga", "Games24x7", "Dream11", "Nazara Technologies", "Sumo Digital", "Technicolor Games"],
+      "skills": {
+        "must_have": ["C# (Unity) or C++ (Unreal)", "Vector & Linear Algebra", "Data Structures & Algorithms", "Game engine fundamentals", "Git (with LFS for large binaries)"],
+        "good_to_have": ["Shader basics & rendering pipeline", "Game AI (behaviour trees, NavMesh)", "Multiplayer networking & state sync", "Profiling & frame-rate optimisation", "Physics engines"],
+        "can_have": ["3D maths for graphics programming", "Console SDKs (PlayStation / Xbox)", "Live-ops & monetisation systems", "Procedural content generation"]
+      },
+      "matching_interests": ["coding", "problem solving", "games", "graphics", "algorithms", "mathematics"],
+      "matching_skills": ["c++", "c", "algorithms", "problem solving", "git"]
+    },
+    {
+      "id": "embedded_systems_engineer",
+      "title": "Embedded Systems & IoT Engineer",
+      "category": "Hardware & Embedded",
+      "icon": "🔌",
+      "market_demand": "High 📈",
+      "competition_level": "Moderate 🟢",
+      "future_relevance": "High (9.0/10 — EVs, Drones & Smart Devices)",
+      "is_niche": true,
+      "niche_category": "Specialized Hardware",
+      "description": "Every EV, drone, set-top box and payment terminal in India is a computer with no screen attached. You write firmware that talks to sensors and actuators over I2C/SPI/UART/CAN, and make it survive brownouts, heat and a decade of continuous operation.",
+      "responsibilities": [
+        "Write bare-metal and RTOS firmware in C/C++ for microcontrollers (STM32, ESP32, ARM Cortex)",
+        "Bring up peripherals and interfaces: I2C, SPI, UART, CAN, BLE and Wi-Fi stacks",
+        "Read datasheets and schematics, and debug with oscilloscopes, logic analysers and JTAG probes",
+        "Implement power management, watchdog and failsafe behaviour for long-running field devices",
+        "Build hardware-in-the-loop test rigs and CI that flashes firmware onto real boards"
+      ],
+      "qualifications": [
+        "B.Tech in ECE / EEE / CSE with comfort across hardware and software",
+        "Strong C, bit manipulation and interrupt-driven thinking",
+        "A microcontroller project you actually soldered and debugged yourself",
+        "Patience for problems that reproduce on one board in a hundred"
+      ],
+      "growth_path": ["Firmware Trainee", "Embedded Software Engineer", "Senior Firmware Engineer", "Embedded Architect", "Head of Hardware & Firmware"],
+      "salary": {
+        "fresher_0_1": {"min": 4, "max": 9, "label": "0–1 yr"},
+        "mid_1_3": {"min": 9, "max": 18, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 18, "max": 38, "label": "3+ yrs"}
+      },
+      "top_companies": ["Bosch", "Qualcomm", "Continental", "Tata Elxsi", "L&T Technology Services", "Ather Energy", "Ola Electric", "Samsung R&D"],
+      "skills": {
+        "must_have": ["C / Embedded C", "Microcontroller architecture (ARM Cortex-M)", "Interfaces: I2C, SPI, UART, CAN", "RTOS concepts", "Debugging with logic analyser & oscilloscope"],
+        "good_to_have": ["C++ and OOP for firmware", "Linux device drivers & Yocto", "BLE / Wi-Fi / LoRa stacks", "Python for test automation", "Version control & firmware release process"],
+        "can_have": ["AUTOSAR / MISRA-C standards", "FPGA & Verilog exposure", "Embedded device security", "Power electronics fundamentals"]
+      },
+      "matching_interests": ["coding", "problem solving", "hardware", "robotics", "embedded systems", "electronics"],
+      "matching_skills": ["c", "c++", "linux", "python", "git"]
+    },
+    {
+      "id": "analytics_engineer",
+      "title": "Analytics Engineer",
+      "category": "Data & Analytics",
+      "icon": "🧱",
+      "market_demand": "High 📈",
+      "competition_level": "Moderate 🟡",
+      "future_relevance": "High (9.0/10 — The Semantic Layer)",
+      "is_niche": false,
+      "niche_category": "Mainstream Core",
+      "description": "The layer between raw data and dashboards. You model warehouse tables in dbt and SQL, encode each business definition once, and give analysts trustworthy, documented, tested data instead of forty copies of the same query.",
+      "responsibilities": [
+        "Model raw source tables into clean, documented warehouse marts (staging → intermediate → mart)",
+        "Write and review SQL and dbt models with tests, freshness checks and lineage documentation",
+        "Own metric definitions so \"active user\" means the same thing in every dashboard",
+        "Partner with analysts and product teams to turn recurring questions into reusable data models",
+        "Keep warehouse cost and query performance healthy with partitioning and incremental models"
+      ],
+      "qualifications": [
+        "B.Tech / B.Sc / B.Com with strong SQL and data-modelling fundamentals",
+        "Understanding of dimensional modelling (star schema, slowly changing dimensions)",
+        "Exposure to dbt, Airflow or comparable pipeline tooling",
+        "Ability to read a requirement and design the table that answers it"
+      ],
+      "growth_path": ["Data Analyst (SQL)", "Analytics Engineer", "Senior Analytics Engineer", "Lead Analytics Engineer", "Head of Data Platform"],
+      "salary": {
+        "fresher_0_1": {"min": 5, "max": 11, "label": "0–1 yr"},
+        "mid_1_3": {"min": 11, "max": 24, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 24, "max": 50, "label": "3+ yrs"}
+      },
+      "top_companies": ["Zomato", "Swiggy", "Flipkart", "PhonePe", "Atlassian", "ThoughtWorks", "Fractal Analytics", "Tiger Analytics"],
+      "skills": {
+        "must_have": ["Advanced SQL", "Data modelling (star schema, SCD)", "dbt or equivalent transformation tooling", "Git & code review", "Cloud data warehouse (Snowflake / BigQuery / Redshift)"],
+        "good_to_have": ["Python for data pipelines", "Orchestration (Airflow, Dagster)", "BI tools (Power BI, Tableau, Looker)", "Incremental & partitioned models", "Data quality testing"],
+        "can_have": ["Streaming & CDC (Kafka, Debezium)", "Semantic layer tooling", "Cloud warehouse cost optimisation", "Dimensional modelling certifications"]
+      },
+      "matching_interests": ["data", "analytics", "sql", "business", "infrastructure", "reporting"],
+      "matching_skills": ["sql", "python", "tableau", "power", "excel", "git"]
+    },
+    {
+      "id": "product_analyst",
+      "title": "Product Analyst",
+      "category": "Data & Analytics",
+      "icon": "📐",
+      "market_demand": "High 📈",
+      "competition_level": "High 🔴",
+      "future_relevance": "High (8.8/10 — Evidence over Opinion)",
+      "is_niche": false,
+      "niche_category": "Mainstream Core",
+      "description": "Part analyst, part product manager. You instrument funnels, run A/B tests, and answer why the feature that shipped last week did or did not move retention — then argue for what should happen next.",
+      "responsibilities": [
+        "Define and instrument product events and funnels alongside the engineering team",
+        "Design, size and read A/B experiments with statistical honesty",
+        "Build self-serve dashboards for PMs and leadership — and retire the ones nobody opens",
+        "Run cohort, retention and funnel analyses to find exactly where users drop off",
+        "Translate findings into product recommendations with a clear expected impact"
+      ],
+      "qualifications": [
+        "B.Tech / BBA / B.Sc with strong quantitative reasoning",
+        "SQL fluency plus Excel or Sheets modelling; Python or R is a bonus",
+        "Working knowledge of probability and hypothesis testing",
+        "Ability to explain a number's business meaning in one sentence"
+      ],
+      "growth_path": ["Associate Product Analyst", "Product Analyst", "Senior Product Analyst", "Product Data Science Lead", "Director of Product Analytics"],
+      "salary": {
+        "fresher_0_1": {"min": 5, "max": 12, "label": "0–1 yr"},
+        "mid_1_3": {"min": 12, "max": 25, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 25, "max": 55, "label": "3+ yrs"}
+      },
+      "top_companies": ["Flipkart", "Swiggy", "CRED", "Meesho", "Myntra", "Paytm", "Zoho", "PhonePe"],
+      "skills": {
+        "must_have": ["Advanced SQL", "Experiment design & A/B testing", "Funnel, cohort & retention analysis", "Excel / Sheets modelling", "Data storytelling & visualisation"],
+        "good_to_have": ["Python (pandas) or R", "Amplitude / Mixpanel / GA4", "Product metric frameworks (AARRR, North Star)", "Dashboarding (Power BI, Tableau, Metabase)", "Statistics & significance testing"],
+        "can_have": ["dbt & warehouse modelling", "Predictive modelling (churn, LTV)", "Causal inference methods", "Experimentation platforms & feature flags"]
+      },
+      "matching_interests": ["data", "analytics", "product", "business", "experimentation", "insights"],
+      "matching_skills": ["sql", "excel", "power", "tableau", "python", "communication"]
+    },
+    {
+      "id": "nlp_engineer",
+      "title": "NLP & Conversational AI Engineer",
+      "category": "AI / ML",
+      "icon": "🗣️",
+      "market_demand": "Hyper Growth 🚀",
+      "competition_level": "Moderate–High 🔴",
+      "future_relevance": "Exceptional (9.7/10 — Language Is the Interface)",
+      "is_niche": true,
+      "niche_category": "Specialized Language AI",
+      "description": "Language is the interface now: support bots, voice assistants, resume parsers, Indic-language translation. You build the retrieval, embedding, fine-tuning and evaluation pipelines that make models useful on messy real-world text.",
+      "responsibilities": [
+        "Build NLP pipelines: tokenisation, embeddings, retrieval, classification, summarisation and translation",
+        "Fine-tune or prompt models (BERT-family, open LLMs, hosted APIs) and evaluate them rigorously",
+        "Build retrieval-augmented generation over company documents with vector search and re-ranking",
+        "Handle Indic languages, code-mixed text and domain jargon that off-the-shelf models get wrong",
+        "Ship models as services with latency, cost and quality monitoring"
+      ],
+      "qualifications": [
+        "B.Tech / M.Tech with ML fundamentals: probability, linear algebra, optimisation",
+        "Strong Python and PyTorch / Hugging Face Transformers experience",
+        "A project that trains or evaluates a model on real text — not only an API wrapper",
+        "Curiosity about linguistics, failure modes and evaluation design"
+      ],
+      "growth_path": ["ML Associate", "NLP Engineer", "Senior NLP / LLM Engineer", "Applied Science Lead", "Head of Applied AI"],
+      "salary": {
+        "fresher_0_1": {"min": 6, "max": 14, "label": "0–1 yr"},
+        "mid_1_3": {"min": 14, "max": 30, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 30, "max": 65, "label": "3+ yrs"}
+      },
+      "top_companies": ["Google Research", "Microsoft", "Flipkart", "Sarvam AI", "Krutrim", "Observe.AI", "Haptik", "Fractal AI"],
+      "skills": {
+        "must_have": ["Python", "PyTorch or TensorFlow", "Transformers & Hugging Face", "Text preprocessing & embeddings", "Model evaluation (F1, BLEU, RAGAS)"],
+        "good_to_have": ["Vector databases & semantic search", "LLM APIs, prompting & function calling", "RAG architecture", "MLOps & model serving", "Statistics & experiment design"],
+        "can_have": ["Indic language NLP & tokenisation", "Speech-to-text / TTS integration", "Distributed training", "Research paper reproduction"]
+      },
+      "matching_interests": ["ai", "llms", "machine learning", "research", "nlp", "agents"],
+      "matching_skills": ["python", "machine learning", "deep", "pytorch", "llms", "langchain", "fastapi"]
+    },
+    {
+      "id": "computer_vision_engineer",
+      "title": "Computer Vision Engineer",
+      "category": "AI / ML",
+      "icon": "👁️",
+      "market_demand": "High 📈",
+      "competition_level": "Moderate 🟡",
+      "future_relevance": "High (9.4/10 — Machines That See)",
+      "is_niche": true,
+      "niche_category": "Specialized Vision",
+      "description": "Cameras are everywhere: number-plate readers, defect inspection on factory lines, medical imaging, crop monitoring. You build models that turn pixels into decisions, then make them run fast enough on edge hardware.",
+      "responsibilities": [
+        "Build detection, segmentation, tracking and OCR pipelines (YOLO-family, SAM, OpenCV)",
+        "Curate and label datasets, and design augmentation strategies for scarce real-world data",
+        "Optimise inference for edge devices through quantisation, TensorRT, ONNX and Jetson",
+        "Deploy vision services against latency budgets measured in milliseconds",
+        "Measure real-world accuracy: drift, edge cases and false positives that actually matter"
+      ],
+      "qualifications": [
+        "B.Tech / M.Tech with strong linear algebra, geometry and probability",
+        "Python plus PyTorch; C++ is useful for edge deployment",
+        "A project built on real images — drone, webcam, medical or industrial data",
+        "Patience for data cleaning, which is most of the job"
+      ],
+      "growth_path": ["CV Intern", "Computer Vision Engineer", "Senior CV Engineer", "Perception Lead", "Head of AI Engineering"],
+      "salary": {
+        "fresher_0_1": {"min": 6, "max": 14, "label": "0–1 yr"},
+        "mid_1_3": {"min": 14, "max": 30, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 30, "max": 65, "label": "3+ yrs"}
+      },
+      "top_companies": ["Qualcomm", "NVIDIA", "Tata Elxsi", "Cropin", "SigTuple", "Bosch", "HCLTech", "Microsoft Research India"],
+      "skills": {
+        "must_have": ["Python", "PyTorch", "OpenCV & image processing", "CNN architectures & transfer learning", "Dataset curation & annotation workflows"],
+        "good_to_have": ["Detection & segmentation frameworks", "Edge deployment (TensorRT, ONNX, Jetson)", "C++ for performance-critical paths", "Docker & model serving", "3D vision / point clouds"],
+        "can_have": ["Multi-object tracking & re-identification", "Generative vision (diffusion models)", "Camera calibration & sensor fusion", "Video analytics pipelines"]
+      },
+      "matching_interests": ["ai", "machine learning", "research", "computer vision", "deep learning", "robotics"],
+      "matching_skills": ["python", "machine learning", "deep", "pytorch", "c++", "docker", "linux"]
+    },
+    {
+      "id": "mlops_engineer",
+      "title": "MLOps & ML Platform Engineer",
+      "category": "AI / ML",
+      "icon": "🚢",
+      "market_demand": "Very High 🔥",
+      "competition_level": "Moderate 🟢",
+      "future_relevance": "Critical (9.6/10 — Models Must Reach Production)",
+      "is_niche": true,
+      "niche_category": "Specialized MLOps",
+      "description": "Most models never reach production, and the ones that do decay quietly. You own the pipeline that trains, versions, deploys and monitors them — the difference between a notebook and a product.",
+      "responsibilities": [
+        "Build reproducible training pipelines with experiment tracking and model registries (MLflow, DVC)",
+        "Package and serve models behind APIs with autoscaling, canary releases and rollback",
+        "Monitor production models for data drift, concept drift and silent degradation",
+        "Automate retraining triggers and CI/CD for data and models, not only for code",
+        "Manage GPU cost, feature stores and the shared infrastructure data scientists depend on"
+      ],
+      "qualifications": [
+        "B.Tech CSE with solid software engineering, not only modelling",
+        "Docker and Kubernetes confidence; Python for tooling",
+        "Understanding of the ML lifecycle from data collection to drift",
+        "On-call temperament: you debug production, not only notebooks"
+      ],
+      "growth_path": ["ML Engineer", "MLOps / ML Platform Engineer", "Senior ML Platform Engineer", "ML Platform Lead", "Head of ML Infrastructure"],
+      "salary": {
+        "fresher_0_1": {"min": 6, "max": 13, "label": "0–1 yr"},
+        "mid_1_3": {"min": 13, "max": 28, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 28, "max": 60, "label": "3+ yrs"}
+      },
+      "top_companies": ["Swiggy", "Flipkart", "Razorpay", "Fractal AI", "Quantiphi", "Nutanix", "Databricks", "Amazon"],
+      "skills": {
+        "must_have": ["Python", "Docker & Kubernetes", "Cloud (AWS / GCP / Azure)", "Experiment tracking (MLflow or equivalent)", "CI/CD pipelines"],
+        "good_to_have": ["Feature stores (Feast, Tecton)", "Model serving (TorchServe, Triton, BentoML)", "Monitoring & drift detection", "Terraform / IaC", "Data versioning (DVC, LakeFS)"],
+        "can_have": ["Distributed training (Ray, Horovod)", "Vector databases in production", "GPU scheduling & cost engineering", "LLM serving & prompt versioning"]
+      },
+      "matching_interests": ["ai", "machine learning", "cloud", "devops", "mlops", "infrastructure"],
+      "matching_skills": ["python", "docker", "kubernetes", "aws", "machine learning", "linux", "git"]
+    },
+    {
+      "id": "devops_engineer",
+      "title": "DevOps & Release Engineer",
+      "category": "Infrastructure & Cloud",
+      "icon": "🛠️",
+      "market_demand": "Very High 🔥",
+      "competition_level": "Moderate 🟡",
+      "future_relevance": "High (9.3/10 — Delivery Velocity)",
+      "is_niche": false,
+      "niche_category": "Mainstream Core",
+      "description": "The person who turns \"it works on my machine\" into \"it ships twenty times a day\". You own build pipelines, deployment automation, environment parity and the release process every other team depends on.",
+      "responsibilities": [
+        "Build and maintain CI/CD pipelines: build, test, scan, deploy and roll back automatically",
+        "Automate infrastructure with Terraform or Ansible and keep environments reproducible",
+        "Containerise services and manage orchestrator workloads (Docker, Kubernetes, ECS)",
+        "Instrument release health with deploy metrics, error budgets, alerting and runbooks",
+        "Cut lead time and toil through scripting, caching and developer-experience tooling"
+      ],
+      "qualifications": [
+        "B.Tech CSE / IT with strong Linux and scripting fundamentals",
+        "Comfort with Git workflows, branching strategies and code review",
+        "Hands-on Docker experience; Kubernetes exposure",
+        "An automation mindset — if you did it twice, script it"
+      ],
+      "growth_path": ["DevOps Trainee", "DevOps Engineer", "Senior DevOps Engineer", "Platform / SRE Lead", "Head of Platform Engineering"],
+      "salary": {
+        "fresher_0_1": {"min": 4.5, "max": 10, "label": "0–1 yr"},
+        "mid_1_3": {"min": 10, "max": 22, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 22, "max": 48, "label": "3+ yrs"}
+      },
+      "top_companies": ["Amazon", "Flipkart", "PhonePe", "Razorpay", "Zoho", "ThoughtWorks", "Infosys", "Red Hat"],
+      "skills": {
+        "must_have": ["Linux administration & shell scripting", "Git & branching strategy", "CI/CD (Jenkins, GitHub Actions, GitLab CI)", "Docker", "Cloud fundamentals (AWS / GCP / Azure)"],
+        "good_to_have": ["Kubernetes", "Terraform / Ansible", "Monitoring (Prometheus, Grafana, ELK)", "Python or Go for tooling", "Secrets & configuration management"],
+        "can_have": ["Service mesh & progressive delivery", "Cost optimisation (FinOps)", "Supply-chain security (SBOM, Trivy)", "Chaos engineering"]
+      },
+      "matching_interests": ["cloud", "devops", "linux", "automation", "infrastructure", "coding"],
+      "matching_skills": ["docker", "kubernetes", "aws", "linux", "git", "python", "system architecture"]
+    },
+    {
+      "id": "database_engineer",
+      "title": "Database Engineer (DBA)",
+      "category": "Infrastructure & Cloud",
+      "icon": "🗄️",
+      "market_demand": "High 📈",
+      "competition_level": "Moderate 🟡",
+      "future_relevance": "High (8.7/10 — Data Gravity)",
+      "is_niche": false,
+      "niche_category": "Mainstream Core",
+      "description": "Applications are easy to write and hard to keep fast at scale. You design schemas, tune the queries that page you at 3 a.m., plan backups and failovers, and decide when a table has outgrown its database.",
+      "responsibilities": [
+        "Design schemas, indexes and partitions for transactional and analytical workloads",
+        "Tune slow queries using EXPLAIN plans, statistics and connection-pool configuration",
+        "Own backups, point-in-time recovery, replication and failover drills",
+        "Plan migrations and zero-downtime schema changes with application teams",
+        "Capacity-plan storage, IOPS and cost as data volume grows"
+      ],
+      "qualifications": [
+        "B.Tech CSE / MCA with strong SQL and storage fundamentals",
+        "Understanding of B-trees, transactions and isolation levels",
+        "Hands-on with at least one of PostgreSQL, MySQL or MongoDB",
+        "Calm, methodical incident handling"
+      ],
+      "growth_path": ["Database Developer", "Database Engineer / DBA", "Senior Database Engineer", "Data Platform Architect", "Head of Data Infrastructure"],
+      "salary": {
+        "fresher_0_1": {"min": 4.5, "max": 10, "label": "0–1 yr"},
+        "mid_1_3": {"min": 10, "max": 21, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 21, "max": 45, "label": "3+ yrs"}
+      },
+      "top_companies": ["Oracle", "Microsoft", "Amazon RDS", "MongoDB", "Zoho", "TCS", "Paytm", "Swiggy"],
+      "skills": {
+        "must_have": ["Advanced SQL", "Indexing & query plan analysis", "Backup, recovery & replication", "Transactions & isolation levels", "Linux basics"],
+        "good_to_have": ["PostgreSQL / MySQL internals", "MongoDB & Redis", "Sharding & partitioning strategies", "Python or Bash automation", "Managed cloud databases (RDS, Atlas)"],
+        "can_have": ["Performance benchmarking at scale", "Database security & auditing", "Data warehouse tuning", "Zero-downtime migration tooling"]
+      },
+      "matching_interests": ["databases", "backend", "data", "sql", "cloud", "reliability"],
+      "matching_skills": ["sql", "mysql", "postgresql", "mongodb", "redis", "linux", "python"]
+    },
+    {
+      "id": "network_engineer",
+      "title": "Network & NOC Engineer",
+      "category": "Infrastructure & Cloud",
+      "icon": "🌐",
+      "market_demand": "Moderate–High 📈",
+      "competition_level": "Moderate 🟡",
+      "future_relevance": "Stable (8.0/10 — Connectivity Is Non-Negotiable)",
+      "is_niche": false,
+      "niche_category": "Mainstream Core",
+      "description": "Every office, data centre and cloud region is a network somebody has to design and defend. You route packets, segment traffic, run the monitoring that catches outages, and make connectivity boring again.",
+      "responsibilities": [
+        "Configure and troubleshoot routing, switching and VLAN segmentation (Cisco / Juniper / Aruba)",
+        "Operate firewalls, VPNs, load balancers and zero-trust access policies",
+        "Monitor links and latency, and respond to NOC alerts before users notice",
+        "Plan capacity and design connectivity between offices, data centres and cloud VPCs",
+        "Document the topology and keep it true after every change"
+      ],
+      "qualifications": [
+        "B.Tech ECE / CSE or B.Sc IT with networking fundamentals",
+        "Understanding of TCP/IP, DNS, DHCP, subnets and the OSI layers",
+        "CCNA-level knowledge; certification is a strong plus for NOC roles",
+        "Methodical packet-level debugging with Wireshark and traceroute"
+      ],
+      "growth_path": ["NOC Engineer", "Network Engineer", "Senior Network Engineer", "Network Architect", "Head of Network Operations"],
+      "salary": {
+        "fresher_0_1": {"min": 3.5, "max": 8, "label": "0–1 yr"},
+        "mid_1_3": {"min": 8, "max": 17, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 17, "max": 36, "label": "3+ yrs"}
+      },
+      "top_companies": ["Cisco", "Juniper Networks", "Tata Communications", "Airtel", "Reliance Jio", "HCLTech", "Nokia", "Palo Alto Networks"],
+      "skills": {
+        "must_have": ["TCP/IP & OSI model", "Routing & switching (Cisco IOS)", "Subnetting & VLANs", "Wireshark packet analysis", "Firewall & VPN configuration"],
+        "good_to_have": ["BGP / OSPF dynamic routing", "Cloud networking (VPC, peering, transit gateway)", "Monitoring (Nagios, Zabbix, SolarWinds)", "Python or Bash network automation", "Load balancers & DNS"],
+        "can_have": ["SD-WAN & MPLS", "Zero-trust network access", "Network security auditing", "CCNA / CCNP certification"]
+      },
+      "matching_interests": ["networking", "cloud", "linux", "infrastructure", "security", "hardware"],
+      "matching_skills": ["linux", "python", "aws", "docker", "security", "git"]
+    },
+    {
+      "id": "application_security_engineer",
+      "title": "Application Security Engineer (AppSec)",
+      "category": "Security",
+      "icon": "🔒",
+      "market_demand": "Very High 🔥",
+      "competition_level": "Moderate 🟢",
+      "future_relevance": "Exceptional (9.8/10 — Shift-Left Security)",
+      "is_niche": true,
+      "niche_category": "Specialized AppSec",
+      "description": "Instead of chasing breaches after they happen, you build the guardrails that prevent them. You threat-model designs, review code, wire scanners into CI, and teach developers to fix whole classes of bug rather than single instances.",
+      "responsibilities": [
+        "Threat-model new features and review pull requests for injection, auth and access-control flaws",
+        "Run SAST/DAST/dependency scanning in CI and triage findings without drowning developers in noise",
+        "Harden authentication, session management, secrets handling and API authorisation",
+        "Lead secure code review and give developers fixes they can actually apply",
+        "Support incident response with root-cause analysis and preventive controls"
+      ],
+      "qualifications": [
+        "B.Tech CSE with genuine interest in how web applications break",
+        "Working knowledge of the OWASP Top 10 and modern web stacks",
+        "Ability to read code deeply in at least one language (Java, Python, JS/TS)",
+        "Diplomatic communication — security work is mostly persuasion"
+      ],
+      "growth_path": ["Security Analyst", "Application Security Engineer", "Senior AppSec Engineer", "Security Architect / AppSec Lead", "Head of Product Security"],
+      "salary": {
+        "fresher_0_1": {"min": 5, "max": 11, "label": "0–1 yr"},
+        "mid_1_3": {"min": 11, "max": 24, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 24, "max": 52, "label": "3+ yrs"}
+      },
+      "top_companies": ["Microsoft", "Atlassian", "Flipkart", "PhonePe", "Deloitte", "EY", "Intuit", "CRED"],
+      "skills": {
+        "must_have": ["OWASP Top 10 & secure coding", "Web protocols (HTTP, TLS, sessions)", "One language in depth (Java / Python / JS)", "Git & CI/CD pipelines", "Threat modelling"],
+        "good_to_have": ["SAST / DAST / SCA tooling", "Burp Suite & ZAP", "Cloud security (IAM, secrets, KMS)", "Container & Kubernetes security", "Cryptography fundamentals"],
+        "can_have": ["Bug bounty experience", "Compliance frameworks (SOC2, ISO 27001, DPDP)", "DevSecOps automation", "Mobile application security"]
+      },
+      "matching_interests": ["security", "cybersecurity", "hacking", "web", "appsec", "coding"],
+      "matching_skills": ["security", "python", "javascript", "docker", "linux", "git"]
+    },
+    {
+      "id": "penetration_tester",
+      "title": "Penetration Tester (Red Team)",
+      "category": "Security",
+      "icon": "🕵️",
+      "market_demand": "High 📈",
+      "competition_level": "Moderate–High 🔴",
+      "future_relevance": "High (9.5/10 — Adversarial Validation)",
+      "is_niche": true,
+      "niche_category": "Specialized Offense",
+      "description": "You are paid to break in before somebody else does. Red-team engagements, network and web exploitation, phishing simulations and privilege escalation — followed by a report that makes remediation actually possible.",
+      "responsibilities": [
+        "Plan and execute authorised penetration tests against web apps, networks, APIs and infrastructure",
+        "Chain vulnerabilities into real attack paths and escalate privileges without being detected",
+        "Run social-engineering and phishing simulations with measured click rates",
+        "Write clear reports: finding, evidence, business impact and a specific remediation",
+        "Support purple-team exercises and re-test fixes to confirm they hold"
+      ],
+      "qualifications": [
+        "B.Tech CSE or B.Sc with strong systems and networking fundamentals",
+        "Linux fluency, scripting in Python or Bash, and real lab practice (HTB, TryHackMe, VAPT labs)",
+        "eJPT / OSCP-track certification strongly preferred by employers",
+        "Strict professional ethics and disciplined scoping"
+      ],
+      "growth_path": ["Security Analyst", "Penetration Tester", "Senior Pentester / Red Teamer", "Red Team Lead", "Head of Offensive Security"],
+      "salary": {
+        "fresher_0_1": {"min": 5, "max": 12, "label": "0–1 yr"},
+        "mid_1_3": {"min": 12, "max": 26, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 26, "max": 55, "label": "3+ yrs"}
+      },
+      "top_companies": ["Deloitte", "KPMG", "PwC", "EY", "NetSPI", "Payatu", "TAC Security", "Synack"],
+      "skills": {
+        "must_have": ["Linux & Windows privilege escalation", "Web exploitation (OWASP Top 10)", "Networking & protocol attacks", "Burp Suite, Nmap, Metasploit", "Python / Bash scripting"],
+        "good_to_have": ["Active Directory attack paths", "OSINT & social engineering", "Cloud penetration testing", "Malware analysis basics", "Report writing & client briefing"],
+        "can_have": ["OSCP / OSEP certification", "Hardware & IoT exploitation", "Red-team C2 infrastructure", "Reverse engineering"]
+      },
+      "matching_interests": ["security", "ethical hacking", "hacking", "cybersecurity", "networking", "red team"],
+      "matching_skills": ["security", "linux", "python", "docker", "networking"]
+    },
+    {
+      "id": "product_designer",
+      "title": "Product Designer (UX / UI)",
+      "category": "Product & Strategy",
+      "icon": "✏️",
+      "market_demand": "High 📈",
+      "competition_level": "High 🔴",
+      "future_relevance": "High (8.6/10 — Craft as a Differentiator)",
+      "is_niche": false,
+      "niche_category": "Mainstream Core",
+      "description": "Design is the difference between a feature users finish and one they abandon. You research the problem, map the flow, design the interface, prototype it, and hand engineering something unambiguous.",
+      "responsibilities": [
+        "Run user interviews, usability tests and heuristic reviews, and turn them into design problems",
+        "Map user flows, information architecture and edge-case states before reaching for visuals",
+        "Design wireframes, high-fidelity UI and interactive prototypes in Figma",
+        "Maintain and evolve the design system, components and accessibility standards",
+        "Pair with engineers through implementation and verify the shipped result against the design"
+      ],
+      "qualifications": [
+        "Degree in design or HCI — or any field plus a portfolio that shows your thinking",
+        "Figma fluency and a grasp of layout, typography, colour and spacing systems",
+        "Evidence of research, iteration and trade-offs, not only polished screens",
+        "Ability to explain and defend decisions with user evidence"
+      ],
+      "growth_path": ["UI Designer", "Product Designer", "Senior Product Designer", "Design Lead", "Head of Design"],
+      "salary": {
+        "fresher_0_1": {"min": 4, "max": 10, "label": "0–1 yr"},
+        "mid_1_3": {"min": 10, "max": 22, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 22, "max": 48, "label": "3+ yrs"}
+      },
+      "top_companies": ["Zoho", "Freshworks", "Razorpay", "Swiggy", "CRED", "Zomato", "Postman", "Atlassian"],
+      "skills": {
+        "must_have": ["Figma (auto-layout, components, prototyping)", "User research & usability testing", "Interaction & visual design fundamentals", "Information architecture & user flows", "Design systems"],
+        "good_to_have": ["Wireframing & rapid prototyping", "Accessibility (WCAG) & inclusive design", "Basic HTML & CSS literacy", "Data-informed design", "Design critique & storytelling"],
+        "can_have": ["Motion & micro-interaction design", "Design ops & tooling automation", "Mobile platform guidelines", "Service design & journey mapping"]
+      },
+      "matching_interests": ["ui", "ux", "design", "user experience", "frontend", "product"],
+      "matching_skills": ["figma", "html", "css", "javascript", "react", "client communication"]
+    },
+    {
+      "id": "technical_program_manager",
+      "title": "Technical Program Manager (TPM)",
+      "category": "Product & Strategy",
+      "icon": "🗂️",
+      "market_demand": "High 📈",
+      "competition_level": "High 🔴",
+      "future_relevance": "High (8.9/10 — Coordination Is the Bottleneck)",
+      "is_niche": true,
+      "niche_category": "Specialized Leadership",
+      "description": "Big programmes fail at the seams between teams. You run the plan across engineering, product, data and vendors — surfacing risks early, killing ambiguity, and keeping twenty people pointed at the same outcome.",
+      "responsibilities": [
+        "Own delivery plans: milestones, dependencies, risks and trade-offs across multiple teams",
+        "Run planning, standups and retrospectives that produce decisions rather than status theatre",
+        "Translate between engineering constraints and business expectations in both directions",
+        "Track delivery metrics and flag slippage while there is still time to react",
+        "Coordinate releases, vendor delivery, compliance gates and cross-team launch readiness"
+      ],
+      "qualifications": [
+        "B.Tech plus an MBA, or a technical degree with strong delivery exposure",
+        "Understanding of software delivery: CI/CD, sprints, estimation and technical debt",
+        "Excellent written communication and meeting facilitation",
+        "A bias for unblocking others over owning work yourself"
+      ],
+      "growth_path": ["Associate Program Manager", "Technical Program Manager", "Senior TPM", "Group TPM / Program Director", "VP Engineering Operations"],
+      "salary": {
+        "fresher_0_1": {"min": 6, "max": 14, "label": "0–1 yr"},
+        "mid_1_3": {"min": 14, "max": 30, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 30, "max": 65, "label": "3+ yrs"}
+      },
+      "top_companies": ["Amazon", "Microsoft", "Google", "Flipkart", "Nutanix", "Salesforce", "Oracle", "ThoughtWorks"],
+      "skills": {
+        "must_have": ["Program & dependency management", "Technical fluency (SDLC, APIs, cloud basics)", "Stakeholder communication & escalation", "Risk & change management", "Agile / Scrum delivery"],
+        "good_to_have": ["Metrics & reporting (Jira, dashboards)", "SQL for self-serve answers", "System design literacy", "Release & launch coordination", "Vendor management"],
+        "can_have": ["PMP / Certified Scrum Master", "Org design & team topology", "Budget & capacity planning", "Incident command experience"]
+      },
+      "matching_interests": ["product", "management", "strategy", "program management", "client facing", "communication"],
+      "matching_skills": ["sql", "git", "system architecture", "client communication", "problem solving"]
     }
   ]
 }

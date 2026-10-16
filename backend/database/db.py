@@ -8,6 +8,10 @@ import sqlite3
 import json
 from typing import Optional, List, Dict, Any
 
+from app_logging import get_logger
+
+log = get_logger("careercompass.db")
+
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 DB_PATH = os.path.join(DATA_DIR, "career_compass.db")
 ROLES_JSON_PATH = os.path.join(DATA_DIR, "roles.json")
@@ -23,7 +27,7 @@ def get_connection() -> sqlite3.Connection:
 
 
 def init_db():
-    """Initializes all database tables and seeds roles data if empty."""
+    """Initializes all database tables and syncs the role catalog from disk."""
     conn = get_connection()
     with conn:
         # 1. Users Table
@@ -149,8 +153,8 @@ def init_db():
             "career_goal": "TEXT",
         })
 
-    # Seed roles into SQLite if table is empty
-    _seed_roles_if_empty(conn)
+    # Load / refresh the role catalog from data/roles.json
+    _sync_roles_from_json(conn)
     conn.close()
 
 
@@ -166,21 +170,31 @@ def _add_missing_columns(conn: sqlite3.Connection, table: str, columns: Dict[str
             conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {declaration};")
 
 
-def _seed_roles_if_empty(conn: sqlite3.Connection):
-    """Loads roles from roles.json into the SQLite database on first startup."""
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM roles;")
-    count = cursor.fetchone()[0]
+def _sync_roles_from_json(conn: sqlite3.Connection):
+    """Loads the role catalog from roles.json into the SQLite database.
 
-    if count > 0:
-        return
-
+    Runs on every startup, so a database created before the catalog grew picks up
+    the new roles. Existing rows are updated in place, and rows are never
+    deleted: `roadmaps`, `study_schedules` and `tracker_topics` all cascade off
+    `roles.id`, so dropping a role would silently destroy a candidate's saved
+    work. (This is also why the statement is an upsert rather than
+    `INSERT OR REPLACE`, which deletes the conflicting row first.)
+    """
     if not os.path.exists(ROLES_JSON_PATH):
         return
 
-    with open(ROLES_JSON_PATH, "r", encoding="utf-8") as f:
-        data = json.load(f)
-        roles_list = data.get("roles", [])
+    try:
+        with open(ROLES_JSON_PATH, "r", encoding="utf-8") as f:
+            roles_list = json.load(f).get("roles", [])
+    except (OSError, json.JSONDecodeError) as exc:
+        # The catalog is read on every startup, so a broken file must not take the
+        # API down with it: the database already holds the last good copy.
+        log.warning("Role catalog %s could not be read (%s); keeping the catalog already in the database.",
+                    ROLES_JSON_PATH, exc)
+        return
+
+    if not roles_list:
+        return
 
     with conn:
         for r in roles_list:
@@ -190,7 +204,7 @@ def _seed_roles_if_empty(conn: sqlite3.Connection):
             senior = sal.get("senior_3_plus", {"min": 18.0, "max": 40.0})
 
             conn.execute("""
-                INSERT OR REPLACE INTO roles (
+                INSERT INTO roles (
                     id, title, category, icon, market_demand, competition_level,
                     future_relevance, is_niche, niche_category, description,
                     responsibilities_json, qualifications_json, growth_path_json,
@@ -201,7 +215,32 @@ def _seed_roles_if_empty(conn: sqlite3.Connection):
                     skills_can_have_json, matching_interests_json, matching_skills_json
                 ) VALUES (
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-                );
+                )
+                ON CONFLICT(id) DO UPDATE SET
+                    title = excluded.title,
+                    category = excluded.category,
+                    icon = excluded.icon,
+                    market_demand = excluded.market_demand,
+                    competition_level = excluded.competition_level,
+                    future_relevance = excluded.future_relevance,
+                    is_niche = excluded.is_niche,
+                    niche_category = excluded.niche_category,
+                    description = excluded.description,
+                    responsibilities_json = excluded.responsibilities_json,
+                    qualifications_json = excluded.qualifications_json,
+                    growth_path_json = excluded.growth_path_json,
+                    salary_fresher_min = excluded.salary_fresher_min,
+                    salary_fresher_max = excluded.salary_fresher_max,
+                    salary_mid_min = excluded.salary_mid_min,
+                    salary_mid_max = excluded.salary_mid_max,
+                    salary_senior_min = excluded.salary_senior_min,
+                    salary_senior_max = excluded.salary_senior_max,
+                    top_companies_json = excluded.top_companies_json,
+                    skills_must_have_json = excluded.skills_must_have_json,
+                    skills_good_to_have_json = excluded.skills_good_to_have_json,
+                    skills_can_have_json = excluded.skills_can_have_json,
+                    matching_interests_json = excluded.matching_interests_json,
+                    matching_skills_json = excluded.matching_skills_json;
             """, (
                 r["id"],
                 r["title"],

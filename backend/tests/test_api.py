@@ -56,7 +56,8 @@ class RolesTests(unittest.TestCase):
     def test_list_roles(self):
         r = client.get("/roles")
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.json()), 15)
+        # The exact catalog size lives in roles.json; this only guards the endpoint contract.
+        self.assertGreaterEqual(len(r.json()), 25)
 
     def test_categories(self):
         r = client.get("/roles/categories")
