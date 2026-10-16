@@ -1,0 +1,420 @@
+{
+  "stacks": {
+    "backend_dev": {
+      "dim1": {
+        "label": "1. Primary Backend Language",
+        "options": [
+          "Java",
+          "Python",
+          "Go (Golang)",
+          "Node.js (TypeScript)",
+          "C++"
+        ]
+      },
+      "dim2": {
+        "label": "2. Primary Database & Caching",
+        "options": [
+          "PostgreSQL (Relational)",
+          "MySQL (Relational)",
+          "MongoDB (Document)",
+          "Redis (In-Memory Cache)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Framework & Architecture",
+        "options": [
+          "Spring Boot 3 (Java)",
+          "FastAPI / Async REST (Python)",
+          "Express & NestJS (TypeScript)",
+          "Kafka Event-Driven Streams",
+          "Docker & Microservices Architecture"
+        ]
+      }
+    },
+    "ai_agent_engineer": {
+      "dim1": {
+        "label": "1. Agent Core Programming Language",
+        "options": [
+          "Python (Asyncio)",
+          "TypeScript / Node.js"
+        ]
+      },
+      "dim2": {
+        "label": "2. Agentic Framework & Protocol",
+        "options": [
+          "LangGraph (Multi-Agent State Graph)",
+          "CrewAI (Autonomous Roles)",
+          "Model Context Protocol (MCP)",
+          "LlamaIndex (RAG & Agent Tools)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Vector Database & Guardrails",
+        "options": [
+          "Qdrant Vector DB",
+          "Pinecone Managed Search",
+          "Chroma DB (Local Ingestion)",
+          "RAGAS & NeMo Guardrails"
+        ]
+      }
+    },
+    "forward_deployed_engineer": {
+      "dim1": {
+        "label": "1. Enterprise Language Stack",
+        "options": [
+          "Python (Data & APIs)",
+          "Java (Enterprise Systems)",
+          "TypeScript (Fullstack Solutions)"
+        ]
+      },
+      "dim2": {
+        "label": "2. Enterprise Data Warehouse & Lake",
+        "options": [
+          "Snowflake Data Cloud",
+          "Databricks / Delta Lake",
+          "PostgreSQL / Cloud SQL",
+          "Google BigQuery"
+        ]
+      },
+      "dim3": {
+        "label": "3. Client Integration & Security",
+        "options": [
+          "REST APIs & Webhook Integrations",
+          "Docker & Kubernetes Deployment",
+          "Enterprise SSO (OAuth / SAML)",
+          "dbt (Data Build Tool) Pipelines"
+        ]
+      }
+    },
+    "frontend_dev": {
+      "dim1": {
+        "label": "1. Modern Frontend Framework",
+        "options": [
+          "React.js (Component Architecture)",
+          "Next.js (App Router & SSR)",
+          "TypeScript Core",
+          "Vue.js 3"
+        ]
+      },
+      "dim2": {
+        "label": "2. Styling & State Management",
+        "options": [
+          "Tailwind CSS (Utility-First)",
+          "Zustand & TanStack Query",
+          "Redux Toolkit",
+          "CSS Modules & PostCSS"
+        ]
+      },
+      "dim3": {
+        "label": "3. Testing & Web Performance",
+        "options": [
+          "Vitest & React Testing Library",
+          "Playwright E2E Automation",
+          "Core Web Vitals Optimization",
+          "Vite & Modern Bundling"
+        ]
+      }
+    },
+    "fullstack_dev": {
+      "dim1": {
+        "label": "1. Frontend Framework",
+        "options": [
+          "React.js & TypeScript",
+          "Next.js Fullstack",
+          "Vue.js 3"
+        ]
+      },
+      "dim2": {
+        "label": "2. Backend Runtime",
+        "options": [
+          "Node.js & Express / NestJS",
+          "Python FastAPI",
+          "Java Spring Boot",
+          "Go Gin"
+        ]
+      },
+      "dim3": {
+        "label": "3. Database & Cloud Deployment",
+        "options": [
+          "PostgreSQL & Prisma ORM",
+          "MongoDB & Mongoose",
+          "Docker & AWS Deployment",
+          "Redis Caching & WebSockets"
+        ]
+      }
+    },
+    "sre_platform_engineer": {
+      "dim1": {
+        "label": "1. Systems & Scripting Language",
+        "options": [
+          "Go (Golang)",
+          "Python (Automation)",
+          "Bash & Linux Kernel Internals"
+        ]
+      },
+      "dim2": {
+        "label": "2. Container & Orchestration Platform",
+        "options": [
+          "Kubernetes (EKS/GKE Cluster Ops)",
+          "Docker & Containerd",
+          "Helm Charts & ArgoCD (GitOps)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Infrastructure as Code & Observability",
+        "options": [
+          "Terraform (IaC Automation)",
+          "Prometheus & Grafana Monitoring",
+          "OpenTelemetry & Jaeger Tracing",
+          "AWS Cloud Architecture"
+        ]
+      }
+    },
+    "data_engineer": {
+      "dim1": {
+        "label": "1. Querying & Transformation Language",
+        "options": [
+          "Advanced SQL (Window Functions & CTEs)",
+          "Python for Data Engineering",
+          "PySpark Distributed Processing"
+        ]
+      },
+      "dim2": {
+        "label": "2. Cloud Data Warehouse",
+        "options": [
+          "Snowflake Warehouse Architecture",
+          "Databricks Lakehouse & Delta",
+          "Google BigQuery",
+          "PostgreSQL Data Modeling"
+        ]
+      },
+      "dim3": {
+        "label": "3. Orchestration & Streaming Pipeline",
+        "options": [
+          "Apache Airflow Orchestration",
+          "dbt (Data Modeling & Testing)",
+          "Apache Kafka Streaming",
+          "Docker & Cloud Storage"
+        ]
+      }
+    },
+    "data_scientist": {
+      "dim1": {
+        "label": "1. Data Science & ML Language",
+        "options": [
+          "Python (NumPy, Pandas, Scikit-Learn)",
+          "R Programming"
+        ]
+      },
+      "dim2": {
+        "label": "2. Deep Learning & Transformer Stack",
+        "options": [
+          "PyTorch Deep Learning",
+          "TensorFlow / Keras",
+          "Hugging Face Transformers"
+        ]
+      },
+      "dim3": {
+        "label": "3. MLOps & Production Inference",
+        "options": [
+          "MLflow Experiment Tracking",
+          "A/B Testing & Causal Inference",
+          "FastAPI Model Serving Microservice",
+          "Feature Stores & SQL Extraction"
+        ]
+      }
+    },
+    "ml_engineer": {
+      "dim1": {
+        "label": "1. ML Engineering Language & Foundations",
+        "options": [
+          "Python (NumPy, Pandas, Scikit-Learn)",
+          "Python (PyTorch)",
+          "C++ for High-Performance ML",
+          "SQL for Feature Extraction"
+        ]
+      },
+      "dim2": {
+        "label": "2. Modeling & Deep Learning Stack",
+        "options": [
+          "PyTorch Training Pipelines",
+          "TensorFlow / Keras",
+          "Hugging Face Transformers",
+          "XGBoost / LightGBM Gradient Boosting"
+        ]
+      },
+      "dim3": {
+        "label": "3. MLOps, Serving & Monitoring",
+        "options": [
+          "MLflow Tracking & Model Registry",
+          "FastAPI Model Serving Microservice",
+          "Docker & Kubernetes for ML",
+          "Feature Stores & Data Versioning (DVC)"
+        ]
+      }
+    },
+    "data_analyst": {
+      "dim1": {
+        "label": "1. SQL & Data Manipulation Core",
+        "options": [
+          "Advanced SQL (Joins, Window Functions, Grouping)",
+          "Python (Pandas & Data Cleaning)",
+          "Advanced Excel (Modeling & PowerQuery)"
+        ]
+      },
+      "dim2": {
+        "label": "2. Business Intelligence & Dashboards",
+        "options": [
+          "Power BI (DAX Modeling & Reports)",
+          "Tableau Desktop Visualizations",
+          "Looker Studio Enterprise KPIs"
+        ]
+      },
+      "dim3": {
+        "label": "3. Business Analytics & Experimentation",
+        "options": [
+          "A/B Testing & Statistical Significance",
+          "Cohort Analysis & Funnel Metrics",
+          "Financial & Operational Modeling",
+          "Data Presentation & Storytelling"
+        ]
+      }
+    },
+    "cybersecurity_analyst": {
+      "dim1": {
+        "label": "1. Security Scripting & OS Defense",
+        "options": [
+          "Python for Security Automation",
+          "Linux Terminal & Shell Auditing",
+          "PowerShell Security Scripting"
+        ]
+      },
+      "dim2": {
+        "label": "2. SIEM & Network Packet Inspection",
+        "options": [
+          "Splunk Enterprise SIEM",
+          "Wireshark Packet Analysis",
+          "Microsoft Sentinel",
+          "Suricata / Snort IDS"
+        ]
+      },
+      "dim3": {
+        "label": "3. Vulnerability Assessment & PenTesting",
+        "options": [
+          "OWASP Top 10 Web Security",
+          "Burp Suite Web Proxy Testing",
+          "Nmap & Vulnerability Scanning (Nessus)",
+          "Metasploit & Exploitation Basics"
+        ]
+      }
+    },
+    "product_manager": {
+      "dim1": {
+        "label": "1. Product Analytics & SQL",
+        "options": [
+          "SQL for Product Managers",
+          "Mixpanel / Amplitude Behavioral Analytics",
+          "Excel Financial Modeling"
+        ]
+      },
+      "dim2": {
+        "label": "2. Prototyping & Requirement Writing",
+        "options": [
+          "Figma Wireframing & Design Systems",
+          "PRD Writing & User Story Specs",
+          "User Research & Persona Journeys"
+        ]
+      },
+      "dim3": {
+        "label": "3. Execution, Agile & Growth",
+        "options": [
+          "Jira & Scrum Sprint Management",
+          "A/B Testing & Conversion Optimization",
+          "Product Growth Loops & Unit Economics",
+          "System Architecture for PMs"
+        ]
+      }
+    },
+    "business_analyst": {
+      "dim1": {
+        "label": "1. Requirements & Process Modeling",
+        "options": [
+          "BRD & User Story Documentation",
+          "BPMN Process Flow Diagrams (Lucidchart)",
+          "Agile / Scrum Frameworks"
+        ]
+      },
+      "dim2": {
+        "label": "2. Data Extraction & Spreadsheets",
+        "options": [
+          "Advanced SQL Querying",
+          "Excel Financial & Scenario Modeling",
+          "Jira & Confluence Coordination"
+        ]
+      },
+      "dim3": {
+        "label": "3. Executive Dashboards & Briefings",
+        "options": [
+          "Power BI Business Dashboards",
+          "Tableau Executive Reporting",
+          "Client Presentation & Proposal Storytelling"
+        ]
+      }
+    },
+    "qa_automation_engineer": {
+      "dim1": {
+        "label": "1. Test Automation Language",
+        "options": [
+          "Java (OOPs & Framework Design)",
+          "Python (PyTest & Scripting)",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. UI & Web Automation Engine",
+        "options": [
+          "Playwright Automation Engine",
+          "Selenium WebDriver",
+          "Cypress E2E Testing",
+          "Appium Mobile Automation"
+        ]
+      },
+      "dim3": {
+        "label": "3. API, Load & CI/CD Testing",
+        "options": [
+          "REST Assured / Postman API Testing",
+          "k6 Load & Stress Automation",
+          "JMeter Performance Testing",
+          "GitHub Actions CI/CD Quality Gates"
+        ]
+      }
+    },
+    "cloud_engineer": {
+      "dim1": {
+        "label": "1. Cloud Platform Focus",
+        "options": [
+          "Amazon Web Services (AWS)",
+          "Google Cloud Platform (GCP)",
+          "Microsoft Azure"
+        ]
+      },
+      "dim2": {
+        "label": "2. Infrastructure as Code & Scripting",
+        "options": [
+          "Terraform (HCL Architecture)",
+          "Python Cloud Automation",
+          "Bash & Linux Systems Administration"
+        ]
+      },
+      "dim3": {
+        "label": "3. Cloud Networking & Containers",
+        "options": [
+          "Docker & Kubernetes (EKS/GKE)",
+          "Cloud Networking (VPC, Subnets, Routing, DNS)",
+          "IAM Security & Zero Trust Architecture",
+          "Serverless (AWS Lambda / Functions)"
+        ]
+      }
+    }
+  }
+}

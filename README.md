@@ -70,8 +70,12 @@ restores the session, and dispatches to a view through a simple `ROUTER` dict.
 career-compass/
 │
 ├── app.py                     ← App controller, session state & view router
+├── config.py                  ← Shared option vocabularies (interests, skills…)
+├── app_logging.py             ← Structured logging setup
 ├── requirements.txt
 ├── .env.example               ← Template for GEMINI_API_KEY
+├── .streamlit/config.toml     ← Theme + server defaults
+├── .github/workflows/ci.yml   ← CI: runs the test suite
 │
 ├── database/
 │   └── db.py                  ← Connection, schema, and role seeding
@@ -89,8 +93,11 @@ career-compass/
 │                                 role_detail · compare · roadmap · roadmaps
 │                                 tracker · chat
 │
+├── tests/                     ← unittest suite (services + end-to-end smoke)
+│
 └── data/
     ├── roles.json             ← 15-role seed catalog
+    ├── stacks.json            ← Per-role specialization stacks
     └── career_compass.db      ← SQLite database (created on first run)
 ```
 
@@ -176,6 +183,20 @@ The SQLite database and role catalog are created automatically on first launch �
 
 ---
 
+## 🧪 Testing
+
+The suite uses the standard library's `unittest` (no extra dependencies). It covers
+hashing, matching, tracker math, AI response parsing and roadmap export, plus an
+end-to-end smoke test that renders **every view** headlessly:
+
+```bash
+python -m unittest discover -s tests -t . -v
+```
+
+GitHub Actions runs the same command on every push (see `.github/workflows/ci.yml`).
+
+---
+
 ## ⚠️ Known Limitations & Roadmap
 
 Tracked honestly, because these are the next things to fix:
@@ -183,7 +204,6 @@ Tracked honestly, because these are the next things to fix:
 - **Sessions** — sign-in is scoped to the current browser session (no persistent "remember me"); a cookie-based option is planned. Passwords are stored with salted **PBKDF2-HMAC-SHA256**.
 - **AI SDK** — `google-generativeai` is deprecated by Google; migrating to `google-genai` is planned.
 - **Theming** — a single polished light theme; a dark mode would require a Streamlit theme-config approach.
-- **No automated tests yet.**
 
 ---
 

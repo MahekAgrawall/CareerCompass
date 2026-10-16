@@ -9,7 +9,11 @@ from typing import Dict, Any, List
 import google.generativeai as genai
 from dotenv import load_dotenv
 
+from app_logging import get_logger
+
 load_dotenv()
+
+log = get_logger("careercompass.ai")
 
 # Initialize Gemini with REST transport for low latency
 api_key = os.getenv("GEMINI_API_KEY", "")
@@ -173,7 +177,8 @@ Do not use bullet points. Write in conversational, polished prose.
     try:
         response = get_model().generate_content(prompt)
         return response.text.strip()
-    except Exception:
+    except Exception as e:
+        log.warning("Role match explanation failed, falling back to template: %s", e)
         skills = ", ".join(user_profile.get("current_skills", [])[:3])
         return f"Based on your foundation in {skills} and your indicated interests, these roles align strongly with high-growth engineering opportunities in the Indian market."
 
