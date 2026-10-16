@@ -41,6 +41,9 @@ class ProfileIn(BaseModel):
     grad_year: str = ""
     experience: str = ""
     location: str = ""
+    work_mode: str = ""
+    open_to_relocate: str = ""
+    career_goal: str = ""
     current_skills: List[str] = []
     interests: List[str] = []
 

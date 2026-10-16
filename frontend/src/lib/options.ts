@@ -29,6 +29,23 @@ export const LOCATION_OPTIONS = [
   "Remote / Flexible anywhere",
 ] as const;
 
+export const WORK_MODE_OPTIONS = [
+  "No preference",
+  "On-site",
+  "Hybrid",
+  "Remote",
+] as const;
+
+export const RELOCATE_OPTIONS = ["Not sure yet", "Yes, anywhere in India", "Only my current city"] as const;
+
+export const CAREER_GOAL_OPTIONS = [
+  "Still exploring",
+  "First internship",
+  "First full-time role",
+  "Switch domains",
+  "Upskilling while working",
+] as const;
+
 export const INTEREST_OPTIONS = [
   "AI, LLMs & Autonomous Agents",
   "Coding & Problem Solving",

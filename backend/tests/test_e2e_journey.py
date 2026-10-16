@@ -25,9 +25,17 @@ ANSWERS = {
     "grad_year": "2026",
     "experience": "Student / Fresher",
     "location": "Bangalore",
+    "work_mode": "Hybrid",
+    "open_to_relocate": "Yes, anywhere in India",
+    "career_goal": "First full-time role",
     "current_skills": ["Java", "SQL / MySQL / PostgreSQL"],
     "interests": ["backend systems & databases"],
 }
+
+# Every questionnaire answer that is stored verbatim rather than interpreted.
+SCALAR_ANSWERS = (
+    "grad_year", "experience", "location", "work_mode", "open_to_relocate", "career_goal",
+)
 
 
 def _login(email: str) -> dict:
@@ -75,6 +83,8 @@ class EndToEndJourneyTests(unittest.TestCase):
         self.assertEqual(profile["name"], ANSWERS["name"])
         self.assertEqual(profile["current_skills"], ANSWERS["current_skills"])
         self.assertEqual(profile["interests"], ANSWERS["interests"])
+        for field in SCALAR_ANSWERS:
+            self.assertEqual(profile[field], ANSWERS[field], f"{field} must round-trip")
 
         # 5. Read ranked matches (deterministic; explain=False keeps it fast).
         matched = client.post("/match", json={

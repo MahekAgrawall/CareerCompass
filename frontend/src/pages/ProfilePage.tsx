@@ -8,13 +8,16 @@ import SelectField from "@/components/SelectField";
 import type { Profile } from "@/api/types";
 import { useDocumentTitle } from "@/lib/hooks";
 import {
+  CAREER_GOAL_OPTIONS,
   DEFAULT_INTERESTS,
   DEFAULT_SKILLS,
   EXPERIENCE_OPTIONS,
   GRAD_YEAR_OPTIONS,
   INTEREST_OPTIONS,
   LOCATION_OPTIONS,
+  RELOCATE_OPTIONS,
   SKILL_OPTIONS,
+  WORK_MODE_OPTIONS,
 } from "@/lib/options";
 import { useAuth } from "@/state/AuthContext";
 import { useProfile } from "@/state/ProfileContext";
@@ -35,6 +38,9 @@ export default function ProfilePage() {
   const [gradYear, setGradYear] = useState(profile?.grad_year || GRAD_YEAR_OPTIONS[0]);
   const [experience, setExperience] = useState(profile?.experience || EXPERIENCE_OPTIONS[0]);
   const [location, setLocation] = useState(profile?.location || LOCATION_OPTIONS[0]);
+  const [workMode, setWorkMode] = useState(profile?.work_mode || WORK_MODE_OPTIONS[0]);
+  const [relocate, setRelocate] = useState(profile?.open_to_relocate || RELOCATE_OPTIONS[0]);
+  const [careerGoal, setCareerGoal] = useState(profile?.career_goal || CAREER_GOAL_OPTIONS[0]);
   const [interests, setInterests] = useState<string[]>(
     () => pick(profile?.interests, INTEREST_OPTIONS) ?? [...DEFAULT_INTERESTS],
   );
@@ -56,6 +62,9 @@ export default function ProfilePage() {
     setGradYear(profile?.grad_year || GRAD_YEAR_OPTIONS[0]);
     setExperience(profile?.experience || EXPERIENCE_OPTIONS[0]);
     setLocation(profile?.location || LOCATION_OPTIONS[0]);
+    setWorkMode(profile?.work_mode || WORK_MODE_OPTIONS[0]);
+    setRelocate(profile?.open_to_relocate || RELOCATE_OPTIONS[0]);
+    setCareerGoal(profile?.career_goal || CAREER_GOAL_OPTIONS[0]);
     setInterests(pick(profile?.interests, INTEREST_OPTIONS) ?? [...DEFAULT_INTERESTS]);
     setSkills(pick(profile?.current_skills, SKILL_OPTIONS) ?? [...DEFAULT_SKILLS]);
   }, [profile, user]);
@@ -82,6 +91,9 @@ export default function ProfilePage() {
       grad_year: gradYear,
       experience,
       location,
+      work_mode: workMode,
+      open_to_relocate: relocate,
+      career_goal: careerGoal,
       current_skills: skills,
       interests,
     };
@@ -124,6 +136,19 @@ export default function ProfilePage() {
               value={location}
               options={LOCATION_OPTIONS}
               onChange={setLocation}
+            />
+            <SelectField label="Preferred Work Setup" value={workMode} options={WORK_MODE_OPTIONS} onChange={setWorkMode} />
+            <SelectField
+              label="Open to Relocating"
+              value={relocate}
+              options={RELOCATE_OPTIONS}
+              onChange={setRelocate}
+            />
+            <SelectField
+              label="What Are You Aiming For Next?"
+              value={careerGoal}
+              options={CAREER_GOAL_OPTIONS}
+              onChange={setCareerGoal}
             />
           </div>
 

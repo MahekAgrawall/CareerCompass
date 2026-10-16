@@ -50,6 +50,9 @@ def init_db():
                 grad_year TEXT,
                 experience TEXT,
                 location TEXT,
+                work_mode TEXT,
+                open_to_relocate TEXT,
+                career_goal TEXT,
                 current_skills_json TEXT,
                 interests_json TEXT,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -138,9 +141,29 @@ def init_db():
             );
         """)
 
+        # 7. Upgrade databases created before the questionnaire grew: existing
+        # rows are kept and the new columns are appended in place.
+        _add_missing_columns(conn, "profiles", {
+            "work_mode": "TEXT",
+            "open_to_relocate": "TEXT",
+            "career_goal": "TEXT",
+        })
+
     # Seed roles into SQLite if table is empty
     _seed_roles_if_empty(conn)
     conn.close()
+
+
+def _add_missing_columns(conn: sqlite3.Connection, table: str, columns: Dict[str, str]):
+    """Appends columns that were introduced after a table was first created.
+
+    SQLite has no migration tooling, so `CREATE TABLE IF NOT EXISTS` leaves older
+    databases untouched; this brings them up to date without losing any rows.
+    """
+    existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table});")}
+    for name, declaration in columns.items():
+        if name not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {declaration};")
 
 
 def _seed_roles_if_empty(conn: sqlite3.Connection):

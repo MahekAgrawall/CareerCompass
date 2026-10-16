@@ -19,6 +19,9 @@ function normalize(partial: Partial<Profile>): Profile {
     grad_year: partial.grad_year ?? "",
     experience: partial.experience ?? "",
     location: partial.location ?? "",
+    work_mode: partial.work_mode ?? "",
+    open_to_relocate: partial.open_to_relocate ?? "",
+    career_goal: partial.career_goal ?? "",
     current_skills: Array.isArray(partial.current_skills) ? partial.current_skills : [],
     interests: Array.isArray(partial.interests) ? partial.interests : [],
   };

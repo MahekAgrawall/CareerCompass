@@ -26,6 +26,9 @@ export interface Profile {
   grad_year: string;
   experience: string;
   location: string;
+  work_mode: string;
+  open_to_relocate: string;
+  career_goal: string;
   current_skills: string[];
   interests: string[];
 }

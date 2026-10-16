@@ -138,9 +138,10 @@ def save_user_profile(user_id: int, profile: Dict[str, Any]):
             conn.execute("""
                 INSERT OR REPLACE INTO profiles (
                     user_id, name, grad_year, experience, location,
+                    work_mode, open_to_relocate, career_goal,
                     current_skills_json, interests_json, updated_at
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP
                 );
             """, (
                 user_id,
@@ -148,6 +149,9 @@ def save_user_profile(user_id: int, profile: Dict[str, Any]):
                 profile.get("grad_year", ""),
                 profile.get("experience", ""),
                 profile.get("location", ""),
+                profile.get("work_mode", ""),
+                profile.get("open_to_relocate", ""),
+                profile.get("career_goal", ""),
                 json.dumps(profile.get("current_skills", [])),
                 json.dumps(profile.get("interests", []))
             ))
@@ -161,7 +165,9 @@ def get_user_profile(user_id: int) -> Optional[Dict[str, Any]]:
     try:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT name, grad_year, experience, location, current_skills_json, interests_json
+            SELECT name, grad_year, experience, location,
+                   work_mode, open_to_relocate, career_goal,
+                   current_skills_json, interests_json
             FROM profiles WHERE user_id = ?;
         """, (user_id,))
         row = cursor.fetchone()
@@ -173,6 +179,10 @@ def get_user_profile(user_id: int) -> Optional[Dict[str, Any]]:
             "grad_year": row["grad_year"],
             "experience": row["experience"],
             "location": row["location"],
+            # Rows written before these questions existed hold NULL.
+            "work_mode": row["work_mode"] or "",
+            "open_to_relocate": row["open_to_relocate"] or "",
+            "career_goal": row["career_goal"] or "",
             "current_skills": json.loads(row["current_skills_json"] or "[]"),
             "interests": json.loads(row["interests_json"] or "[]")
         }

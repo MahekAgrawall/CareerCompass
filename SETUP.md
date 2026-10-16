@@ -243,6 +243,7 @@ backend's `CORS_ORIGINS`.
 | Roadmap/Copilot: "AI is not configured" | Set `GEMINI_API_KEY` in `backend/.env` and restart the backend. |
 | Roadmap/Copilot: "took too long to respond" | The request to Gemini timed out (slow/offline connection). Check your network and try again. |
 | Want a clean database | Stop the backend, delete `backend/data/career_compass.db`, restart — it is recreated and reseeded. |
+| Existing database after an upgrade | Nothing to do. On startup `init_db()` appends any columns added since your database was created and keeps every existing row. |
 | `FutureWarning` about `google.generativeai` | Harmless; the SDK is deprecated and migration is planned. |
 
 ---
