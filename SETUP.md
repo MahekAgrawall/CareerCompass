@@ -245,6 +245,7 @@ backend's `CORS_ORIGINS`.
 | Want a clean database | Stop the backend, delete `backend/data/career_compass.db`, restart — it is recreated and the role catalog is loaded from `roles.json` again. |
 | Existing database after an upgrade | Nothing to do. On startup `init_db()` appends any columns added since your database was created, refreshes the role catalog from `roles.json` in place, and keeps every existing row — user profiles, roadmaps and tracker progress included. |
 | Roles are missing after editing `roles.json` | Restart the backend. The catalog is read at startup, and roles are never deleted from the database (so saved roadmaps can't be orphaned), which also means removing a role from the JSON leaves its old row in place. |
+| A role shows the **generic** stack (Python / Java / TypeScript / Go / C++) | `data/stacks.json` is read once at import, so the running process still has the old copy. Restart the backend. If you edited the file while `--reload` was running, make sure the old server actually exited — a lingering reload worker keeps port 8000 and keeps serving the old content. |
 | `FutureWarning` about `google.generativeai` | Harmless; the SDK is deprecated and migration is planned. |
 
 ---

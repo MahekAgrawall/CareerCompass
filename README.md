@@ -20,7 +20,7 @@ and the original **Streamlit** app preserved in `legacy/` for reference.
 | 💰 **India salary benchmarks** | Fresher (0–1 yr), mid (1–3 yrs), and senior (3+ yrs) CTC ranges aggregated from AmbitionBox, Glassdoor, and LinkedIn India tech data. |
 | 🤖 **AI skill roadmap** | Google Gemini generates a structured 3-phase plan (Immediate → Level Up → Explore) with one curated free resource per skill. |
 | 🛠️ **Portfolio projects** | Each roadmap includes 3 hands-on project ideas with difficulty ratings and validated skills. |
-| 📅 **Study tracker** | Configure weekday vs weekend study hours and a role-specific tech stack; check off granular topics and subtopics. Progress, remaining hours, and projected weeks are computed live. |
+| 📅 **Study tracker** | Configure weekday vs weekend study hours and a role-specific tech stack. Every one of the 30 roles ships a tailored three-dimension stack (mobile, games, embedded, design, offensive security and more), and each choice maps onto syllabus topics with subtopics. Progress, remaining hours, and projected weeks are computed live. |
 | ⚖️ **Side-by-side comparison** | Compare up to 3 roles on demand, competition, AI-future relevance, salary, and must-have skills. |
 | 💬 **Roadmap Copilot** | A multi-turn Gemini chat pre-loaded with your profile, target role, and roadmap — replies stream in live. |
 | ⬇️ **Export & share** | Download any roadmap as a portable Markdown file. |
@@ -149,6 +149,13 @@ created automatically on first launch, and `backend/data/roles.json` — the cat
 truth — is synced into it on every startup, so adding or editing a role there is picked up by the
 next restart. Existing roles are updated in place and never deleted.
 
+`backend/data/stacks.json` is the study-plan source of truth: it gives every role its
+three-dimension stack selector (for example DevOps gets delivery pipelines and observability,
+not "primary backend language"). `build_topics_from_choices()` turns the picked options into
+syllabus topics — a fixed keyword map for the original roles, plus a block per newer
+specialisation (mobile, games, embedded, design, offensive security, analytics engineering and
+product/technical-programme tracks). Both live in `services/tracker_service.py`.
+
 `JWT_SECRET` is required — generate one with
 `python -c "import secrets; print(secrets.token_urlsafe(48))"`. The API refuses to start without it.
 
@@ -245,7 +252,10 @@ database gains new roles on startup without losing saved work.
 `tests/test_e2e_journey.py` walks the whole
 candidate journey end to end: browse → register → sign in → profile → ranked matches →
 role detail → study plan → tick off a topic → saved library, plus a check that progress
-survives a new session.
+survives a new session. `tests/test_tracker_syllabus.py` guards the study plans: every
+catalogued role has a tailored stack, every option maps onto real content, every
+combination produces a usable plan, and the original roles' shipped plans are pinned so
+adding content for newer roles cannot rewrite them.
 
 The frontend is checked with the TypeScript compiler and a production build:
 

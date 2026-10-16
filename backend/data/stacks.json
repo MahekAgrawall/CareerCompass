@@ -415,6 +415,378 @@
           "Serverless (AWS Lambda / Functions)"
         ]
       }
+    },
+    "mobile_dev": {
+      "dim1": {
+        "label": "1. Mobile Language & UI Framework",
+        "options": [
+          "Kotlin & Jetpack Compose (Android)",
+          "Swift & SwiftUI (iOS)",
+          "React Native (TypeScript)",
+          "Flutter & Dart (Cross-Platform)"
+        ]
+      },
+      "dim2": {
+        "label": "2. App Data, APIs & Offline Sync",
+        "options": [
+          "REST & GraphQL API Integration",
+          "Firebase Auth, Firestore & Push",
+          "Room / CoreData Local Persistence"
+        ]
+      },
+      "dim3": {
+        "label": "3. Mobile Quality & Release Engineering",
+        "options": [
+          "Playwright / Detox E2E Automation",
+          "App Store & Play Store Release Pipeline",
+          "Crash Analytics & Startup Performance"
+        ]
+      }
+    },
+    "game_developer": {
+      "dim1": {
+        "label": "1. Engine & Language Core",
+        "options": [
+          "C++ & Unreal Engine",
+          "C# & Unity Engine",
+          "C++ & Custom Engine Programming"
+        ]
+      },
+      "dim2": {
+        "label": "2. Gameplay Systems",
+        "options": [
+          "Real-Time Rendering & Shaders",
+          "Physics & Character Controllers",
+          "Multiplayer Netcode & State Sync"
+        ]
+      },
+      "dim3": {
+        "label": "3. Production & Live Operations",
+        "options": [
+          "Frame Profiling & Performance Budgets",
+          "Live-Ops, Telemetry & Monetisation"
+        ]
+      }
+    },
+    "embedded_systems_engineer": {
+      "dim1": {
+        "label": "1. Firmware Language & Platform",
+        "options": [
+          "Embedded C & Bare-Metal Firmware",
+          "Embedded Linux & Device Drivers",
+          "Python for Hardware Test Automation"
+        ]
+      },
+      "dim2": {
+        "label": "2. Peripherals & Real-Time Behaviour",
+        "options": [
+          "RTOS Scheduling & Real-Time Tasks",
+          "I2C / SPI / UART / CAN Interfaces"
+        ]
+      },
+      "dim3": {
+        "label": "3. Bring-Up, Debug & Compliance",
+        "options": [
+          "Oscilloscope, Logic Analyser & JTAG Debugging",
+          "MISRA-C & AUTOSAR Compliance"
+        ]
+      }
+    },
+    "analytics_engineer": {
+      "dim1": {
+        "label": "1. Querying & Transformation Core",
+        "options": [
+          "Advanced SQL & Window Functions",
+          "Python for Data Transformation",
+          "Dimensional Modelling & Star Schemas"
+        ]
+      },
+      "dim2": {
+        "label": "2. Warehouse Modelling & Semantics",
+        "options": [
+          "Semantic Layer & Metrics Governance",
+          "Analytics Engineering (dbt Models & Tests)",
+          "Power BI & Tableau Consumption Layer"
+        ]
+      },
+      "dim3": {
+        "label": "3. Data Quality & Operations",
+        "options": [
+          "Data Quality Tests & Contracts",
+          "Pipeline Freshness & SLA Monitoring"
+        ]
+      }
+    },
+    "product_analyst": {
+      "dim1": {
+        "label": "1. Analytical Querying Core",
+        "options": [
+          "Advanced SQL for Product Questions",
+          "Python (Pandas) for Ad-Hoc Analysis"
+        ]
+      },
+      "dim2": {
+        "label": "2. Behavioural Analytics & Dashboards",
+        "options": [
+          "Power BI & Tableau Dashboards",
+          "Event Instrumentation & Taxonomy Design"
+        ]
+      },
+      "dim3": {
+        "label": "3. Experimentation & Decision Science",
+        "options": [
+          "Experimentation: A/B Test Design & Readouts",
+          "Causal Inference & Uplift Measurement",
+          "Decision Readouts & Data Communication"
+        ]
+      }
+    },
+    "nlp_engineer": {
+      "dim1": {
+        "label": "1. NLP Engineering Stack",
+        "options": [
+          "Python (Transformers & spaCy)",
+          "Python (PyTorch Training Loops)",
+          "C++ for Inference Performance"
+        ]
+      },
+      "dim2": {
+        "label": "2. Language Modelling & Retrieval",
+        "options": [
+          "Transformers & Fine-Tuning",
+          "Retrieval & Re-ranking Pipelines",
+          "LangGraph Orchestration & Tool Calling"
+        ]
+      },
+      "dim3": {
+        "label": "3. Evaluation, Serving & Safety",
+        "options": [
+          "Evaluation Harnesses & Human Review",
+          "Model Serving & Latency Budgets"
+        ]
+      }
+    },
+    "computer_vision_engineer": {
+      "dim1": {
+        "label": "1. Vision Stack & Language",
+        "options": [
+          "Python (PyTorch & OpenCV)",
+          "Python (Training Pipelines)",
+          "C++ for Edge Inference"
+        ]
+      },
+      "dim2": {
+        "label": "2. Vision Modelling",
+        "options": [
+          "Detection & Segmentation Models",
+          "Video Analytics & Multi-Object Tracking"
+        ]
+      },
+      "dim3": {
+        "label": "3. Vision Deployment",
+        "options": [
+          "Edge Inference (ONNX, TensorRT)",
+          "Dataset Curation & Annotation"
+        ]
+      }
+    },
+    "mlops_engineer": {
+      "dim1": {
+        "label": "1. Platform & Tooling Language",
+        "options": [
+          "Python for ML Platform Tooling",
+          "Go for Infrastructure Services",
+          "Docker & Kubernetes Platform Ops"
+        ]
+      },
+      "dim2": {
+        "label": "2. ML Pipeline & Registry",
+        "options": [
+          "MLflow Tracking & Model Registry",
+          "Feature Store & Data Versioning",
+          "Vector Store & LLM Serving"
+        ]
+      },
+      "dim3": {
+        "label": "3. Deployment & Reliability",
+        "options": [
+          "Kubernetes Serving & Autoscaling",
+          "Drift Monitoring & Retraining Triggers",
+          "GPU Cost & Capacity Engineering"
+        ]
+      }
+    },
+    "devops_engineer": {
+      "dim1": {
+        "label": "1. Automation Language",
+        "options": [
+          "Python for Automation Tooling",
+          "Go for Platform Services",
+          "Terraform & Configuration as Code"
+        ]
+      },
+      "dim2": {
+        "label": "2. Delivery Pipeline & Containers",
+        "options": [
+          "Docker & Kubernetes Workloads",
+          "Release Automation & Progressive Delivery",
+          "Trunk-Based Development & Merge Queues"
+        ]
+      },
+      "dim3": {
+        "label": "3. Observability & Reliability",
+        "options": [
+          "Observability: Metrics, Traces & SLOs",
+          "Incident Response & On-Call Readiness"
+        ]
+      }
+    },
+    "database_engineer": {
+      "dim1": {
+        "label": "1. Database Platform",
+        "options": [
+          "PostgreSQL Internals & Tuning",
+          "MySQL & InnoDB Internals"
+        ]
+      },
+      "dim2": {
+        "label": "2. Reliability & Recovery",
+        "options": [
+          "Replication, Failover & High Availability",
+          "Backup, Restore & Point-in-Time Recovery",
+          "Sharding, Partitioning & Horizontal Scale"
+        ]
+      },
+      "dim3": {
+        "label": "3. Performance & Operations",
+        "options": [
+          "Query Plans, Indexing & Isolation Levels",
+          "Schema Migration & Zero-Downtime Changes"
+        ]
+      }
+    },
+    "network_engineer": {
+      "dim1": {
+        "label": "1. Automation & Tooling",
+        "options": [
+          "Python for Network Automation",
+          "Wireshark & Packet Analysis"
+        ]
+      },
+      "dim2": {
+        "label": "2. Routing, Switching & Addressing",
+        "options": [
+          "Switching, VLANs & Subnet Design",
+          "Dynamic Routing (OSPF & BGP)",
+          "DNS, DHCP & Load Balancing"
+        ]
+      },
+      "dim3": {
+        "label": "3. Security & Connectivity",
+        "options": [
+          "Firewalls, VPNs & Zero-Trust Access",
+          "Hybrid Cloud & SD-WAN Connectivity"
+        ]
+      }
+    },
+    "application_security_engineer": {
+      "dim1": {
+        "label": "1. Secure Development Language",
+        "options": [
+          "Python (Django / FastAPI Security)",
+          "JavaScript / TypeScript (Node & React)",
+          "Java & Spring Security"
+        ]
+      },
+      "dim2": {
+        "label": "2. Secure Design & Threat Modelling",
+        "options": [
+          "Threat Modelling & Secure Code Review",
+          "API Access Control & AuthZ",
+          "Cryptography & Secrets Management"
+        ]
+      },
+      "dim3": {
+        "label": "3. DevSecOps & Assurance",
+        "options": [
+          "SAST / DAST Scanning in CI",
+          "Dependency & Supply-Chain Security"
+        ]
+      }
+    },
+    "penetration_tester": {
+      "dim1": {
+        "label": "1. Offensive Tooling & Scripting",
+        "options": [
+          "Python Scripting & Custom Tooling",
+          "Web Exploitation & API Abuse",
+          "Linux Privilege Escalation & Shells"
+        ]
+      },
+      "dim2": {
+        "label": "2. Attack Surface & Tradecraft",
+        "options": [
+          "Reconnaissance & OSINT Gathering",
+          "Active Directory Attack Paths",
+          "Cloud Attack Paths & IAM Abuse"
+        ]
+      },
+      "dim3": {
+        "label": "3. Engagement Delivery",
+        "options": [
+          "Phishing & Social Engineering Simulations",
+          "Client Reporting & Remediation Guidance"
+        ]
+      }
+    },
+    "product_designer": {
+      "dim1": {
+        "label": "1. Design Craft & Systems",
+        "options": [
+          "Design Tokens, Typography & Colour Systems",
+          "Interaction Design & Micro-Interactions",
+          "Information Architecture & User Flows"
+        ]
+      },
+      "dim2": {
+        "label": "2. Research & Evidence",
+        "options": [
+          "Usability Testing & User Interviews",
+          "Accessibility & WCAG 2.2",
+          "Journey Analytics & Design Measurement"
+        ]
+      },
+      "dim3": {
+        "label": "3. Delivery & Collaboration",
+        "options": [
+          "Prototyping & Developer Handoff",
+          "Design Ops & Component Libraries"
+        ]
+      }
+    },
+    "technical_program_manager": {
+      "dim1": {
+        "label": "1. Technical Fluency",
+        "options": [
+          "SQL for Program Metrics",
+          "Python for Reporting Automation"
+        ]
+      },
+      "dim2": {
+        "label": "2. Delivery Planning & Tracking",
+        "options": [
+          "Dependency Mapping & Critical Path",
+          "Jira & Agile Delivery Tracking",
+          "Risk Registers & Mitigation Planning"
+        ]
+      },
+      "dim3": {
+        "label": "3. Stakeholders & Launch",
+        "options": [
+          "Stakeholder Alignment & Escalation",
+          "Release Readiness & Launch Coordination"
+        ]
+      }
     }
   }
 }
