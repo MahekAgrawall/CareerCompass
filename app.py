@@ -5,7 +5,6 @@ Main Application Controller & Router.
 
 import streamlit as st
 from database.db import init_db
-from services import auth_service
 from ui.theme import apply_theme
 from ui.views import (
     home_view,
@@ -34,9 +33,11 @@ apply_theme()
 # ── 2. Database Initialization ────────────────────────────────────────────────
 init_db()
 
-# ── 3. Session State Management & Auto-Login ──────────────────────────────────
+# ── 3. Session State Management ───────────────────────────────────────────────
+# Sign-in is intentionally scoped to the current browser session only:
+# closing the tab / restarting the server requires signing in again.
 if "user" not in st.session_state:
-    st.session_state.user = auth_service.get_remembered_session()
+    st.session_state.user = None
 
 if "page" not in st.session_state:
     st.session_state.page = "home"

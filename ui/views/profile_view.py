@@ -156,7 +156,7 @@ def render():
 
             scored = career_service.match_roles_smart(profile)
             st.session_state.scored_roles = scored
-            st.session_state.matched_roles = [r for _, r in scored]
+            st.session_state.matched_roles = [item["role"] for item in scored]
             st.session_state.pop("match_explanation", None)
             st.session_state.page = "roles"
             st.rerun()

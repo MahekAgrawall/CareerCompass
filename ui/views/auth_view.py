@@ -19,19 +19,16 @@ def render():
                 with st.form("form_login"):
                     email = st.text_input("Email", placeholder="name@domain.com")
                     password = st.text_input("Password", type="password", placeholder="••••••••")
-                    remember = st.checkbox("Keep me signed in on this computer", value=True)
                     submit = st.form_submit_button("Sign In", type="primary", use_container_width=True)
 
                 if submit:
                     success, res = auth_service.authenticate_user(email, password)
                     if success:
                         st.session_state.user = res
-                        if remember:
-                            auth_service.remember_session(res["email"])
                         if res.get("profile"):
                             st.session_state.profile = res["profile"]
                             st.session_state.scored_roles = career_service.match_roles_smart(res["profile"])
-                            st.session_state.matched_roles = [r for _, r in st.session_state.scored_roles]
+                            st.session_state.matched_roles = [item["role"] for item in st.session_state.scored_roles]
                         st.success("Successfully authenticated!")
                         st.session_state.page = "home"
                         st.rerun()
@@ -46,8 +43,7 @@ def render():
                 with st.form("form_signup"):
                     name = st.text_input("Full Name", placeholder="e.g. Mahek Agrawal")
                     email = st.text_input("Email", placeholder="name@domain.com")
-                    password = st.text_input("Password", type="password", placeholder="At least 4 characters")
-                    remember = st.checkbox("Remember this device", value=True)
+                    password = st.text_input("Password", type="password", placeholder="At least 8 characters")
                     submit = st.form_submit_button("Register", type="primary", use_container_width=True)
 
                 if submit:
@@ -55,8 +51,6 @@ def render():
                     if success:
                         _, user = auth_service.authenticate_user(email, password)
                         st.session_state.user = user
-                        if remember:
-                            auth_service.remember_session(email)
                         st.success("Account created! Let's build your profile.")
                         st.session_state.page = "profile"
                         st.rerun()

@@ -4,18 +4,31 @@ Includes navigation bar, role cards, badges, and progress indicators.
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 from typing import Dict, Any, List, Optional
-from services import auth_service
+
+
+def _reset_scroll():
+    """Scrolls the main content area back to the top on navigation."""
+    components.html(
+        """
+        <script>
+        try {
+            const doc = window.parent.document;
+            const main = doc.querySelector('section[data-testid="stMain"]')
+                      || doc.querySelector('section.main')
+                      || doc.scrollingElement;
+            if (main) { main.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }
+        } catch (e) {}
+        </script>
+        """,
+        height=0,
+    )
 
 
 def render_navbar():
     """Renders the top navigation header with unique SVG branding, direct routing, and scroll-to-top."""
-    # Auto-reset scroll position to top on page load
-    st.markdown("""
-        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-             onload="try{var m=window.parent.document.querySelector('section.main');if(m){m.scrollTo({top:0,left:0,behavior:'instant'});}}catch(e){}"
-             style="display:none;" />
-    """, unsafe_allow_html=True)
+    _reset_scroll()
 
     col_brand, col_links, col_user = st.columns([2.1, 4.3, 1.6])
 
@@ -90,7 +103,6 @@ def render_navbar():
                 st.markdown(f"**👤 {user['name'].split()[0]}**")
             with u_col2:
                 if st.button("Logout", key="btn_nav_logout", use_container_width=True):
-                    auth_service.clear_saved_session()
                     st.session_state.user = None
                     st.session_state.page = "home"
                     st.rerun()
@@ -105,7 +117,8 @@ def render_navbar():
 def render_role_card(
     role: Dict[str, Any],
     match_pct: Optional[int] = None,
-    key_prefix: str = "card"
+    key_prefix: str = "card",
+    match_details: Optional[Dict[str, Any]] = None,
 ):
     """Renders a clean, structured role card with market intelligence and action buttons."""
     with st.container(border=True):
@@ -131,7 +144,22 @@ def render_role_card(
             unsafe_allow_html=True
         )
 
-        st.markdown(f"<p style='color: #475569; font-size: 0.88rem; margin: 0.5rem 0;'>{role['description'][:125]}...</p>", unsafe_allow_html=True)
+        desc = role["description"]
+        if len(desc) > 125:
+            desc = desc[:125].rstrip() + "..."
+        st.markdown(f"<p style='color: #475569; font-size: 0.88rem; margin: 0.5rem 0;'>{desc}</p>", unsafe_allow_html=True)
+
+        if match_details:
+            skills_hit = match_details.get("matched_skills") or []
+            interests_hit = match_details.get("matched_interests") or []
+            bits = []
+            if skills_hit:
+                bits.append("skills: " + ", ".join(skills_hit[:3]))
+            if interests_hit:
+                pretty = [i[:1].upper() + i[1:] for i in interests_hit[:2]]
+                bits.append("interests: " + ", ".join(pretty))
+            if bits:
+                st.caption("✓ Matched on " + "  ·  ".join(bits))
 
         sal = role["salary"]
         st.markdown(f"💰 **Fresher:** ₹{sal['fresher_0_1']['min']}–{sal['fresher_0_1']['max']} LPA &nbsp;|&nbsp; **1–3y:** ₹{sal['mid_1_3']['min']}–{sal['mid_1_3']['max']} LPA")

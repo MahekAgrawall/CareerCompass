@@ -4,15 +4,52 @@ Handles credentials, user session persistence, profiles, and saved roadmaps.
 """
 
 import hashlib
+import hmac
 import json
-import uuid
+import secrets
 from typing import Optional, Dict, Any, Tuple, List
 from database.db import get_connection
 
 
+PBKDF2_ITERATIONS = 200_000
+
+
 def _hash_password(password: str) -> str:
-    """Hashes passwords securely with SHA-256."""
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+    """Hashes a password with PBKDF2-HMAC-SHA256 and a per-user random salt."""
+    salt = secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, PBKDF2_ITERATIONS)
+    return f"pbkdf2_sha256${PBKDF2_ITERATIONS}${salt.hex()}${digest.hex()}"
+
+
+def _verify_password(password: str, stored: str) -> bool:
+    """Verifies a password against a stored hash (also accepts legacy SHA-256)."""
+    if not stored:
+        return False
+    if stored.startswith("pbkdf2_sha256$"):
+        try:
+            _, iterations, salt_hex, digest_hex = stored.split("$")
+            digest = hashlib.pbkdf2_hmac(
+                "sha256", password.encode("utf-8"), bytes.fromhex(salt_hex), int(iterations)
+            )
+            return hmac.compare_digest(digest.hex(), digest_hex)
+        except (ValueError, TypeError):
+            return False
+    # Legacy unsalted SHA-256 — upgraded automatically on next successful login.
+    legacy = hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return hmac.compare_digest(legacy, stored)
+
+
+def _upgrade_password_hash(user_id: int, password: str):
+    """Re-hashes a legacy password with the current algorithm."""
+    conn = get_connection()
+    try:
+        with conn:
+            conn.execute(
+                "UPDATE users SET password_hash = ? WHERE id = ?;",
+                (_hash_password(password), user_id)
+            )
+    finally:
+        conn.close()
 
 
 def signup_user(name: str, email: str, password: str) -> Tuple[bool, str]:
@@ -22,8 +59,8 @@ def signup_user(name: str, email: str, password: str) -> Tuple[bool, str]:
 
     if not name or not email or not password:
         return False, "All fields are required."
-    if len(password) < 4:
-        return False, "Password must be at least 4 characters."
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters."
 
     conn = get_connection()
     try:
@@ -56,8 +93,12 @@ def authenticate_user(email: str, password: str) -> Tuple[bool, Any]:
         if not row:
             return False, "No account found with this email."
 
-        if row["password_hash"] != _hash_password(password):
+        if not _verify_password(password, row["password_hash"]):
             return False, "Incorrect password."
+
+        # Opportunistically upgrade legacy hashes to the salted format.
+        if not row["password_hash"].startswith("pbkdf2_sha256$"):
+            _upgrade_password_hash(row["id"], password)
 
         user_data = {
             "id": row["id"],
@@ -66,57 +107,6 @@ def authenticate_user(email: str, password: str) -> Tuple[bool, Any]:
             "profile": get_user_profile(row["id"])
         }
         return True, user_data
-    finally:
-        conn.close()
-
-
-def remember_session(email: str):
-    """Saves session token in SQLite to remember user across restarts."""
-    conn = get_connection()
-    try:
-        with conn:
-            conn.execute("DELETE FROM user_sessions;")
-            token = str(uuid.uuid4())
-            conn.execute(
-                "INSERT INTO user_sessions (session_token, user_email) VALUES (?, ?);",
-                (token, email.strip().lower())
-            )
-    finally:
-        conn.close()
-
-
-def clear_saved_session():
-    """Removes stored session token upon logout."""
-    conn = get_connection()
-    try:
-        with conn:
-            conn.execute("DELETE FROM user_sessions;")
-    finally:
-        conn.close()
-
-
-def get_remembered_session() -> Optional[Dict[str, Any]]:
-    """Retrieves the remembered user session if present."""
-    conn = get_connection()
-    try:
-        cursor = conn.cursor()
-        cursor.execute("SELECT user_email FROM user_sessions ORDER BY created_at DESC LIMIT 1;")
-        row = cursor.fetchone()
-        if not row:
-            return None
-
-        email = row["user_email"]
-        cursor.execute("SELECT id, name, email FROM users WHERE email = ?;", (email,))
-        u = cursor.fetchone()
-        if not u:
-            return None
-
-        return {
-            "id": u["id"],
-            "name": u["name"],
-            "email": u["email"],
-            "profile": get_user_profile(u["id"])
-        }
     finally:
         conn.close()
 

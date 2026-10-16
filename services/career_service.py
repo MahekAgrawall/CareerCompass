@@ -4,7 +4,8 @@ Handles database queries for roles, market intelligence retrieval, and smart can
 """
 
 import json
-from typing import List, Dict, Any, Optional, Tuple
+import re
+from typing import List, Dict, Any, Optional
 from database.db import get_connection
 
 
@@ -106,53 +107,73 @@ def search_and_filter_roles(
     return filtered
 
 
-def match_roles_smart(profile: Dict[str, Any]) -> List[Tuple[int, Dict[str, Any]]]:
+_WORD_RE = re.compile(r"[a-z0-9+#]+")
+
+
+def _keywords(text: str) -> set:
+    """Lowercase word tokens, keeping symbols used in tech terms (c++, c#, .net)."""
+    return set(_WORD_RE.findall(text.lower()))
+
+
+def _terms_overlap(user_term: str, role_term: str) -> bool:
+    """True when a user keyword/phrase is clearly related to a role keyword."""
+    u, r = user_term.strip().lower(), role_term.strip().lower()
+    if not u or not r:
+        return False
+    if u in r or r in u:
+        return True
+    return bool(_keywords(u) & _keywords(r))
+
+
+def match_roles_smart(profile: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
-    Ranks roles strictly prioritizing candidate's explicit interests (65% weight)
-    and technical baseline (35% weight). Excludes roles with zero interest synergy.
+    Ranks roles by interest fit (65% weight) and existing-skill fit (35% weight).
+
+    Each result is a dict:
+        {"role": role, "score": int,
+         "matched_interests": [...], "matched_skills": [...]}
+
+    Roles with zero genuine interest alignment are excluded, so every result
+    reflects at least one interest the candidate explicitly chose. Scores are
+    honest — there is no artificial floor or ceiling.
     """
     roles = get_all_roles()
-    user_skills = [s.strip().lower() for s in profile.get("current_skills", [])]
-    user_interests = [i.strip().lower() for i in profile.get("interests", [])]
+    user_skills = [s.strip().lower() for s in profile.get("current_skills", []) if s.strip()]
+    user_interests = [i.strip().lower() for i in profile.get("interests", []) if i.strip()]
 
     if not user_interests:
         return []
 
-    scored_roles = []
+    results: List[Dict[str, Any]] = []
 
     for role in roles:
-        role_skills = [s.strip().lower() for s in role["matching_skills"]]
-        role_interests = [i.strip().lower() for i in role["matching_interests"]]
+        role_skills = [s.lower() for s in role["matching_skills"]]
+        role_interests = [i.lower() for i in role["matching_interests"]]
 
-        # 1. Interest Match (65% weight)
-        interest_hits = 0
-        for ui in user_interests:
-            for ri in role_interests:
-                if ui in ri or ri in ui or any(word in ri for word in ui.split()):
-                    interest_hits += 1
-                    break
+        matched_interests = [
+            ui for ui in user_interests
+            if any(_terms_overlap(ui, ri) for ri in role_interests)
+        ]
+        if not matched_interests:
+            continue  # strict: no interest synergy, no recommendation
 
-        # STRICT FILTER: Role must have at least one genuine interest alignment
-        if interest_hits == 0:
-            continue
+        matched_skills = [
+            us for us in user_skills
+            if any(_terms_overlap(us, rs) for rs in role_skills)
+        ]
 
-        interest_score = min(1.0, interest_hits / max(1, min(len(user_interests), 3)))
+        interest_score = len(matched_interests) / len(user_interests)
+        skill_score = (len(matched_skills) / len(user_skills)) if user_skills else 0.0
 
-        # 2. Skill Match (35% weight)
-        skill_hits = 0
-        for us in user_skills:
-            for rs in role_skills:
-                if us in rs or rs in us:
-                    skill_hits += 1
-                    break
+        score = int(round(interest_score * 65 + skill_score * 35))
+        score = max(0, min(100, score))
 
-        skill_score = min(1.0, skill_hits / max(1, min(len(user_skills), 4)))
+        results.append({
+            "role": role,
+            "score": score,
+            "matched_interests": matched_interests,
+            "matched_skills": matched_skills,
+        })
 
-        # Composite match percentage
-        match_pct = int((interest_score * 65) + (skill_score * 35))
-        match_pct = max(45, min(98, match_pct))
-
-        scored_roles.append((match_pct, role))
-
-    scored_roles.sort(key=lambda x: x[0], reverse=True)
-    return scored_roles
+    results.sort(key=lambda item: item["score"], reverse=True)
+    return results

@@ -138,15 +138,6 @@ def init_db():
             );
         """)
 
-        # 7. Remembered User Sessions
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS user_sessions (
-                session_token TEXT PRIMARY KEY,
-                user_email TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
-
     # Seed roles into SQLite if table is empty
     _seed_roles_if_empty(conn)
     conn.close()

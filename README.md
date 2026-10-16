@@ -178,9 +178,8 @@ The SQLite database and role catalog are created automatically on first launch �
 
 Tracked honestly, because these are the next things to fix:
 
-- **Session model** — "remember me" currently stores a single global session; it is intended for single-user local use and must be reworked (per-browser cookies) before a public multi-user deploy.
-- **Password hashing** — uses SHA-256; should move to a salted KDF (bcrypt/argon2).
-- **AI SDK** — `google-generativeai` is deprecated by Google; migrate to `google-genai`.
+- **Sessions** — sign-in is scoped to the current browser session (no persistent "remember me"); a cookie-based option is planned. Passwords are stored with salted **PBKDF2-HMAC-SHA256**.
+- **AI SDK** — `google-generativeai` is deprecated by Google; migrating to `google-genai` is planned.
 - **Routing** — page state lives in `session_state`, so a browser refresh returns you home and deep links aren't supported yet.
 - **No automated tests yet.**
 

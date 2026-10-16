@@ -45,6 +45,30 @@ def get_model(system_instruction: str = None) -> genai.GenerativeModel:
     return genai.GenerativeModel(MODEL_NAME)
 
 
+_ROADMAP_LIST_FIELDS = ("immediate_focus", "next_level", "good_to_explore", "projects")
+
+
+def _extract_json(raw_text: str) -> Dict[str, Any]:
+    """Pulls the first JSON object out of a model response, tolerating code fences."""
+    text = (raw_text or "").strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else text
+        text = text.strip().rstrip("`").strip()
+    start, end = text.find("{"), text.rfind("}")
+    if start == -1 or end == -1 or end < start:
+        raise ValueError("No JSON object found in the model response.")
+    return json.loads(text[start:end + 1])
+
+
+def _validate_roadmap(data: Any) -> None:
+    """Ensures the parsed roadmap contains the fields the UI renders."""
+    if not isinstance(data, dict):
+        raise ValueError("Roadmap response was not a JSON object.")
+    for field in _ROADMAP_LIST_FIELDS:
+        if not isinstance(data.get(field), list):
+            raise ValueError(f"Roadmap field '{field}' is missing or not a list.")
+
+
 def generate_roadmap(user_profile: Dict[str, Any], role: Dict[str, Any]) -> Dict[str, Any]:
     """Generates a personalized, structured 3-phase skill roadmap and portfolio projects."""
     prompt = f"""
@@ -109,23 +133,25 @@ Return your response strictly as a JSON object matching this schema:
 }}
 """
 
-    response = get_model().generate_content(
-        prompt,
-        generation_config=genai.GenerationConfig(
-            response_mime_type="application/json",
-            temperature=0.7,
-        ),
-    )
+    last_error = None
+    for attempt in range(2):
+        response = get_model().generate_content(
+            prompt,
+            generation_config=genai.GenerationConfig(
+                response_mime_type="application/json",
+                temperature=0.7 if attempt == 0 else 0.2,
+            ),
+        )
+        try:
+            data = _extract_json(response.text)
+            _validate_roadmap(data)
+            return data
+        except (json.JSONDecodeError, ValueError) as e:
+            last_error = e
 
-    raw_text = response.text.strip()
-    if raw_text.startswith("```json"):
-        raw_text = raw_text[7:]
-    elif raw_text.startswith("```"):
-        raw_text = raw_text[3:]
-    if raw_text.endswith("```"):
-        raw_text = raw_text[:-3]
-
-    return json.loads(raw_text.strip())
+    raise RuntimeError(
+        "The AI returned a roadmap in an unexpected format. Please try generating again."
+    ) from last_error
 
 
 def generate_role_match_explanation(user_profile: Dict[str, Any], matched_roles: List[Dict[str, Any]]) -> str:

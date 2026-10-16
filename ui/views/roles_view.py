@@ -13,7 +13,7 @@ def render():
     if not scored and profile:
         scored = career_service.match_roles_smart(profile)
         st.session_state.scored_roles = scored
-        st.session_state.matched_roles = [r for _, r in scored]
+        st.session_state.matched_roles = [item["role"] for item in scored]
 
     st.markdown(f"## 🎯 Step 2 — Roles Matched for **{profile.get('name', 'You')}**")
     st.caption("Filtered strictly according to your selected career interests and current technical baseline.")
@@ -35,7 +35,7 @@ def render():
     if "match_explanation" not in st.session_state:
         with st.spinner("Analyzing candidate interest synergy..."):
             st.session_state.match_explanation = ai_service.generate_role_match_explanation(
-                profile, [r for _, r in scored]
+                profile, [item["role"] for item in scored]
             )
 
     st.info(f"💡 **Strategic Fit Assessment:** {st.session_state.match_explanation}")
@@ -48,9 +48,14 @@ def render():
         cols = st.columns(3)
         for j, col in enumerate(cols):
             if i + j < len(scored):
-                match_pct, role = scored[i + j]
+                item = scored[i + j]
                 with col:
-                    render_role_card(role, match_pct=match_pct, key_prefix="matched")
+                    render_role_card(
+                        item["role"],
+                        match_pct=item["score"],
+                        key_prefix="matched",
+                        match_details=item,
+                    )
 
     st.markdown("---")
     col_back, col_cmp, col_dir = st.columns([1.5, 2.0, 1.5])
