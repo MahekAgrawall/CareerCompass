@@ -1,0 +1,589 @@
+{
+  "roles": [
+    {
+      "id": "forward_deployed_engineer",
+      "title": "Forward Deployed Engineer (FDE)",
+      "category": "Engineering & Consulting",
+      "icon": "⚡",
+      "market_demand": "Very High 🔥",
+      "competition_level": "Moderate 🟢",
+      "future_relevance": "Exceptional (9.8/10 — AI Enterprise Boom)",
+      "is_niche": true,
+      "niche_category": "Specialized Enterprise",
+      "description": "Popularized by companies like Palantir and enterprise AI firms. You are an elite hybrid of Software Engineer and Technical Solution Architect deployed directly to key clients to design, customize, and integrate enterprise AI and data platforms in mission-critical environments.",
+      "responsibilities": [
+        "Work directly on-site/remotely with enterprise clients to scope and build production systems",
+        "Build custom connectors, ETL pipelines, and API integrations into client infrastructures",
+        "Rapidly prototype full-stack solutions and translate ambiguous business needs into scalable code",
+        "Collaborate with internal core product teams to feed client requirements back into the product",
+        "Lead technical client demonstrations, onboarding, and deployment escalations"
+      ],
+      "qualifications": [
+        "B.Tech CSE with high adaptability and client-facing communication skills",
+        "Solid full-stack or backend engineering foundation (Python, Java, TypeScript)",
+        "Deep familiarity with cloud architecture, APIs, and enterprise data warehouses",
+        "High degree of problem ownership and rapid prototyping ability"
+      ],
+      "growth_path": ["Associate FDE", "Forward Deployed Engineer", "Lead FDE", "Director of Field Engineering", "Head of Solutions / VP Customer Engineering"],
+      "salary": {
+        "fresher_0_1": {"min": 8, "max": 18, "label": "0–1 yr"},
+        "mid_1_3": {"min": 18, "max": 35, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 35, "max": 75, "label": "3+ yrs"}
+      },
+      "top_companies": ["Palantir", "Databricks", "Snowflake", "Sprinklr", "Postman", "BrowserStack", "Persistent", "Fractal AI"],
+      "skills": {
+        "must_have": ["Python or Java", "REST APIs & Webhooks", "SQL (Advanced)", "System Architecture fundamentals", "Client Communication & Executive Presence", "Git & Docker"],
+        "good_to_have": ["Kubernetes & Cloud (AWS/Azure/GCP)", "Data pipelines (dbt, Airflow)", "FastAPI / React for rapid PoCs", "Enterprise Auth (SSO, OAuth, SAML)", "Reverse ETL & Data Warehouses"],
+        "can_have": ["Palantir Foundry / Databricks certification", "Distributed Systems debugging", "Security & SOC2 compliance basics", "Sales engineering sense"]
+      },
+      "matching_interests": ["consulting", "coding", "client facing", "business", "problem solving", "cloud", "fast-paced", "travel"],
+      "matching_skills": ["python", "java", "sql", "apis", "communication", "cloud", "docker"]
+    },
+    {
+      "id": "ai_agent_engineer",
+      "title": "AI Agent & Systems Engineer",
+      "category": "AI / ML",
+      "icon": "🤖",
+      "market_demand": "Hyper Growth 🚀",
+      "competition_level": "Low–Moderate 🟢",
+      "future_relevance": "Unrivaled (10/10 — Next Computing Paradigm)",
+      "is_niche": true,
+      "niche_category": "Emerging AI Frontier",
+      "description": "Build autonomous, tool-using AI agents that plan, reason, and take action in complex software ecosystems. You go beyond prompt wrappers to build reliable agentic loops, MCP servers, and multi-agent coordination frameworks.",
+      "responsibilities": [
+        "Architect multi-agent systems using frameworks like LangGraph, CrewAI, and AutoGen",
+        "Design function calling, tool use, and MCP (Model Context Protocol) integrations",
+        "Implement memory architectures, state management, and loop error-recovery protocols",
+        "Evaluate agent reliability, cost, latency, and guardrails with automated test suites",
+        "Integrate agentic workflows into existing backend microservices and databases"
+      ],
+      "qualifications": [
+        "B.Tech CSE with strong software engineering fundamentals",
+        "High proficiency in Python and asynchronous programming (asyncio)",
+        "Deep understanding of LLM capabilities, token limits, and function calling",
+        "Knowledge of distributed systems, vector databases, and API protocols"
+      ],
+      "growth_path": ["AI Systems Developer", "Agentic Systems Engineer", "Senior AI Engineer", "AI Architect", "Head of Autonomous Systems"],
+      "salary": {
+        "fresher_0_1": {"min": 8, "max": 18, "label": "0–1 yr"},
+        "mid_1_3": {"min": 18, "max": 42, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 42, "max": 90, "label": "3+ yrs"}
+      },
+      "top_companies": ["Google", "Microsoft", "Krutrim", "Sarvam AI", "Yellow.ai", "Haptik", "Cognition (Devin)", "AI Startups across BLR/SF"],
+      "skills": {
+        "must_have": ["Python (async/await)", "Function Calling & Structured Outputs", "LangGraph / CrewAI / LlamaIndex", "REST APIs & WebSockets", "Git & Docker", "Prompt Architecture"],
+        "good_to_have": ["MCP (Model Context Protocol)", "Vector DBs (Chroma, Qdrant, Pinecone)", "RAG Evaluation (Ragas, TruLens)", "FastAPI & Redis", "Agent Memory & Semantic Routing"],
+        "can_have": ["Local LLM inference (Ollama, vLLM)", "Fine-tuning for tool-use", "Self-healing code agents", "DSPy optimization"]
+      },
+      "matching_interests": ["ai", "agents", "genai", "llm", "automation", "coding", "research"],
+      "matching_skills": ["python", "llm", "langchain", "openai", "gemini", "docker", "apis"]
+    },
+    {
+      "id": "backend_dev",
+      "title": "Software Developer (Backend)",
+      "category": "Development",
+      "icon": "⚙️",
+      "market_demand": "Very High 🔥",
+      "competition_level": "High 🔴",
+      "future_relevance": "High (9.0/10 — Enduring Core Foundation)",
+      "is_niche": false,
+      "niche_category": "Mainstream Core",
+      "description": "Build and maintain the server-side logic, databases, and APIs that power web and mobile applications. You are the resilient engine behind every digital product.",
+      "responsibilities": [
+        "Design and develop high-throughput RESTful & gRPC APIs",
+        "Architect and optimize relational and document databases",
+        "Write clean, scalable, multi-threaded, and test-covered code",
+        "Implement caching layers, rate limiting, and auth protocols",
+        "Deploy and monitor microservices on cloud platforms"
+      ],
+      "qualifications": [
+        "B.Tech CSE or related degree",
+        "Strong DSA and problem-solving skills",
+        "Proficiency in at least one backend language (Java, Python, Go, Node.js)",
+        "Knowledge of databases (PostgreSQL, MySQL, Redis)"
+      ],
+      "growth_path": ["Junior Developer", "Software Engineer", "Senior Engineer", "Tech Lead", "Engineering Manager / Architect"],
+      "salary": {
+        "fresher_0_1": {"min": 4, "max": 10, "label": "0–1 yr"},
+        "mid_1_3": {"min": 10, "max": 20, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 20, "max": 45, "label": "3+ yrs"}
+      },
+      "top_companies": ["Google", "Microsoft", "Amazon", "Flipkart", "Swiggy", "Razorpay", "Zomato", "PhonePe", "Infosys"],
+      "skills": {
+        "must_have": ["Data Structures & Algorithms", "Java or Python or Go or Node.js", "SQL (PostgreSQL / MySQL)", "REST APIs", "Git & Version Control", "Linux command line"],
+        "good_to_have": ["Spring Boot or Django or Express", "Redis caching", "Docker basics", "System Design fundamentals", "AWS / GCP basics"],
+        "can_have": ["Kubernetes", "Microservices architecture", "Message queues (Kafka, RabbitMQ)", "GraphQL & gRPC", "CI/CD pipelines"]
+      },
+      "matching_interests": ["coding", "problem solving", "backend", "system design", "databases", "algorithms"],
+      "matching_skills": ["java", "python", "javascript", "node", "sql", "dsa", "c++", "spring boot"]
+    },
+    {
+      "id": "frontend_dev",
+      "title": "Software Developer (Frontend)",
+      "category": "Development",
+      "icon": "🎨",
+      "market_demand": "High 📈",
+      "competition_level": "Extreme ⚔️",
+      "future_relevance": "Moderate–High (8.0/10 — UX Precision)",
+      "is_niche": false,
+      "niche_category": "Mainstream Core",
+      "description": "Build high-performance, accessible, and responsive user interfaces that delight millions. You turn complex design systems into smooth browser interactions.",
+      "responsibilities": [
+        "Develop interactive web UIs using React, Next.js, or Vue",
+        "Manage complex client-side state, caching, and optimistic UI updates",
+        "Optimize web vital metrics (LCP, FID, CLS, Core Web Vitals)",
+        "Collaborate closely with UI/UX designers and design systems",
+        "Ensure accessibility (a11y) and cross-browser resilience"
+      ],
+      "qualifications": [
+        "B.Tech CSE or related degree",
+        "Deep mastery of JavaScript (ES6+) and modern TypeScript",
+        "Hands-on experience with modern component libraries and state managers",
+        "Understanding of browser rendering pipelines and HTTP performance"
+      ],
+      "growth_path": ["Junior Frontend Dev", "Frontend Engineer", "Senior Frontend Engineer", "Frontend Architect", "Engineering Manager"],
+      "salary": {
+        "fresher_0_1": {"min": 3.5, "max": 8, "label": "0–1 yr"},
+        "mid_1_3": {"min": 8, "max": 18, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 18, "max": 38, "label": "3+ yrs"}
+      },
+      "top_companies": ["Google", "Adobe", "Meesho", "Razorpay", "CRED", "Zomato", "Freshworks", "Zoho"],
+      "skills": {
+        "must_have": ["HTML5 & Modern CSS", "JavaScript (ES6+) & TypeScript", "React.js", "State Management (Zustand/Redux)", "Git & Version Control", "REST API consumption"],
+        "good_to_have": ["Next.js (App Router, SSR)", "Tailwind CSS", "Unit & E2E Testing (Vitest, Playwright)", "Figma translation", "Web Performance Tuning"],
+        "can_have": ["Micro-frontends", "WebSockets & Real-time UIs", "WebGL / Three.js / Canvas", "PWA capabilities"]
+      },
+      "matching_interests": ["design", "ui", "web", "frontend", "javascript", "user experience"],
+      "matching_skills": ["html", "css", "javascript", "react", "typescript", "figma"]
+    },
+    {
+      "id": "fullstack_dev",
+      "title": "Full Stack Developer",
+      "category": "Development",
+      "icon": "🔄",
+      "market_demand": "Very High 🔥",
+      "competition_level": "High 🔴",
+      "future_relevance": "High (9.2/10 — Maximum Versatility)",
+      "is_niche": false,
+      "niche_category": "Mainstream Core",
+      "description": "Own feature development end-to-end from user-facing components down to schema design and cloud deployment. Highest hiring demand across startups and product companies.",
+      "responsibilities": [
+        "Architect and ship full features across UI, business logic, and databases",
+        "Develop scalable APIs and connect them to responsive frontend applications",
+        "Provision cloud services, CI/CD pipelines, and monitor production uptime",
+        "Collaborate directly with founders, product managers, and designers",
+        "Maintain code hygiene, unit tests, and performance profiles"
+      ],
+      "qualifications": [
+        "B.Tech CSE or equivalent",
+        "Proficiency in frontend (React/Next) and backend (Node/Spring/Django)",
+        "Solid database design experience across SQL and NoSQL",
+        "Comfortable with containerization and cloud hosting"
+      ],
+      "growth_path": ["Junior Full Stack Dev", "Full Stack Engineer", "Senior Engineer", "Tech Lead / Staff Engineer", "CTO (Startups)"],
+      "salary": {
+        "fresher_0_1": {"min": 4.5, "max": 11, "label": "0–1 yr"},
+        "mid_1_3": {"min": 11, "max": 24, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 24, "max": 50, "label": "3+ yrs"}
+      },
+      "top_companies": ["CRED", "Razorpay", "Postman", "BrowserStack", "Freshworks", "Zerodha", "Fast-growing Startups"],
+      "skills": {
+        "must_have": ["TypeScript & JavaScript", "React.js or Next.js", "Node.js or Python or Java", "SQL (PostgreSQL) & MongoDB", "REST APIs", "Git"],
+        "good_to_have": ["Docker & Docker Compose", "AWS or Supabase or Firebase", "Tailwind CSS", "Redis caching", "CI/CD (GitHub Actions)"],
+        "can_have": ["GraphQL", "Serverless architecture", "Kubernetes", "WebSockets", "System Design patterns"]
+      },
+      "matching_interests": ["full stack", "coding", "startup", "product", "web development"],
+      "matching_skills": ["react", "node", "javascript", "python", "java", "sql", "mongodb", "typescript"]
+    },
+    {
+      "id": "sre_platform_engineer",
+      "title": "Platform & Site Reliability Engineer (SRE)",
+      "category": "Infrastructure & Cloud",
+      "icon": "🛡️",
+      "market_demand": "Very High 🔥",
+      "competition_level": "Low–Moderate 🟢",
+      "future_relevance": "Critical (9.7/10 — Cloud Resilience Backbone)",
+      "is_niche": true,
+      "niche_category": "Specialized Infrastructure",
+      "description": "Treat operations as a software problem. SREs and Platform Engineers build internal developer platforms, ensure 99.99% availability, and orchestrate automated self-healing cloud clusters.",
+      "responsibilities": [
+        "Define and enforce Service Level Objectives (SLOs, SLIs, SLAs) and error budgets",
+        "Design and maintain large-scale Kubernetes clusters and infrastructure as code (Terraform)",
+        "Build internal developer platforms (IDPs) to allow software teams to ship autonomously",
+        "Lead incident post-mortems, root cause analysis, and chaos engineering drills",
+        "Implement end-to-end observability stacks (OpenTelemetry, Prometheus, Datadog)"
+      ],
+      "qualifications": [
+        "B.Tech CSE with strong Linux systems and networking core",
+        "Proficiency in Go, Python, or Rust for systems tooling",
+        "Deep knowledge of Kubernetes, Docker, and distributed networking",
+        "Production debugging mindset under high-stress incident scenarios"
+      ],
+      "growth_path": ["Cloud Operations Engineer", "Site Reliability Engineer", "Senior SRE / Platform Engineer", "Staff SRE", "Head of Infrastructure & Security"],
+      "salary": {
+        "fresher_0_1": {"min": 6, "max": 14, "label": "0–1 yr"},
+        "mid_1_3": {"min": 14, "max": 30, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 30, "max": 65, "label": "3+ yrs"}
+      },
+      "top_companies": ["Google", "Amazon", "Uber", "Razorpay", "Swiggy", "PhonePe", "Atlassian", "HashiCorp"],
+      "skills": {
+        "must_have": ["Linux Internals & Bash", "Python or Go", "Docker & Kubernetes", "Terraform (IaC)", "Networking (TCP/IP, DNS, BGP, Ingress)", "Git"],
+        "good_to_have": ["Prometheus & Grafana", "OpenTelemetry & Jaeger", "AWS or GCP or Azure", "CI/CD & GitOps (ArgoCD)", "Chaos Engineering"],
+        "can_have": ["eBPF & Linux kernel profiling", "Service Mesh (Istio)", "Multi-region disaster recovery", "FinOps & Cloud Cost Governance"]
+      },
+      "matching_interests": ["devops", "cloud", "infrastructure", "linux", "networking", "automation"],
+      "matching_skills": ["linux", "docker", "kubernetes", "python", "terraform", "aws", "networking"]
+    },
+    {
+      "id": "data_engineer",
+      "title": "Data Platform & Analytics Engineer",
+      "category": "Data & Analytics",
+      "icon": "🌊",
+      "market_demand": "High 📈",
+      "competition_level": "Moderate 🟡",
+      "future_relevance": "High (9.3/10 — AI Needs Quality Data)",
+      "is_niche": false,
+      "niche_category": "Mainstream Core",
+      "description": "Construct scalable data highways. You ingest petabytes of streaming and batch data, transform it with dbt and Spark, and supply reliable data to AI models and business analysts.",
+      "responsibilities": [
+        "Build and orchestrate fault-tolerant ETL/ELT pipelines using Airflow or Prefect",
+        "Design cloud data warehouses and lakes (Snowflake, BigQuery, Databricks)",
+        "Implement data modeling frameworks and transformation layers using dbt",
+        "Optimize distributed queries on PySpark and Apache Iceberg/Delta Lake",
+        "Enforce data governance, quality testing, and schema validation"
+      ],
+      "qualifications": [
+        "B.Tech CSE with strong SQL and Python expertise",
+        "Understanding of distributed data processing concepts",
+        "Familiarity with cloud data warehouse ecosystems",
+        "Knowledge of database indexing, partitioning, and columnar storage"
+      ],
+      "growth_path": ["Associate Data Engineer", "Data Engineer", "Senior Data Engineer", "Data Architect", "Director of Data Engineering"],
+      "salary": {
+        "fresher_0_1": {"min": 5, "max": 11, "label": "0–1 yr"},
+        "mid_1_3": {"min": 11, "max": 25, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 25, "max": 55, "label": "3+ yrs"}
+      },
+      "top_companies": ["Amazon", "Flipkart", "Walmart Global Tech", "Swiggy", "Tiger Analytics", "Fractal", "Accenture", "Deloitte"],
+      "skills": {
+        "must_have": ["SQL (Advanced / Window Functions)", "Python (Data Processing)", "Data Modeling & Normalization", "Git & Linux", "Cloud Storage basics"],
+        "good_to_have": ["Apache Spark / PySpark", "Airflow or Dagster", "Snowflake or BigQuery or Databricks", "dbt (data build tool)", "Kafka streaming basics"],
+        "can_have": ["Apache Iceberg or Delta Lake", "Data Mesh architecture", "Flink streaming", "Data quality with Great Expectations"]
+      },
+      "matching_interests": ["data", "analytics", "sql", "coding", "infrastructure"],
+      "matching_skills": ["sql", "python", "data analysis", "aws", "statistics"]
+    },
+    {
+      "id": "ml_engineer",
+      "title": "Machine Learning Engineer",
+      "category": "AI / ML",
+      "icon": "🧠",
+      "market_demand": "High 📈",
+      "competition_level": "High 🔴",
+      "future_relevance": "Exceptional (9.6/10 — Production AI Core)",
+      "is_niche": true,
+      "niche_category": "Specialized AI",
+      "description": "Bridge the divide between research science and production engineering. You train, evaluate, containerize, and serve ML models handling millions of live user predictions.",
+      "responsibilities": [
+        "Build automated ML training, validation, and inference pipelines",
+        "Deploy models as low-latency microservices with FastAPI and Triton/TorchServe",
+        "Monitor live model drift, concept drift, latency, and throughput",
+        "Optimize models via quantization, pruning, and ONNX conversion",
+        "Collaborate with data teams to engineer robust feature stores"
+      ],
+      "qualifications": [
+        "B.Tech CSE with solid grounding in calculus, linear algebra, and CS fundamentals",
+        "Proficiency in PyTorch or TensorFlow and Scikit-learn",
+        "Software engineering capabilities in API design, Docker, and CI/CD",
+        "Understanding of production MLOps lifecycles"
+      ],
+      "growth_path": ["ML Developer", "Machine Learning Engineer", "Senior ML Engineer", "ML Platform Lead", "VP of Machine Learning"],
+      "salary": {
+        "fresher_0_1": {"min": 6, "max": 14, "label": "0–1 yr"},
+        "mid_1_3": {"min": 14, "max": 30, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 30, "max": 65, "label": "3+ yrs"}
+      },
+      "top_companies": ["Google", "Microsoft", "NVIDIA", "Flipkart", "Swiggy", "PhonePe", "Sarvam AI", "Zomato"],
+      "skills": {
+        "must_have": ["Python", "ML Math & Algorithms (Scikit-Learn)", "Deep Learning (PyTorch or TensorFlow)", "Docker", "REST APIs (FastAPI)", "SQL"],
+        "good_to_have": ["MLflow or Weights & Biases", "Model serving (Triton / TorchServe)", "Feature Stores (Feast)", "AWS SageMaker or GCP Vertex AI", "Kubernetes"],
+        "can_have": ["vLLM & TensorRT-LLM", "Distributed Training (DeepSpeed, FSDP)", "Edge ML (ONNX, TFLite)", "Vector Search pipelines"]
+      },
+      "matching_interests": ["ai", "machine learning", "deep learning", "python", "research", "algorithms"],
+      "matching_skills": ["python", "ml", "deep learning", "pytorch", "tensorflow", "sql", "docker"]
+    },
+    {
+      "id": "data_scientist",
+      "title": "Data Scientist",
+      "category": "Data & Analytics",
+      "icon": "🧪",
+      "market_demand": "Moderate–High 📈",
+      "competition_level": "Extreme ⚔️",
+      "future_relevance": "Evolving (8.5/10 — Shifting toward GenAI)",
+      "is_niche": false,
+      "niche_category": "Mainstream Core",
+      "description": "Formulate mathematical hypotheses and uncover causal patterns from raw enterprise data. You translate vague commercial questions into predictive intelligence and strategic impact.",
+      "responsibilities": [
+        "Conduct thorough exploratory data analysis (EDA) and hypothesis testing",
+        "Design robust A/B tests, experimentation frameworks, and causal inference studies",
+        "Train predictive models for churn, customer lifetime value, and recommendation engines",
+        "Synthesize complex statistical findings into actionable executive roadmaps",
+        "Collaborate with product teams to build metrics and decision frameworks"
+      ],
+      "qualifications": [
+        "B.Tech CSE / Math / Statistics with keen analytical curiosity",
+        "Proficiency in Python (NumPy, Pandas, SciPy, Statsmodels)",
+        "Strong foundation in probability, regression, and inferential statistics",
+        "Excellent storytelling and data visualization abilities"
+      ],
+      "growth_path": ["Junior Data Scientist", "Data Scientist", "Senior Data Scientist", "Principal Scientist", "Head of Data Science"],
+      "salary": {
+        "fresher_0_1": {"min": 5.5, "max": 12, "label": "0–1 yr"},
+        "mid_1_3": {"min": 12, "max": 24, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 24, "max": 52, "label": "3+ yrs"}
+      },
+      "top_companies": ["Amazon", "Swiggy", "Ola", "PhonePe", "Fractal Analytics", "Tiger Analytics", "Mu Sigma", "Paytm"],
+      "skills": {
+        "must_have": ["Python (Pandas, NumPy, Scikit-learn)", "Statistics & Probability", "SQL (Intermediate–Advanced)", "Exploratory Data Analysis", "Data Visualization (Seaborn, Plotly)"],
+        "good_to_have": ["A/B Testing & Causal Inference", "Feature Engineering techniques", "Time Series Forecasting", "Cloud Data Environments (Databricks, BigQuery)", "Basic NLP / LLM prompting"],
+        "can_have": ["Bayesian modeling", "Graph neural networks", "Deep learning architectures", "MLflow tracking"]
+      },
+      "matching_interests": ["data", "statistics", "machine learning", "research", "analytics", "business"],
+      "matching_skills": ["python", "statistics", "sql", "ml", "pandas", "data analysis"]
+    },
+    {
+      "id": "data_analyst",
+      "title": "Business Intelligence & Data Analyst",
+      "category": "Data & Analytics",
+      "icon": "📊",
+      "market_demand": "High 📈",
+      "competition_level": "Extreme ⚔️",
+      "future_relevance": "Evolving (7.8/10 — Requires AI-augmented skills)",
+      "is_niche": false,
+      "niche_category": "Mainstream Core",
+      "description": "Democratize data clarity across organizations. You build executive KPI dashboards, author critical SQL queries, and present data-backed narratives that steer revenue decisions.",
+      "responsibilities": [
+        "Query relational and lakehouse databases to extract metrics and anomalies",
+        "Design real-time interactive business dashboards in Power BI, Tableau, or Looker",
+        "Partner with cross-functional leaders to define conversion funnels and retention rates",
+        "Automate recurring reporting schedules using Python scripts and scheduled queries",
+        "Conduct ad-hoc diagnostic deep-dives into operational bottlenecks"
+      ],
+      "qualifications": [
+        "B.Tech CSE or analytical degree with rigorous attention to detail",
+        "High fluency in SQL (joins, aggregations, window functions)",
+        "Proficiency in leading BI platforms and spreadsheet modeling",
+        "Clear verbal and written business presentation skills"
+      ],
+      "growth_path": ["Junior Data Analyst", "Data Analyst", "Senior Analyst", "Analytics Manager", "Head of Business Intelligence"],
+      "salary": {
+        "fresher_0_1": {"min": 3.5, "max": 7.5, "label": "0–1 yr"},
+        "mid_1_3": {"min": 7.5, "max": 16, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 16, "max": 32, "label": "3+ yrs"}
+      },
+      "top_companies": ["Amazon", "Flipkart", "Accenture", "Deloitte", "Myntra", "Swiggy", "EY", "KPMG", "MakeMyTrip"],
+      "skills": {
+        "must_have": ["SQL (Strong)", "Power BI or Tableau", "Advanced Excel (VLOOKUP, Pivot, Modeling)", "Business Acumen & Storytelling", "Basic Python (Pandas)"],
+        "good_to_have": ["Statistical concepts (distributions, significance)", "Looker Studio / Metabase", "Data transformation concepts", "A/B Testing analysis", "Git basics"],
+        "can_have": ["dbt data modeling", "BigQuery / Snowflake querying", "R programming", "Predictive forecasting basics"]
+      },
+      "matching_interests": ["data", "analytics", "business", "excel", "reporting", "insights"],
+      "matching_skills": ["sql", "excel", "power bi", "tableau", "python", "data analysis"]
+    },
+    {
+      "id": "cloud_engineer",
+      "title": "Cloud Solutions Engineer",
+      "category": "Infrastructure & Cloud",
+      "icon": "☁️",
+      "market_demand": "High 📈",
+      "competition_level": "Moderate 🟡",
+      "future_relevance": "High (9.1/10 — Foundation of Digital Business)",
+      "is_niche": false,
+      "niche_category": "Mainstream Core",
+      "description": "Architect and govern enterprise cloud estates on AWS, GCP, or Azure. You ensure systems scale smoothly, safeguard data boundaries, and optimize multi-million dollar cloud budgets.",
+      "responsibilities": [
+        "Design, provision, and maintain resilient cloud infrastructure architectures",
+        "Implement IAM security postures, zero-trust controls, and network firewalls",
+        "Automate environment provisioning with Terraform and CloudFormation",
+        "Analyze workload utilization to implement FinOps cloud cost optimizations",
+        "Support application migrations from on-premise servers to cloud native stacks"
+      ],
+      "qualifications": [
+        "B.Tech CSE with firm grasp of IP networking and operating systems",
+        "Cloud certification (AWS Solutions Architect / GCP Cloud Engineer preferred)",
+        "Scripting literacy in Python or Bash",
+        "Understanding of cloud security and IAM fundamentals"
+      ],
+      "growth_path": ["Cloud Associate", "Cloud Engineer", "Senior Cloud Engineer", "Cloud Enterprise Architect", "VP of Cloud Engineering"],
+      "salary": {
+        "fresher_0_1": {"min": 4.5, "max": 10, "label": "0–1 yr"},
+        "mid_1_3": {"min": 10, "max": 22, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 22, "max": 48, "label": "3+ yrs"}
+      },
+      "top_companies": ["Amazon (AWS)", "Google Cloud", "Microsoft Azure", "Accenture", "Wipro", "HCLTech", "Searce", "Cognizant"],
+      "skills": {
+        "must_have": ["AWS or GCP or Azure Core Services", "Linux OS administration", "Networking (VPC, Subnets, DNS, Routing)", "Python or Bash automation", "Git"],
+        "good_to_have": ["Terraform (Infrastructure as Code)", "Docker container basics", "CloudWatch / CloudTrail monitoring", "IAM & Cloud Security best practices", "Serverless (Lambda / Cloud Functions)"],
+        "can_have": ["Kubernetes (EKS/GKE)", "FinOps cost auditing", "Multi-cloud architecture", "Hybrid cloud interconnects"]
+      },
+      "matching_interests": ["cloud", "aws", "infrastructure", "networking", "linux", "devops"],
+      "matching_skills": ["aws", "gcp", "azure", "linux", "python", "networking", "docker"]
+    },
+    {
+      "id": "cybersecurity_analyst",
+      "title": "Cybersecurity & SOC Analyst",
+      "category": "Security",
+      "icon": "🔐",
+      "market_demand": "Very High 🔥",
+      "competition_level": "Moderate 🟢",
+      "future_relevance": "Unrivaled (9.9/10 — Zero Trust & AI Threats)",
+      "is_niche": true,
+      "niche_category": "Specialized Defense",
+      "description": "Defend national and enterprise digital sovereignty. You monitor SIEM telemetry 24/7, triage malicious vectors, patch zero-day exploits, and harden attack surfaces.",
+      "responsibilities": [
+        "Monitor networks and endpoints for security incidents using SIEM platforms",
+        "Conduct systematic vulnerability scans, patch management, and pen tests",
+        "Triage security alerts, contain ransomware threats, and lead incident response",
+        "Audit source code and infrastructure against OWASP and NIST guidelines",
+        "Conduct phishing simulations and enforce corporate cybersecurity hygiene"
+      ],
+      "qualifications": [
+        "B.Tech CSE with deep passion for systems security and ethical hacking",
+        "Exemplary understanding of TCP/IP, operating systems, and cryptography",
+        "Certifications give huge advantage (CompTIA Security+, CEH, eJPT)",
+        "Analytical forensic reasoning and investigative curiosity"
+      ],
+      "growth_path": ["SOC Analyst L1", "Security Analyst L2", "Senior Cyber Engineer", "Security Architect", "Chief Information Security Officer (CISO)"],
+      "salary": {
+        "fresher_0_1": {"min": 4.5, "max": 9.5, "label": "0–1 yr"},
+        "mid_1_3": {"min": 9.5, "max": 20, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 20, "max": 45, "label": "3+ yrs"}
+      },
+      "top_companies": ["KPMG", "Deloitte", "PwC", "Palo Alto Networks", "CrowdStrike", "Tata Communications", "IBM Security", "Wipro"],
+      "skills": {
+        "must_have": ["TCP/IP & Network protocols", "Linux & Windows command-line", "OWASP Top 10 web vulnerabilities", "Security fundamentals & Cryptography", "Python or Bash scripting"],
+        "good_to_have": ["SIEM tools (Splunk, Microsoft Sentinel)", "Penetration Testing (Burp Suite, Metasploit, Nmap)", "Wireshark packet analysis", "Cloud Security posture", "CompTIA Security+ / CEH"],
+        "can_have": ["SOC2 / ISO 27001 auditing", "Malware reverse engineering", "Threat intelligence feeds", "DevSecOps pipelines"]
+      },
+      "matching_interests": ["security", "hacking", "cybersecurity", "networking", "ethical hacking", "linux"],
+      "matching_skills": ["security", "networking", "linux", "python", "ethical hacking"]
+    },
+    {
+      "id": "product_manager",
+      "title": "Associate Product Manager (APM)",
+      "category": "Product & Strategy",
+      "icon": "🧩",
+      "market_demand": "High 📈",
+      "competition_level": "Extreme ⚔️",
+      "future_relevance": "High (9.0/10 — Strategic Judgment)",
+      "is_niche": true,
+      "niche_category": "Leadership Fast-Track",
+      "description": "Determine what gets built, why, and in what sequence. APMs combine technical feasibility, user empathy, and business ROI to drive features from whiteboard to launch.",
+      "responsibilities": [
+        "Conduct user research, synthesize customer pain points, and write detailed PRDs",
+        "Define success metrics, OKRs, and north star indicators for product features",
+        "Work collaboratively with engineering, design, marketing, and legal teams",
+        "Run continuous sprint prioritization rituals and maintain clean product backlogs",
+        "Analyze experimentation data and A/B test funnels to refine user journeys"
+      ],
+      "qualifications": [
+        "B.Tech CSE provides high competitive edge (technical credibility with engineers)",
+        "Exceptional written and oral persuasion and storytelling skills",
+        "Product sense, first-principles thinking, and data literacy",
+        "Demonstrated leadership in college initiatives, hackathons, or internships"
+      ],
+      "growth_path": ["Associate PM", "Product Manager", "Senior PM", "Group Product Manager", "VP of Product / Chief Product Officer"],
+      "salary": {
+        "fresher_0_1": {"min": 8, "max": 18, "label": "0–1 yr (APM Tracks)"},
+        "mid_1_3": {"min": 18, "max": 32, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 32, "max": 75, "label": "3+ yrs"}
+      },
+      "top_companies": ["Google APM", "Microsoft", "Flipkart", "CRED", "Razorpay", "Swiggy", "Meesho", "Zomato"],
+      "skills": {
+        "must_have": ["Product Thinking & User Empathy", "SQL for Product Analytics", "Wireframing & Prototyping (Figma)", "PRD / User Story writing", "Clear Communication & Structured Thinking"],
+        "good_to_have": ["A/B Testing & Funnel Analysis", "Agile & Scrum methodologies", "Jira / Linear / Confluence", "Metrics dashboards (Mixpanel, Amplitude)", "System Architecture basics"],
+        "can_have": ["Growth loops & viral product engineering", "AI Product UX design", "FinTech / SaaS unit economics", "Go-To-Market strategies"]
+      },
+      "matching_interests": ["product", "management", "strategy", "startup", "design", "business", "communication"],
+      "matching_skills": ["sql", "communication", "figma", "excel", "analytics", "jira", "problem solving"]
+    },
+    {
+      "id": "business_analyst",
+      "title": "Business Analyst / Tech Consultant",
+      "category": "Engineering & Consulting",
+      "icon": "💼",
+      "market_demand": "High 📈",
+      "competition_level": "High 🔴",
+      "future_relevance": "Moderate–High (8.2/10 — Translation Layer)",
+      "is_niche": false,
+      "niche_category": "Mainstream Core",
+      "description": "Translate complex commercial dilemmas into high-impact technology architectures. You serve as the authoritative bridge between corporate clients and software delivery teams.",
+      "responsibilities": [
+        "Elicit and document client workflows, system requirements, and user stories",
+        "Build process flow diagrams, BPMN maps, and solution architecture proposals",
+        "Analyze operational metrics and financial models to justify technology modernization",
+        "Coordinate UAT (User Acceptance Testing) and stakeholder sign-offs",
+        "Present executive briefings to enterprise business leaders"
+      ],
+      "qualifications": [
+        "B.Tech CSE gives strong edge in techno-commercial consulting",
+        "Structured problem-solving and presentation prowess",
+        "Strong SQL and data analysis literacy",
+        "Familiarity with corporate IT systems and software lifecycles"
+      ],
+      "growth_path": ["Analyst", "Senior Consultant", "Manager", "Senior Manager", "Partner / Practice Director"],
+      "salary": {
+        "fresher_0_1": {"min": 4, "max": 8.5, "label": "0–1 yr"},
+        "mid_1_3": {"min": 8.5, "max": 18, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 18, "max": 40, "label": "3+ yrs"}
+      },
+      "top_companies": ["McKinsey & Company", "Deloitte", "Accenture", "PwC", "EY", "KPMG", "Infosys Consulting", "Capgemini"],
+      "skills": {
+        "must_have": ["Requirement Gathering & BRD/PRD writing", "SQL basics", "Process Mapping (Lucidchart / Visio)", "Excel modeling & PowerPoint storytelling", "Agile/Scrum principles"],
+        "good_to_have": ["Jira / Confluence", "Data visualization (Power BI / Tableau)", "Cloud basics (AWS / Azure)", "Enterprise systems (Salesforce, SAP basics)", "Financial cost-benefit analysis"],
+        "can_have": ["Digital Transformation frameworks", "Six Sigma / Lean certification", "API integration literacy", "TOGAF enterprise architecture"]
+      },
+      "matching_interests": ["consulting", "business", "communication", "management", "strategy", "problem solving"],
+      "matching_skills": ["communication", "sql", "excel", "documentation", "presentation", "agile"]
+    },
+    {
+      "id": "qa_automation_engineer",
+      "title": "Software Development Engineer in Test (SDET)",
+      "category": "Development",
+      "icon": "🧪",
+      "market_demand": "Moderate–High 📈",
+      "competition_level": "Moderate 🟡",
+      "future_relevance": "Evolving (8.0/10 — Automated & AI Testing)",
+      "is_niche": false,
+      "niche_category": "Mainstream Core",
+      "description": "Engineers who build software to test software. SDETs author high-concurrency automated test harnesses, performance testing suites, and CI/CD quality gates.",
+      "responsibilities": [
+        "Design scalable automation frameworks from scratch using Java, Python, or TypeScript",
+        "Automate REST API testing, contract verification, and end-to-end UI journeys",
+        "Conduct performance, stress, and load testing using JMeter or k6",
+        "Integrate automated test runs into CI/CD release pipelines",
+        "Debug root-cause code defects alongside core software developers"
+      ],
+      "qualifications": [
+        "B.Tech CSE with strong object-oriented coding discipline",
+        "Proficiency in Java or Python or TypeScript",
+        "Deep familiarity with testing methodologies, mocking, and assertions",
+        "Knowledge of CI/CD integration and containerized test runs"
+      ],
+      "growth_path": ["Associate SDET", "SDET II", "Senior SDET", "Lead SDET / QA Architect", "Director of Quality Engineering"],
+      "salary": {
+        "fresher_0_1": {"min": 4.5, "max": 9, "label": "0–1 yr"},
+        "mid_1_3": {"min": 9, "max": 19, "label": "1–3 yrs"},
+        "senior_3_plus": {"min": 19, "max": 40, "label": "3+ yrs"}
+      },
+      "top_companies": ["Amazon", "Google", "Flipkart", "BrowserStack", "Postman", "Cisco", "Razorpay", "Wipro"],
+      "skills": {
+        "must_have": ["Java or Python or JavaScript", "Data Structures & OOPs", "API Testing (Postman / RestAssured)", "UI Automation (Playwright / Selenium)", "Git & CI/CD basics"],
+        "good_to_have": ["TestNG / JUnit / PyTest", "Docker for test runners", "Load testing (k6, JMeter)", "SQL verification", "BDD (Cucumber)"],
+        "can_have": ["Security test suites (OWASP ZAP)", "AI-augmented testing agents", "Mobile automation (Appium)", "Chaos testing"]
+      },
+      "matching_interests": ["testing", "automation", "coding", "software quality", "debugging"],
+      "matching_skills": ["java", "python", "selenium", "sql", "testing", "jira", "postman"]
+    }
+  ]
+}

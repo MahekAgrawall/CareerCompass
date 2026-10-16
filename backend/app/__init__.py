@@ -1,0 +1,1 @@
+"""CareerCompass backend application package."""

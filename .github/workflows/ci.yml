@@ -6,8 +6,12 @@ on:
   pull_request:
 
 jobs:
-  test:
+  backend:
+    name: Backend (FastAPI)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v4
 
@@ -22,5 +26,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run tests
+      - name: Run backend tests
         run: python -m unittest discover -s tests -t . -v
