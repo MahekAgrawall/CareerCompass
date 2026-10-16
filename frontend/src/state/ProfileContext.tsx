@@ -7,13 +7,10 @@ import { useAuth } from "./AuthContext";
 
 const PROFILE_KEY = "cc.profile";
 
-function readStoredProfile(): Profile | null {
-  try {
-    const raw = sessionStorage.getItem(PROFILE_KEY);
-    return raw ? (JSON.parse(raw) as Profile) : null;
-  } catch {
-    return null;
-  }
+/** Cached answers plus the account they belong to (`null` = filled in as a guest). */
+interface CachedProfile {
+  ownerId: number | null;
+  profile: Profile;
 }
 
 function normalize(partial: Partial<Profile>): Profile {
@@ -27,6 +24,44 @@ function normalize(partial: Partial<Profile>): Profile {
   };
 }
 
+/** True when the candidate actually answered something worth keeping. */
+function hasAnswers(profile: Profile): boolean {
+  return Boolean(profile.name.trim() || profile.interests.length || profile.current_skills.length);
+}
+
+/** Reads the cache, tolerating the older bare-profile format (owner unknown). */
+function readCache(): CachedProfile | null {
+  try {
+    const raw = sessionStorage.getItem(PROFILE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<CachedProfile> & Partial<Profile>;
+    if (!parsed || typeof parsed !== "object") return null;
+
+    if (parsed.profile && typeof parsed.profile === "object") {
+      return {
+        ownerId: typeof parsed.ownerId === "number" ? parsed.ownerId : null,
+        profile: normalize(parsed.profile),
+      };
+    }
+    // Legacy format: the stored value *was* the profile.
+    if ("name" in parsed || "interests" in parsed) {
+      return { ownerId: null, profile: normalize(parsed as Partial<Profile>) };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(profile: Profile | null, ownerId: number | null): void {
+  if (!profile) {
+    sessionStorage.removeItem(PROFILE_KEY);
+    return;
+  }
+  sessionStorage.setItem(PROFILE_KEY, JSON.stringify({ ownerId, profile }));
+}
+
 interface ProfileContextValue {
   profile: Profile | null;
   hasProfile: boolean;
@@ -38,15 +73,29 @@ const ProfileContext = createContext<ProfileContextValue | null>(null);
 
 /**
  * The candidate profile is the app's "anonymous-first" state: it lives in
- * sessionStorage so matching/roadmaps work without an account, and it is
+ * `sessionStorage` so matching and roadmaps work without an account, and it is
  * mirrored to the backend whenever the user is authenticated.
+ *
+ * Cached answers are stamped with the account they belong to. A questionnaire
+ * answered as a guest is therefore carried over to whichever account signs in
+ * next and saved there — while answers belonging to a *different* account are
+ * hidden and never adopted.
  */
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [profile, setProfileState] = useState<Profile | null>(() => readStoredProfile());
+  const [entry, setEntry] = useState<CachedProfile | null>(() => readCache());
   const loadedForUser = useRef<number | null>(null);
 
-  // Pull the server-side profile once per signed-in user.
+  const adopt = useCallback((next: Profile | null, ownerId: number | null) => {
+    writeCache(next, ownerId);
+    setEntry(next ? { ownerId, profile: next } : null);
+  }, []);
+
+  // While nobody is signed in the cache drives the UI. Once somebody is, only
+  // answers stamped with their own id are visible.
+  const profile = entry && (!user || entry.ownerId === user.id) ? entry.profile : null;
+
+  // Reconcile the cached answers with the account once per signed-in user.
   useEffect(() => {
     if (!user) {
       loadedForUser.current = null;
@@ -58,41 +107,51 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        const data = await endpoints.getProfile();
+        const saved = await endpoints.getProfile();
         if (cancelled) return;
-        if (data && Object.keys(data).length > 0) {
-          const next = normalize(data);
-          setProfileState(next);
-          sessionStorage.setItem(PROFILE_KEY, JSON.stringify(next));
+
+        if (saved && Object.keys(saved).length > 0) {
+          // The account already has answers — they win over anything cached.
+          adopt(normalize(saved), user.id);
+          return;
+        }
+
+        // Fresh account: carry over a questionnaire answered as a guest, then
+        // persist it so the answers outlive this browser tab.
+        const cached = readCache();
+        if (!cached || !hasAnswers(cached.profile)) return;
+
+        if (cached.ownerId === null || cached.ownerId === user.id) {
+          adopt(cached.profile, user.id);
+          await endpoints.saveProfile(cached.profile);
+        } else {
+          adopt(null, null);
         }
       } catch {
-        // Offline backend — keep the locally cached profile.
+        // Offline backend — keep whatever is cached.
       }
     })();
+
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, adopt]);
 
   const saveProfile = useCallback(
     async (next: Profile) => {
-      setProfileState(next);
-      sessionStorage.setItem(PROFILE_KEY, JSON.stringify(next));
+      adopt(next, user?.id ?? null);
       if (user) {
         try {
           await endpoints.saveProfile(next);
         } catch {
-          // Non-fatal: the profile stays cached locally.
+          // Non-fatal: the answers stay cached locally.
         }
       }
     },
-    [user],
+    [user, adopt],
   );
 
-  const clearProfile = useCallback(() => {
-    sessionStorage.removeItem(PROFILE_KEY);
-    setProfileState(null);
-  }, []);
+  const clearProfile = useCallback(() => adopt(null, null), [adopt]);
 
   return (
     <ProfileContext.Provider

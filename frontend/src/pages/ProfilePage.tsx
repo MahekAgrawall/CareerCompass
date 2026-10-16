@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -19,6 +19,12 @@ import {
 import { useAuth } from "@/state/AuthContext";
 import { useProfile } from "@/state/ProfileContext";
 
+/** Keeps only the stored answers the questionnaire still offers. */
+function pick(saved: string[] | undefined, allowed: readonly string[]): string[] | null {
+  const kept = (saved ?? []).filter((value) => (allowed as readonly string[]).includes(value));
+  return kept.length ? kept : null;
+}
+
 export default function ProfilePage() {
   useDocumentTitle("Candidate profile");
   const navigate = useNavigate();
@@ -30,17 +36,29 @@ export default function ProfilePage() {
   const [experience, setExperience] = useState(profile?.experience || EXPERIENCE_OPTIONS[0]);
   const [location, setLocation] = useState(profile?.location || LOCATION_OPTIONS[0]);
   const [interests, setInterests] = useState<string[]>(
-    profile?.interests?.filter((i) => (INTEREST_OPTIONS as readonly string[]).includes(i)).length
-      ? profile!.interests.filter((i) => (INTEREST_OPTIONS as readonly string[]).includes(i))
-      : [...DEFAULT_INTERESTS],
+    () => pick(profile?.interests, INTEREST_OPTIONS) ?? [...DEFAULT_INTERESTS],
   );
   const [skills, setSkills] = useState<string[]>(
-    profile?.current_skills?.filter((s) => (SKILL_OPTIONS as readonly string[]).includes(s)).length
-      ? profile!.current_skills.filter((s) => (SKILL_OPTIONS as readonly string[]).includes(s))
-      : [...DEFAULT_SKILLS],
+    () => pick(profile?.current_skills, SKILL_OPTIONS) ?? [...DEFAULT_SKILLS],
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // A signed-in account's saved answers arrive just after the form mounts (this
+  // page is the post-signup landing route), so re-seed the fields whenever the
+  // resolved profile changes. Otherwise a returning candidate would see the
+  // defaults — or, after switching accounts, the previous user's answers.
+  const seeded = useRef<Profile | null | undefined>(undefined);
+  useEffect(() => {
+    if (seeded.current === profile) return;
+    seeded.current = profile;
+    setName(profile?.name || user?.name || "");
+    setGradYear(profile?.grad_year || GRAD_YEAR_OPTIONS[0]);
+    setExperience(profile?.experience || EXPERIENCE_OPTIONS[0]);
+    setLocation(profile?.location || LOCATION_OPTIONS[0]);
+    setInterests(pick(profile?.interests, INTEREST_OPTIONS) ?? [...DEFAULT_INTERESTS]);
+    setSkills(pick(profile?.current_skills, SKILL_OPTIONS) ?? [...DEFAULT_SKILLS]);
+  }, [profile, user]);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
