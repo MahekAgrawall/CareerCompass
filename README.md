@@ -19,7 +19,9 @@ week-by-week study plan — with a context-aware AI mentor you can chat with thr
 | 🛠️ **Portfolio projects** | Each roadmap includes 3 hands-on project ideas with difficulty ratings and validated skills. |
 | 📅 **Study tracker** | Configure weekday vs weekend study hours and a role-specific tech stack; check off granular topics and subtopics. Progress, remaining hours, and projected weeks are computed live. |
 | ⚖️ **Side-by-side comparison** | Compare up to 3 roles on demand, competition, AI-future relevance, salary, and must-have skills. |
-| 💬 **Roadmap Copilot** | A multi-turn Gemini chat pre-loaded with your profile, target role, and roadmap — so answers are always specific to you. |
+| 💬 **Roadmap Copilot** | A multi-turn Gemini chat pre-loaded with your profile, target role, and roadmap — replies stream in live, and answers are always specific to you. |
+| ⬇️ **Export & share** | Download any roadmap as a portable Markdown file. |
+| 🔗 **Deep links** | The current view lives in the URL (`?page=role_detail&id=backend_dev`), so refreshing or sharing a link returns you to the same page. |
 | 🔑 **Accounts & persistence** | Sign up / sign in (SQLite-backed), saved profiles, and a **My Roadmaps** library of every plan you generate. |
 
 ---
@@ -180,7 +182,7 @@ Tracked honestly, because these are the next things to fix:
 
 - **Sessions** — sign-in is scoped to the current browser session (no persistent "remember me"); a cookie-based option is planned. Passwords are stored with salted **PBKDF2-HMAC-SHA256**.
 - **AI SDK** — `google-generativeai` is deprecated by Google; migrating to `google-genai` is planned.
-- **Routing** — page state lives in `session_state`, so a browser refresh returns you home and deep links aren't supported yet.
+- **Theming** — a single polished light theme; a dark mode would require a Streamlit theme-config approach.
 - **No automated tests yet.**
 
 ---

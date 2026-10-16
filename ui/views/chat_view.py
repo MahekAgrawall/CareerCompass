@@ -62,22 +62,22 @@ def render():
             st.markdown(user_input)
 
         with st.chat_message("assistant", avatar="🧭"):
-            with st.spinner("Generating tailored guidance..."):
-                try:
-                    reply = ai_service.send_chat_message(
+            try:
+                reply = st.write_stream(
+                    ai_service.stream_chat_message(
                         profile,
                         role,
                         roadmap,
                         user_input,
-                        st.session_state.get("chat_messages", [])
+                        st.session_state.get("chat_messages", []),
                     )
-                except ai_service.AIConfigurationError as e:
-                    st.error(f"⚙️ **AI is not configured.** {e}")
-                    st.stop()
-                except Exception as e:
-                    st.error(f"Could not reach the AI right now: {e}")
-                    st.stop()
-            st.markdown(reply)
+                )
+            except ai_service.AIConfigurationError as e:
+                st.error(f"⚙️ **AI is not configured.** {e}")
+                st.stop()
+            except Exception as e:
+                st.error(f"Could not reach the AI right now: {e}")
+                st.stop()
 
         st.session_state.setdefault("chat_messages", []).append({"role": "user", "content": user_input})
         st.session_state.chat_messages.append({"role": "model", "content": reply})

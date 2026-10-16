@@ -178,22 +178,21 @@ Do not use bullet points. Write in conversational, polished prose.
         return f"Based on your foundation in {skills} and your indicated interests, these roles align strongly with high-growth engineering opportunities in the Indian market."
 
 
-def send_chat_message(
+def _chat_system_context(
     user_profile: Dict[str, Any],
     role: Dict[str, Any],
     roadmap: Dict[str, Any],
-    new_message: str,
-    chat_history: List[Dict[str, str]],
 ) -> str:
-    """Multi-turn context-aware roadmap copilot conversation."""
-    system_context = f"""You are CareerCompass Copilot, a senior engineering mentor.
+    """Builds the persona/context block injected into every copilot turn."""
+    priority_skills = ", ".join(i["skill"] for i in roadmap.get("immediate_focus", []))
+    return f"""You are CareerCompass Copilot, a senior engineering mentor.
 You are helping {user_profile.get('name', 'a candidate')} navigate their learning roadmap for {role['title']}.
 
 Candidate Context:
 - Experience: {user_profile.get('experience')}
 - Existing Skills: {', '.join(user_profile.get('current_skills', []))}
 - Target Role: {role['title']}
-- Priority Skills in Roadmap: {', '.join([i['skill'] for i in roadmap.get('immediate_focus', [])])}
+- Priority Skills in Roadmap: {priority_skills}
 
 Guidelines:
 - Give concise, highly practical, actionable advice.
@@ -201,8 +200,34 @@ Guidelines:
 - Provide direct answers without filler.
 """
 
+
+def send_chat_message(
+    user_profile: Dict[str, Any],
+    role: Dict[str, Any],
+    roadmap: Dict[str, Any],
+    new_message: str,
+    chat_history: List[Dict[str, str]],
+) -> str:
+    """Multi-turn context-aware roadmap copilot conversation (non-streaming)."""
     history = [{"role": m["role"], "parts": [m["content"]]} for m in chat_history]
-    chat_model = get_model(system_instruction=system_context)
+    chat_model = get_model(system_instruction=_chat_system_context(user_profile, role, roadmap))
     session = chat_model.start_chat(history=history)
     response = session.send_message(new_message)
     return response.text.strip()
+
+
+def stream_chat_message(
+    user_profile: Dict[str, Any],
+    role: Dict[str, Any],
+    roadmap: Dict[str, Any],
+    new_message: str,
+    chat_history: List[Dict[str, str]],
+):
+    """Yields the copilot reply incrementally for a live-typing experience."""
+    history = [{"role": m["role"], "parts": [m["content"]]} for m in chat_history]
+    chat_model = get_model(system_instruction=_chat_system_context(user_profile, role, roadmap))
+    session = chat_model.start_chat(history=history)
+    for chunk in session.send_message(new_message, stream=True):
+        text = getattr(chunk, "text", None)
+        if text:
+            yield text

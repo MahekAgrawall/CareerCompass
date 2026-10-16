@@ -40,15 +40,61 @@ def render():
 
     st.info(f"💡 **Strategic Fit Assessment:** {st.session_state.match_explanation}")
 
-    st.markdown(f"**Identified {len(scored)} high-alignment roles:**")
-    st.markdown("")
+    # ── Refine controls ────────────────────────────────────────────────────────
+    fc1, fc2 = st.columns([2.4, 1.4])
+    with fc1:
+        query = st.text_input(
+            "Filter matches",
+            placeholder="🔎 Search your matches by role, skill, or company...",
+            label_visibility="collapsed",
+        )
+    with fc2:
+        sort_by = st.selectbox(
+            "Sort matches",
+            ["Best match", "Fresher salary (high → low)", "Market demand"],
+            label_visibility="collapsed",
+        )
+
+    def _matches_query(item):
+        if not query.strip():
+            return True
+        q = query.strip().lower()
+        r = item["role"]
+        haystack = [r["title"], r["description"], r["category"],
+                    *r["skills"]["must_have"], *r["top_companies"]]
+        return any(q in str(x).lower() for x in haystack)
+
+    def _demand_rank(value):
+        v = value or ""
+        if v.startswith("Hyper"):
+            return 4
+        if v.startswith("Very High"):
+            return 3
+        if v.startswith("High"):
+            return 2
+        if v.startswith("Moderate"):
+            return 1
+        return 2
+
+    display = [item for item in scored if _matches_query(item)]
+
+    if sort_by == "Fresher salary (high → low)":
+        display.sort(key=lambda it: it["role"]["salary"]["fresher_0_1"]["max"], reverse=True)
+    elif sort_by == "Market demand":
+        display.sort(key=lambda it: _demand_rank(it["role"].get("market_demand")), reverse=True)
+
+    if not display:
+        st.warning("None of your matches match that search. Clear the filter to see all matches again.")
+    else:
+        st.markdown(f"**Showing {len(display)} of {len(scored)} matched roles:**")
+        st.markdown("")
 
     # Grid Display (3 columns)
-    for i in range(0, len(scored), 3):
+    for i in range(0, len(display), 3):
         cols = st.columns(3)
         for j, col in enumerate(cols):
-            if i + j < len(scored):
-                item = scored[i + j]
+            if i + j < len(display):
+                item = display[i + j]
                 with col:
                     render_role_card(
                         item["role"],

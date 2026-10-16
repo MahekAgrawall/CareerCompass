@@ -4,6 +4,61 @@ from ui.components import render_navbar
 from services import ai_service, auth_service
 
 
+def _roadmap_to_markdown(profile: dict, role: dict, roadmap: dict) -> str:
+    """Renders a roadmap as a portable Markdown document."""
+    lines = [
+        f"# {role['title']} — Personalized Roadmap",
+        "",
+        f"**Candidate:** {profile.get('name', 'Candidate')}  ",
+        f"**Target role:** {role['title']} ({role.get('category', '')})  ",
+        "**Generated with CareerCompass**",
+        "",
+        "## Summary",
+        "",
+        roadmap.get("summary", ""),
+        "",
+    ]
+
+    def _section(title, items, with_time=True):
+        if not items:
+            return
+        lines.append(f"## {title}")
+        lines.append("")
+        for it in items:
+            lines.append(f"### {it.get('skill', '')}")
+            if with_time and it.get("time_estimate"):
+                lines.append(f"- **Estimated time:** {it['time_estimate']}")
+            if it.get("why"):
+                lines.append(f"- **Why it matters:** {it['why']}")
+            if it.get("resource"):
+                lines.append(f"- **Free resource:** {it['resource']}")
+            lines.append("")
+
+    _section("Phase 1 — Immediate Focus", roadmap.get("immediate_focus", []))
+    _section("Phase 2 — Competitive Edge", roadmap.get("next_level", []))
+    _section("Phase 3 — High-Growth Specialization", roadmap.get("good_to_explore", []), with_time=False)
+
+    projects = roadmap.get("projects", [])
+    if projects:
+        lines.append("## Portfolio Projects")
+        lines.append("")
+        for idx, p in enumerate(projects, 1):
+            lines.append(f"### Project {idx}: {p.get('title', '')}")
+            if p.get("difficulty"):
+                lines.append(f"- **Difficulty:** {p['difficulty']}")
+            if p.get("description"):
+                lines.append(f"- **Description:** {p['description']}")
+            skills = p.get("skills_demonstrated", [])
+            if skills:
+                lines.append(f"- **Skills demonstrated:** {', '.join(skills)}")
+            lines.append("")
+
+    if roadmap.get("motivational_message"):
+        lines += ["---", "", f"> {roadmap['motivational_message']}", ""]
+
+    return "\n".join(lines)
+
+
 def render():
     render_navbar()
 
@@ -44,6 +99,16 @@ def render():
 
     # Strategic Summary
     st.info(f"💡 **Advisory Assessment:** {roadmap.get('summary', '')}")
+
+    dl1, dl2 = st.columns([3.0, 1.3])
+    with dl2:
+        st.download_button(
+            "⬇️ Download roadmap (.md)",
+            data=_roadmap_to_markdown(profile, role, roadmap),
+            file_name=f"careercompass_{role['id']}_roadmap.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
     st.markdown("---")
 
     # Phase 1
