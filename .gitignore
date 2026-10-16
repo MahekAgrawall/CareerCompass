@@ -1,0 +1,23 @@
+# Environment variables & API keys
+.env
+*.env
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Streamlit config
+.streamlit/secrets.toml
+
+# User accounts & session cache
+data/users.json
+data/session.json
+*.db
+data/*.db
