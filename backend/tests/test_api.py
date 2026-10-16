@@ -1,6 +1,12 @@
-"""API integration tests (FastAPI TestClient)."""
+"""API integration tests (FastAPI TestClient).
+
+These tests run against a throwaway SQLite database inside a temporary directory,
+so they can never read or mutate a developer's real `backend/data/career_compass.db`.
+"""
 import os
+import shutil
 import sys
+import tempfile
 import unittest
 import uuid
 import warnings
@@ -13,15 +19,24 @@ os.chdir(ROOT)
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+import database.db as db  # noqa: E402
+
+# Redirect persistence to an isolated temp DB *before* the app or init_db is used.
+_TMP_DIR = tempfile.mkdtemp(prefix="careercompass_tests_")
+db.DB_PATH = os.path.join(_TMP_DIR, "career_compass_test.db")
+
 from app.main import app  # noqa: E402
-from database.db import init_db  # noqa: E402
 from services import ai_service  # noqa: E402
 
 client = TestClient(app)
 
 
 def setUpModule():
-    init_db()
+    db.init_db()
+
+
+def tearDownModule():
+    shutil.rmtree(_TMP_DIR, ignore_errors=True)
 
 
 def _unique_email() -> str:
