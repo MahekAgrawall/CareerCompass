@@ -123,6 +123,20 @@ ROLE_STACK_SCHEMAS = {
             "options": ["MLflow Experiment Tracking", "A/B Testing & Causal Inference", "FastAPI Model Serving Microservice", "Feature Stores & SQL Extraction"]
         }
     },
+    "ml_engineer": {
+        "dim1": {
+            "label": "1. ML Engineering Language & Foundations",
+            "options": ["Python (NumPy, Pandas, Scikit-Learn)", "Python (PyTorch)", "C++ for High-Performance ML", "SQL for Feature Extraction"]
+        },
+        "dim2": {
+            "label": "2. Modeling & Deep Learning Stack",
+            "options": ["PyTorch Training Pipelines", "TensorFlow / Keras", "Hugging Face Transformers", "XGBoost / LightGBM Gradient Boosting"]
+        },
+        "dim3": {
+            "label": "3. MLOps, Serving & Monitoring",
+            "options": ["MLflow Tracking & Model Registry", "FastAPI Model Serving Microservice", "Docker & Kubernetes for ML", "Feature Stores & Data Versioning (DVC)"]
+        }
+    },
     "data_analyst": {
         "dim1": {
             "label": "1. SQL & Data Manipulation Core",
@@ -504,6 +518,46 @@ def build_topics_from_choices(role_id: str, choices: List[str]) -> List[Dict[str
                 "Metadata payload indexing, Collection partitioning & scale"
             ],
             "estimated_hours": 8.0
+        })
+
+    if (
+        "pytorch" in choices_text
+        or "tensorflow" in choices_text
+        or "keras" in choices_text
+        or "transformer" in choices_text
+        or "deep learning" in choices_text
+    ):
+        topics.append({
+            "category": "Deep Learning",
+            "topic_name": "Neural Networks & Deep Learning Engineering",
+            "subtopics": [
+                "Tensors, autograd, broadcasting & GPU acceleration fundamentals",
+                "Training loops: loss functions, optimizers (Adam/SGD) & LR schedules",
+                "Convolutional (CNN) and Recurrent (RNN/LSTM) architectures",
+                "Transfer learning, fine-tuning & regularisation (dropout, weight decay)",
+                "Transformer architecture: self-attention, positional encoding & fine-tuning"
+            ],
+            "estimated_hours": 14.0
+        })
+
+    if (
+        "mlflow" in choices_text
+        or "feature store" in choices_text
+        or "model serving" in choices_text
+        or "mlops" in choices_text
+        or "dvc" in choices_text
+    ):
+        topics.append({
+            "category": "MLOps & Production ML",
+            "topic_name": "MLOps: Experiment Tracking, Serving & Monitoring",
+            "subtopics": [
+                "Experiment tracking, metrics logging & model registry with MLflow",
+                "Packaging models into reproducible training & inference pipelines",
+                "Serving models via REST (FastAPI) behind Docker & Kubernetes",
+                "Monitoring for data drift, model decay & retraining triggers",
+                "CI/CD for ML, data versioning (DVC) & feature stores"
+            ],
+            "estimated_hours": 12.0
         })
 
     # 3. Third Dimension (Frameworks, Microservices, Agents, Testing, Cloud)

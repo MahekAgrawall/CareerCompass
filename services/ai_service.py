@@ -19,8 +19,27 @@ if api_key:
 MODEL_NAME = "gemini-flash-lite-latest"
 
 
+class AIConfigurationError(RuntimeError):
+    """Raised when the Gemini API key is missing or misconfigured."""
+
+
+def is_configured() -> bool:
+    """True when a Gemini API key is available to the app."""
+    return bool(api_key)
+
+
+def _ensure_configured():
+    """Fails fast with a friendly, actionable message when no key is set."""
+    if not api_key:
+        raise AIConfigurationError(
+            "No Gemini API key found. Copy .env.example to .env, paste your free key "
+            "from https://aistudio.google.com, then restart the app."
+        )
+
+
 def get_model(system_instruction: str = None) -> genai.GenerativeModel:
     """Returns a configured Gemini GenerativeModel instance."""
+    _ensure_configured()
     if system_instruction:
         return genai.GenerativeModel(MODEL_NAME, system_instruction=system_instruction)
     return genai.GenerativeModel(MODEL_NAME)

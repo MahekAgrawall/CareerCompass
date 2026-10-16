@@ -22,14 +22,23 @@ def render():
         with st.spinner("Synthesizing personalized roadmap & portfolio milestones with Gemini..."):
             try:
                 roadmap = ai_service.generate_roadmap(profile, role)
-                st.session_state.roadmap = roadmap
-
-                user = st.session_state.get("user")
-                if user:
-                    auth_service.save_roadmap(user["id"], role["id"], role["title"], roadmap)
-            except Exception as e:
-                st.error(f"Generation error: {e}")
+            except ai_service.AIConfigurationError as e:
+                st.error(f"⚙️ **AI is not configured.** {e}")
+                if st.button("← Back to Role Detail", use_container_width=True):
+                    st.session_state.page = "role_detail"
+                    st.rerun()
                 st.stop()
+            except Exception as e:
+                st.error(f"Could not generate your roadmap right now: {e}")
+                if st.button("🔄 Try Again", type="primary", use_container_width=True):
+                    st.session_state.roadmap = None
+                    st.rerun()
+                st.stop()
+
+            st.session_state.roadmap = roadmap
+            user = st.session_state.get("user")
+            if user:
+                auth_service.save_roadmap(user["id"], role["id"], role["title"], roadmap)
 
     roadmap = st.session_state["roadmap"]
 

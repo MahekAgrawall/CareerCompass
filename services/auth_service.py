@@ -205,3 +205,16 @@ def get_saved_roadmaps(user_id: int) -> List[Dict[str, Any]]:
         return results
     finally:
         conn.close()
+
+
+def delete_saved_roadmap(roadmap_id: int, user_id: int):
+    """Deletes a single saved roadmap, scoped to its owner."""
+    conn = get_connection()
+    try:
+        with conn:
+            conn.execute(
+                "DELETE FROM roadmaps WHERE id = ? AND user_id = ?;",
+                (roadmap_id, user_id)
+            )
+    finally:
+        conn.close()

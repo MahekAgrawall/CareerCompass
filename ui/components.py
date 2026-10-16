@@ -17,7 +17,7 @@ def render_navbar():
              style="display:none;" />
     """, unsafe_allow_html=True)
 
-    col_brand, col_links, col_user = st.columns([2.3, 3.7, 1.6])
+    col_brand, col_links, col_user = st.columns([2.1, 4.3, 1.6])
 
     with col_brand:
         st.markdown("""
@@ -54,7 +54,7 @@ def render_navbar():
         """, unsafe_allow_html=True)
 
     with col_links:
-        c1, c2, c3, c4, c5 = st.columns(5)
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
         with c1:
             if st.button("Home", use_container_width=True, key="btn_nav_home"):
                 st.session_state.page = "home"
@@ -68,10 +68,14 @@ def render_navbar():
                 st.session_state.page = "directory"
                 st.rerun()
         with c4:
+            if st.button("🗺️ Roadmaps", use_container_width=True, key="btn_nav_roadmaps"):
+                st.session_state.page = "roadmaps"
+                st.rerun()
+        with c5:
             if st.button("📅 Tracker", use_container_width=True, key="btn_nav_tracker"):
                 st.session_state.page = "tracker"
                 st.rerun()
-        with c5:
+        with c6:
             count = len(st.session_state.get("compare_roles", []))
             lbl = f"Compare ({count})" if count > 0 else "Compare"
             if st.button(lbl, use_container_width=True, key="btn_nav_cmp"):

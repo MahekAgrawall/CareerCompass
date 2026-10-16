@@ -4,6 +4,81 @@ from ui.components import render_navbar
 from services import career_service, auth_service
 
 
+GRAD_YEAR_OPTIONS = ["2026 (Upcoming)", "2025", "2024", "2023", "2022 or earlier"]
+
+EXPERIENCE_OPTIONS = [
+    "Student / Fresher",
+    "0–6 months (internship)",
+    "6 months – 1 year",
+    "1–2 years",
+    "2+ years",
+]
+
+LOCATION_OPTIONS = [
+    "Bangalore",
+    "Mumbai / Pune",
+    "Delhi / NCR / Gurgaon",
+    "Hyderabad",
+    "Chennai",
+    "Remote / Flexible anywhere",
+]
+
+INTEREST_OPTIONS = [
+    "AI, LLMs & Autonomous Agents",
+    "Coding & Problem Solving",
+    "Backend Systems & Databases",
+    "Client Facing & Consulting",
+    "Building Web Apps (Full Stack)",
+    "UI/UX & Frontend Experiences",
+    "Cloud, DevOps & Linux",
+    "Data Analytics & Business Intelligence",
+    "Machine Learning & Research",
+    "Cybersecurity & Ethical Hacking",
+    "Product Management & Strategy",
+    "Automation & Testing Quality",
+    "High-Impact Startup Fast-Paced",
+]
+
+SKILL_OPTIONS = [
+    "Java", "Python", "JavaScript", "TypeScript", "C++", "C", "Go",
+    "SQL / MySQL / PostgreSQL", "MongoDB", "Redis",
+    "React.js", "Next.js", "HTML & CSS",
+    "Spring Boot", "Django", "FastAPI", "Node.js", "Express.js",
+    "Data Structures & Algorithms (DSA)",
+    "Git & GitHub", "Docker", "Kubernetes", "Linux",
+    "AWS", "GCP", "Azure",
+    "Machine Learning (Scikit-Learn)", "Deep Learning (PyTorch)",
+    "LLMs & Prompt Engineering", "LangChain / LangGraph",
+    "Power BI", "Tableau", "Excel Modeling",
+    "Client Communication", "Problem Solving", "System Architecture"
+]
+
+DEFAULT_INTERESTS = ["Coding & Problem Solving", "Backend Systems & Databases"]
+DEFAULT_SKILLS = ["Java", "SQL / MySQL / PostgreSQL", "Data Structures & Algorithms (DSA)"]
+
+
+def _index_of(options: list, value, default: int = 0) -> int:
+    """Safely resolves a stored value to a selectbox index."""
+    try:
+        return options.index(value)
+    except (ValueError, TypeError):
+        return default
+
+
+def _restore_interests(saved: dict) -> list:
+    """Maps a saved profile back to interest labels (handles both stored formats)."""
+    raw = [i for i in (saved.get("raw_interests") or []) if i in INTEREST_OPTIONS]
+    if raw:
+        return raw
+    lower_map = {opt.lower(): opt for opt in INTEREST_OPTIONS}
+    return [lower_map[i] for i in saved.get("interests", []) if i in lower_map]
+
+
+def _restore_skills(saved: dict) -> list:
+    """Keeps only stored skills that still exist as selectable options."""
+    return [s for s in saved.get("current_skills", []) if s in SKILL_OPTIONS]
+
+
 def render():
     render_navbar()
 
@@ -11,7 +86,7 @@ def render():
     st.caption("Tell us about your background and interests so we can identify high-fit career trajectories.")
     st.markdown("---")
 
-    saved = st.session_state.get("profile", {})
+    saved = st.session_state.get("profile") or {}
     user = st.session_state.get("user")
 
     with st.form("form_candidate_profile"):
@@ -23,61 +98,35 @@ def render():
 
             grad_year = st.selectbox(
                 "Graduation Year",
-                ["2026 (Upcoming)", "2025", "2024", "2023", "2022 or earlier"],
-                index=0
+                GRAD_YEAR_OPTIONS,
+                index=_index_of(GRAD_YEAR_OPTIONS, saved.get("grad_year"))
             )
 
             experience = st.selectbox(
                 "Experience Level",
-                ["Student / Fresher", "0–6 months (internship)", "6 months – 1 year", "1–2 years", "2+ years"],
-                index=0
+                EXPERIENCE_OPTIONS,
+                index=_index_of(EXPERIENCE_OPTIONS, saved.get("experience"))
             )
 
             location = st.selectbox(
                 "Preferred Work Hub",
-                ["Bangalore", "Mumbai / Pune", "Delhi / NCR / Gurgaon", "Hyderabad", "Chennai", "Remote / Flexible anywhere"],
-                index=0
+                LOCATION_OPTIONS,
+                index=_index_of(LOCATION_OPTIONS, saved.get("location"))
             )
 
         with c2:
             st.markdown("**What genuinely interests you?** *(Roles will match these strictly)*")
             interests = st.multiselect(
                 "Core Career Interests",
-                options=[
-                    "AI, LLMs & Autonomous Agents",
-                    "Coding & Problem Solving",
-                    "Backend Systems & Databases",
-                    "Client Facing & Consulting",
-                    "Building Web Apps (Full Stack)",
-                    "UI/UX & Frontend Experiences",
-                    "Cloud, DevOps & Linux",
-                    "Data Analytics & Business Intelligence",
-                    "Machine Learning & Research",
-                    "Cybersecurity & Ethical Hacking",
-                    "Product Management & Strategy",
-                    "Automation & Testing Quality",
-                    "High-Impact Startup Fast-Paced"
-                ],
-                default=saved.get("raw_interests", ["Coding & Problem Solving", "Backend Systems & Databases"]),
+                options=INTEREST_OPTIONS,
+                default=_restore_interests(saved) or DEFAULT_INTERESTS,
                 help="Your suggested roles will be strictly aligned with these chosen interest areas."
             )
 
             current_skills = st.multiselect(
                 "Existing Technical Skills",
-                options=[
-                    "Java", "Python", "JavaScript", "TypeScript", "C++", "C", "Go",
-                    "SQL / MySQL / PostgreSQL", "MongoDB", "Redis",
-                    "React.js", "Next.js", "HTML & CSS",
-                    "Spring Boot", "Django", "FastAPI", "Node.js", "Express.js",
-                    "Data Structures & Algorithms (DSA)",
-                    "Git & GitHub", "Docker", "Kubernetes", "Linux",
-                    "AWS", "GCP", "Azure",
-                    "Machine Learning (Scikit-Learn)", "Deep Learning (PyTorch)",
-                    "LLMs & Prompt Engineering", "LangChain / LangGraph",
-                    "Power BI", "Tableau", "Excel Modeling",
-                    "Client Communication", "Problem Solving", "System Architecture"
-                ],
-                default=saved.get("current_skills", ["Java", "SQL / MySQL / PostgreSQL", "Data Structures & Algorithms (DSA)"]),
+                options=SKILL_OPTIONS,
+                default=_restore_skills(saved) or DEFAULT_SKILLS,
                 help="Include tools you've explored in classes, projects, or self-study."
             )
 

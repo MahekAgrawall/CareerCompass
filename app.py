@@ -16,6 +16,7 @@ from ui.views import (
     role_detail_view,
     compare_view,
     roadmap_view,
+    roadmaps_view,
     tracker_view,
     chat_view,
 )
@@ -70,6 +71,7 @@ ROUTER = {
     "role_detail": role_detail_view.render,
     "compare": compare_view.render,
     "roadmap": roadmap_view.render,
+    "roadmaps": roadmaps_view.render,
     "tracker": tracker_view.render,
     "chat": chat_view.render,
 }

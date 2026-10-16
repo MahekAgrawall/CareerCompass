@@ -7,5 +7,6 @@ import ui.views.directory_view as directory_view
 import ui.views.role_detail_view as role_detail_view
 import ui.views.compare_view as compare_view
 import ui.views.roadmap_view as roadmap_view
+import ui.views.roadmaps_view as roadmaps_view
 import ui.views.tracker_view as tracker_view
 import ui.views.chat_view as chat_view

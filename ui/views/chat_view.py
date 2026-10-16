@@ -34,7 +34,14 @@ def render():
                 if st.button(text, key=f"copilot_sug_{idx}", use_container_width=True):
                     st.session_state.setdefault("chat_messages", []).append({"role": "user", "content": text})
                     with st.spinner("Analyzing with profile context..."):
-                        reply = ai_service.send_chat_message(profile, role, roadmap, text, [])
+                        try:
+                            reply = ai_service.send_chat_message(profile, role, roadmap, text, [])
+                        except ai_service.AIConfigurationError as e:
+                            st.error(f"⚙️ **AI is not configured.** {e}")
+                            st.stop()
+                        except Exception as e:
+                            st.error(f"Could not reach the AI right now: {e}")
+                            st.stop()
                     st.session_state.chat_messages.append({"role": "model", "content": reply})
                     st.rerun()
         st.markdown("---")
@@ -56,13 +63,20 @@ def render():
 
         with st.chat_message("assistant", avatar="🧭"):
             with st.spinner("Generating tailored guidance..."):
-                reply = ai_service.send_chat_message(
-                    profile,
-                    role,
-                    roadmap,
-                    user_input,
-                    st.session_state.get("chat_messages", [])
-                )
+                try:
+                    reply = ai_service.send_chat_message(
+                        profile,
+                        role,
+                        roadmap,
+                        user_input,
+                        st.session_state.get("chat_messages", [])
+                    )
+                except ai_service.AIConfigurationError as e:
+                    st.error(f"⚙️ **AI is not configured.** {e}")
+                    st.stop()
+                except Exception as e:
+                    st.error(f"Could not reach the AI right now: {e}")
+                    st.stop()
             st.markdown(reply)
 
         st.session_state.setdefault("chat_messages", []).append({"role": "user", "content": user_input})
