@@ -31,3 +31,7 @@ build/
 .vite/
 coverage/
 *.log
+
+# ── Build artifacts ────────────────────────────────────────────────────────────
+# Local archives (e.g. submission bundles) — never source.
+*.zip
