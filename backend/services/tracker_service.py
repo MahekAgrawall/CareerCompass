@@ -6,7 +6,7 @@ syllabus generation, subtopic markers, and progress tracking.
 
 import json
 import os
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from database.db import get_connection
 
 
@@ -54,7 +54,7 @@ def get_role_stack_schema(role_id: str) -> Dict[str, Any]:
 
 
 def save_study_schedule(
-    user_id: Optional[int],
+    user_id: int,
     role_id: str,
     weekday_hours: float,
     weekend_hours: float,
@@ -66,7 +66,6 @@ def save_study_schedule(
     weekly_total = (weekday_hours * 5.0) + (weekend_hours * 2.0)
 
     conn = get_connection()
-    uid = user_id or 0
     try:
         with conn:
             conn.execute("""
@@ -77,7 +76,7 @@ def save_study_schedule(
                     ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP
                 );
             """, (
-                uid,
+                user_id,
                 role_id,
                 weekday_hours,
                 weekend_hours,
@@ -94,16 +93,15 @@ def save_study_schedule(
         conn.close()
 
 
-def get_study_schedule(user_id: Optional[int], role_id: str) -> Dict[str, Any]:
+def get_study_schedule(user_id: int, role_id: str) -> Dict[str, Any]:
     """Retrieves current study schedule for user & role, or sensible defaults."""
     conn = get_connection()
-    uid = user_id or 0
     try:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT weekday_hours, weekend_hours, weekly_total_hours, target_languages_json
             FROM study_schedules WHERE user_id = ? AND role_id = ?;
-        """, (uid, role_id))
+        """, (user_id, role_id))
         row = cursor.fetchone()
         if row:
             return {
@@ -468,7 +466,7 @@ def build_topics_from_choices(role_id: str, choices: List[str]) -> List[Dict[str
 
 
 def sync_topics_for_role_stack(
-    user_id: Optional[int],
+    user_id: int,
     role_id: str,
     choices: List[str],
     force_refresh: bool = False
@@ -478,18 +476,17 @@ def sync_topics_for_role_stack(
     Preserves completion markers for topics that were already checked off!
     """
     conn = get_connection()
-    uid = user_id or 0
 
     try:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT id, topic_name, is_completed, completed_at
             FROM tracker_topics WHERE user_id = ? AND role_id = ?;
-        """, (uid, role_id))
+        """, (user_id, role_id))
         existing_rows = cursor.fetchall()
 
         if existing_rows and not force_refresh:
-            return get_topics_for_role(uid, role_id)
+            return get_topics_for_role(user_id, role_id)
 
         # Store completed states to preserve candidate progress
         completed_map = {}
@@ -503,7 +500,7 @@ def sync_topics_for_role_stack(
         with conn:
             conn.execute("""
                 DELETE FROM tracker_topics WHERE user_id = ? AND role_id = ?;
-            """, (uid, role_id))
+            """, (user_id, role_id))
 
             sort_idx = 1
             for t in new_topics:
@@ -518,7 +515,7 @@ def sync_topics_for_role_stack(
                         ?, ?, ?, ?, ?, ?, ?, ?, ?
                     );
                 """, (
-                    uid,
+                    user_id,
                     role_id,
                     t["category"],
                     t["topic_name"],
@@ -530,15 +527,14 @@ def sync_topics_for_role_stack(
                 ))
                 sort_idx += 1
 
-        return get_topics_for_role(uid, role_id)
+        return get_topics_for_role(user_id, role_id)
     finally:
         conn.close()
 
 
-def get_topics_for_role(user_id: Optional[int], role_id: str) -> List[Dict[str, Any]]:
+def get_topics_for_role(user_id: int, role_id: str) -> List[Dict[str, Any]]:
     """Fetches all topics and their completion status for a role."""
     conn = get_connection()
-    uid = user_id or 0
     try:
         cursor = conn.cursor()
         cursor.execute("""
@@ -546,7 +542,7 @@ def get_topics_for_role(user_id: Optional[int], role_id: str) -> List[Dict[str, 
             FROM tracker_topics
             WHERE user_id = ? AND role_id = ?
             ORDER BY sort_order ASC;
-        """, (uid, role_id))
+        """, (user_id, role_id))
         rows = cursor.fetchall()
 
         results = []
@@ -565,23 +561,36 @@ def get_topics_for_role(user_id: Optional[int], role_id: str) -> List[Dict[str, 
         conn.close()
 
 
-def toggle_topic_status(topic_id: int, is_completed: bool):
-    """Updates completion checkbox in SQLite database."""
+def toggle_topic_status(topic_id: int, user_id: int, is_completed: bool) -> bool:
+    """Updates a completion checkbox, scoped to the topic's owner.
+
+    Returns True when a topic owned by ``user_id`` was updated, or False when
+    the id does not exist *or* belongs to another user — the caller then
+    responds 404 without revealing anything about other users' data.
+    """
     conn = get_connection()
     try:
         with conn:
+            owned = conn.execute(
+                "SELECT 1 FROM tracker_topics WHERE id = ? AND user_id = ?;",
+                (topic_id, user_id),
+            ).fetchone()
+            if not owned:
+                return False
+
             if is_completed:
                 conn.execute("""
                     UPDATE tracker_topics
                     SET is_completed = 1, completed_at = CURRENT_TIMESTAMP
-                    WHERE id = ?;
-                """, (topic_id,))
+                    WHERE id = ? AND user_id = ?;
+                """, (topic_id, user_id))
             else:
                 conn.execute("""
                     UPDATE tracker_topics
                     SET is_completed = 0, completed_at = NULL
-                    WHERE id = ?;
-                """, (topic_id,))
+                    WHERE id = ? AND user_id = ?;
+                """, (topic_id, user_id))
+            return True
     finally:
         conn.close()
 

@@ -28,8 +28,8 @@ export default function App() {
         <Route path="/compare" element={<ComparePage />} />
         <Route path="/roadmap/:roleId" element={<RoadmapPage />} />
         <Route path="/roadmaps" element={<RequireAuth><RoadmapsPage /></RequireAuth>} />
-        <Route path="/tracker" element={<TrackerPage />} />
-        <Route path="/tracker/:roleId" element={<TrackerPage />} />
+        <Route path="/tracker" element={<RequireAuth><TrackerPage /></RequireAuth>} />
+        <Route path="/tracker/:roleId" element={<RequireAuth><TrackerPage /></RequireAuth>} />
         <Route path="/chat/:roleId" element={<ChatPage />} />
         <Route path="/directory" element={<Navigate to="/roles" replace />} />
         <Route path="*" element={<NotFoundPage />} />

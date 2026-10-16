@@ -140,12 +140,15 @@ python -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
-cp .env.example .env        # then set GEMINI_API_KEY and a JWT_SECRET
+cp .env.example .env        # set JWT_SECRET (required) and GEMINI_API_KEY (optional)
 python -m uvicorn app.main:app --reload
 ```
 
 The API serves at <http://localhost:8000> (interactive docs at `/docs`). The SQLite database and
 role catalog are created automatically on first launch.
+
+`JWT_SECRET` is required — generate one with
+`python -c "import secrets; print(secrets.token_urlsafe(48))"`. The API refuses to start without it.
 
 Get a free Gemini key at [aistudio.google.com](https://aistudio.google.com) → **Get API Key**.
 AI features (roadmap, copilot) return `503` until `GEMINI_API_KEY` is set; everything else works without it.

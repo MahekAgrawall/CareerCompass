@@ -85,12 +85,21 @@ Copy-Item .env.example .env      # macOS/Linux: cp .env.example .env
 Open `backend/.env` and set:
 
 ```env
+# Optional — leave blank to run without AI
 GEMINI_API_KEY=your_free_gemini_key
-JWT_SECRET=some_long_random_string
+
+# REQUIRED — the API refuses to start without it (min 32 chars)
+JWT_SECRET=
 ACCESS_TOKEN_EXPIRE_MINUTES=10080
 CORS_ORIGINS=http://localhost:5173
 ```
 
+- `JWT_SECRET` is **required** — there is deliberately no fallback. Generate one:
+  ```powershell
+  python -c "import secrets; print(secrets.token_urlsafe(48))"
+  ```
+  The API exits at startup with a clear message if this is missing, shorter than 32
+  characters, or a known placeholder.
 - Get a free key at **<https://aistudio.google.com>** → *Get API Key*.
 - `GEMINI_API_KEY` is **optional** — without it everything works except AI roadmap
   generation and the copilot, which return a friendly "AI not configured" message.

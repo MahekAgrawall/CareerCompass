@@ -27,6 +27,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run backend tests
+        # Test-only secret: app.config requires JWT_SECRET and has no fallback.
+        # It signs tokens for throwaway test users only — never a real credential.
+        env:
+          JWT_SECRET: ci-only-jwt-secret-not-a-real-credential-0123456789
         run: python -m unittest discover -s tests -t . -v
 
   frontend:
