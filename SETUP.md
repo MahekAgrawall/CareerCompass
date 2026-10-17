@@ -334,12 +334,12 @@ npm run dev
 Open <http://localhost:5173>. You should see the CareerCompass home page.
 Then try **All Roles** — if the full 100-role catalog loads, the frontend is talking to the backend.
 
-Then open **💼 Jobs** in the navigation. Type a role (e.g. `kubernetes engineer`) and press
+Then open **Jobs** in the navigation. Type a role (e.g. `kubernetes engineer`) and press
 **Search jobs**: you should get live postings. Add a location or pick an experience level and the
 list narrows while the page still reports how many postings the collection holds. If §2.9 has not been
 run, the page shows a note telling you to run the migration instead of an error — that is expected.
 
-With an account, each posting also offers **🔖 Save job**. Save one, open **📋 Applications** in the
+With an account, each posting also offers **🔖 Save job**. Save one, open **Applications** in the
 navigation, and you should see it under **Saved**; move it to **Interview** with the stage selector and
 it moves section, with the counts at the top following it. Signed out, the same button reads
 **🔑 Sign in to save** — saved jobs are per-account, so that page requires a session.
