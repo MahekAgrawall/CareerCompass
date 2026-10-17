@@ -1,6 +1,9 @@
 /** Typed, endpoint-per-function API surface. */
 import { api, apiStream } from "./client";
 import type {
+  ApplicationInput,
+  ApplicationListResponse,
+  ApplicationStatus,
   ChatMessage,
   JobSearchResponse,
   MatchResponse,
@@ -9,6 +12,7 @@ import type {
   Roadmap,
   Role,
   RoleJobsResponse,
+  SavedJob,
   SavedRoadmap,
   Schedule,
   StackSchema,
@@ -95,6 +99,30 @@ export const searchJobs = (params: Record<string, string>, limit = 50) =>
  */
 export const jobsForRole = (roleId: string, profile: Partial<Profile>, limit = 5) =>
   api.post<RoleJobsResponse>("/jobs/for-role", { role_id: roleId, limit, profile });
+
+// ── Saved jobs & application tracking ─────────────────────────────────────────
+/**
+ * `/applications` is the one job-related surface that is *private*: every call
+ * needs a bearer token and only ever returns the caller's own rows, which is why
+ * it lives in its own namespace rather than under the public `/jobs`.
+ */
+export const listApplications = () => api.get<ApplicationListResponse>("/applications");
+
+/**
+ * `POST /applications` files a posting, snapshotted client-side. Saving the same
+ * posting twice is idempotent — the API answers 200 with the existing row and
+ * never resets a stage the candidate already advanced.
+ */
+export const saveApplication = (posting: ApplicationInput) =>
+  api.post<SavedJob>("/applications", posting);
+
+export const updateApplication = (
+  applicationId: number,
+  patch: { status?: ApplicationStatus; note?: string },
+) => api.patch<SavedJob>(`/applications/${applicationId}`, patch);
+
+export const deleteApplication = (applicationId: number) =>
+  api.del<void>(`/applications/${applicationId}`);
 
 // ── Roadmap ───────────────────────────────────────────────────────────────────
 export const generateRoadmap = (roleId: string, profile: Partial<Profile>, signal?: AbortSignal) =>

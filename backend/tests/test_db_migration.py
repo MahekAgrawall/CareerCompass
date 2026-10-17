@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tests.harness import client  # noqa: E402,F401  (points the live DB at a throwaway file)
 
 from database import db  # noqa: E402
-from services import auth_service  # noqa: E402
+from services import application_service, auth_service  # noqa: E402
 
 NEW_COLUMNS = ("work_mode", "open_to_relocate", "career_goal")
 
@@ -152,6 +152,70 @@ class RoadmapProvenanceMigrationTests(unittest.TestCase):
         self.assertEqual(saved[0]["roadmap"], {"summary": "legacy"})
         self.assertEqual(saved[0]["model"], "", "an unknown recipe reads back as empty, not null")
         self.assertEqual(saved[0]["prompt_version"], "")
+
+
+class SavedJobsMigrationTests(unittest.TestCase):
+    """Application tracking arrived after the first databases were in use."""
+
+    def setUp(self):
+        self._original_path = db.DB_PATH
+        self._tmp = tempfile.TemporaryDirectory()
+        db.DB_PATH = os.path.join(self._tmp.name, "legacy_saved_jobs.db")
+        self.addCleanup(self._restore)
+
+    def _restore(self):
+        db.DB_PATH = self._original_path
+        self._tmp.cleanup()
+
+    def _legacy_database(self):
+        """A database from before saved jobs existed: an account and nothing else."""
+        conn = sqlite3.connect(db.DB_PATH)
+        conn.execute("""
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        conn.execute(
+            "INSERT INTO users (id, name, email, password_hash)"
+            " VALUES (7, 'Legacy Candidate', 'legacy@example.com', 'x');"
+        )
+        conn.commit()
+        conn.close()
+
+    def test_init_db_adds_the_table_to_an_existing_database(self):
+        self._legacy_database()
+
+        db.init_db()
+
+        conn = sqlite3.connect(db.DB_PATH)
+        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table';")}
+        conn.close()
+        self.assertIn("saved_jobs", tables, "an existing database gains the table in place")
+
+    def test_a_filed_application_survives_a_restart(self):
+        """The point of the table: the row outlives the process that wrote it."""
+        self._legacy_database()
+        db.init_db()
+
+        application_service.save_application(7, {
+            "posting_id": "himalayas:data-analyst",
+            "title": "Data Analyst",
+            "company": "Bright Metrics",
+            "location": "Remote",
+            "remote": True,
+        })
+
+        db.init_db()  # a restart
+
+        saved = application_service.list_applications(7)
+        self.assertEqual(len(saved), 1)
+        self.assertEqual(saved[0]["title"], "Data Analyst")
+        self.assertTrue(saved[0]["remote"])
+        self.assertEqual(saved[0]["status"], "saved")
 
 
 if __name__ == "__main__":

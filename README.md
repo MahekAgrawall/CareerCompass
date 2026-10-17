@@ -19,6 +19,7 @@ and the original **Streamlit** app preserved in `legacy/` for reference.
 | 🧠 **Semantic recall** | A two-stage matcher: candidates are first *recalled* from a Qdrant vector index (so a role can surface on the meaning of your profile and free-text goal, not only on identical chips), then *scored and explained* by the same transparent formula as ever. Each result says whether it was found by keywords, by meaning, or both. The index is optional and built by an explicit migration — without it, matching is keyword-only. |
 | 📚 **Role catalog** | 100 curated corporate and modern engineering roles across 8 categories — including AI/ML, data, cloud, security, hardware and product tracks — each with responsibilities, qualifications, growth paths, and hiring companies. |
 | 💼 **Live jobs, filtered** | A dedicated **Jobs** page searches the postings collected from the public boards and filters them by role, location, work arrangement and experience — the filters run in the vector store, so the counts cover the whole collection — and a **✨ Use my profile** action runs the search straight off your questionnaire answers. Every match card carries an **Explore Jobs** action that deep-links to the page with that role already filled in and searched, and each role card and role page also lists its own **live openings** inline, ranked with your profile folded in (`POST /jobs/for-role`). Cards show the posting's title, company, location, work arrangement, salary when the board states one, posting date, source and the original application link. |
+| 🔖 **Saved jobs & application tracking** | Every posting carries a **Save job** button, and the saved ones live on an **Applications** page grouped by the stages a search actually follows — Saved → Applied → Interview → Offer, plus Closed for the ones that went nowhere — each with a free-text note, the date it was last moved, and a link back to the original listing. A row is a *snapshot* taken when it was saved, so it survives the board taking the listing down and the index being rebuilt; it is private to the account, and saving the same posting twice can never reset a stage you already advanced. |
 | 💰 **India salary benchmarks** | Fresher (0–1 yr), mid (1–3 yrs) and senior (3+ yrs) CTC bands for every role, each stated as an *envelope* — low end a typical mid-market/services offer, high end a strong product-company or GCC offer — with the market and product-company medians and every source (and its sample size) linked on the role page. |
 | 🤖 **AI skill roadmap** | Google Gemini generates a structured 3-phase plan (Immediate → Level Up → Explore) with one curated free resource per skill. Every role card has a one-click **Generate AI Roadmap** button that lands on the rendered plan. |
 | 🛠️ **Portfolio projects** | Each roadmap includes 3 hands-on project ideas with difficulty ratings and validated skills. |
@@ -182,6 +183,23 @@ wording (`internship`, `entry`, `senior` — the rules are in `services/job_serv
 stated" is worded that way on purpose too: a false remote flag means the listing did not say, not that
 the job is office-based.
 
+Finding a posting is only half of a job search, so the feed also keeps what a candidate decides to do
+about it. **Save job** files the posting (`POST /applications`, private) and the **Applications** page
+(`/applications`) groups those rows by the stages a search actually follows — Saved, Applied,
+Interview, Offer, and Closed for the ones that went nowhere, because a tracker with no exit for dead
+applications quietly fills up with rows that are no longer true. Each row carries a note, the date it
+was filed and the date it was last moved, a stage selector, and a link back to the original listing.
+
+Two decisions shape that table (`services/application_service.py`). It stores a **snapshot** of the
+posting rather than a reference to it: the boards rotate, the harvest is refreshed, and the `job_role`
+index is rebuilt from scratch on a re-ingest, so a row holding only a posting id would become a blank
+line exactly when the candidate needs to know what they applied to. And saving is **idempotent** by
+posting id — the insert conflicts and does nothing, so pressing Save again on a card cannot reset a
+stage the candidate has already advanced, and the response reports whether the row was new (`201`) or
+already there (`200`) rather than pretending either way. Every read and write is scoped to one user id,
+and a row belonging to someone else answers `404` rather than `403`, the same way the study tracker does
+it: whether a given application exists is itself private.
+
 ---
 
 ## 🧰 Tech Stack
@@ -218,9 +236,9 @@ career-compass/
 │   │   ├── schemas.py         ← Pydantic request/response models
 │   │   ├── security.py        ← JWT create/decode
 │   │   ├── dependencies.py    ← get_current_user / get_optional_user
-│   │   └── routers/           ← auth · roles · jobs · profile · match · roadmap · tracker · chat
+│   │   └── routers/           ← auth · roles · jobs · applications · profile · match · roadmap · tracker · chat
 │   ├── prompts/               ← system/ + user/ prompt templates, one pair per AI call (see its README)
-│   ├── services/              ← ai · career · tracker · auth · embeddings · vector_store · job_feed · prompts
+│   ├── services/              ← ai · career · tracker · auth · applications · embeddings · vector_store · job_feed · prompts
 │   ├── scripts/               ← ingest_roles.py · ingest_jobs.py (index migrations)
 │   ├── database/db.py         ← connection, schema, role-catalog sync
 │   ├── data/                  ← roles.json · stacks.json · qdrant/ · job_postings.json (last two derived)
@@ -234,9 +252,9 @@ career-compass/
 │   │   ├── components/        ← navbar, role & job cards, copilot panel, badges, alerts, layout…
 │   │   ├── pages/             ← home · auth · profile · matches · directory · jobs
 │   │   │                        role detail · compare · roadmap · roadmaps
-│   │   │                        tracker · chat
+│   │   │                        tracker · applications · chat
 │   │   ├── state/             ← Auth · Profile · Compare · Roadmap contexts
-│   │   └── lib/               ← option vocabularies, formatting, job filters, markdown export
+│   │   └── lib/               ← option vocabularies, formatting, job filters, application stages, markdown export
 │   ├── package.json
 │   └── .env.example
 │
@@ -351,6 +369,10 @@ streamlit run app.py        # http://localhost:8501
 | `GET` | `/roles/{role_id}` | — | Single role, including its salary provenance |
 | `GET` | `/jobs/search?q=…&location=…&remote=…&experience=…&limit=…` | — | Live job postings: `q` ranks, the filters are applied by the store, and the response reports `count`/`matched`/`indexed` (`available: false` until the `job_role` index is built) |
 | `POST` | `/jobs/for-role` | — | Live job postings nearest to one catalogued role, ranked with the candidate's questionnaire answers (`available: false` until the index is built) |
+| `GET` | `/applications` | ✅ | The candidate's saved postings and their stages, most recently touched first |
+| `POST` | `/applications` | ✅ | Save a posting (the snapshot travels in the body). Idempotent by posting id: `201` when the row is new, `200` with the row already stored |
+| `PATCH` | `/applications/{id}` | ✅ | Move a saved posting to another stage, edit its note, or both |
+| `DELETE` | `/applications/{id}` | ✅ | Forget a saved posting |
 | `GET` | `/profile` | ✅ | Saved profile |
 | `PUT` | `/profile` | ✅ | Save profile |
 | `POST` | `/match` | — | Ranked role matches with a score breakdown (+ optional AI explanation); the questionnaire's goal, experience, work setup and work hub feed the semantic recall stage only. Never fails on the AI budget — it drops the explanation |
@@ -502,6 +524,12 @@ GitHub Actions runs both on every push and pull request (see `.github/workflows/
 - **Per-role openings are ranked, not curated** — `POST /jobs/for-role` orders postings by cosine
   similarity to the role document plus the questionnaire; a posting ranking first is a similarity
   result, not a claim that the candidate is qualified for it.
+- **Application tracking needs an account, and is a tracker rather than a CRM** — saved jobs and their
+  stages are per-user rows behind a bearer token, so the guest path (questionnaire, match, roadmap)
+  cannot write them; the Jobs page says "Sign in to save" rather than offering a button that would
+  `401`. Within it, each application carries one current stage and one note: there is no history per
+  move, no reminders, no attachments, and no import or export, so it records where a search got to
+  rather than replacing the spreadsheet a candidate may already keep.
 - **Refresh tokens** — access tokens are long-lived for a demo; refresh-token rotation is future work.
 - **The AI budget is per process** — the limiter is a counter in memory, so two uvicorn workers each
   allow the full limit, and every caller behind one address (a campus NAT, say) shares the guest

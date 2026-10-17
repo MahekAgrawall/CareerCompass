@@ -152,7 +152,36 @@ def init_db():
             );
         """)
 
-        # 7. Upgrade databases created before the questionnaire, the salary
+        # 7. Saved Jobs & Application Tracking
+        # A row is *both* a bookmark and an application, because the two are the
+        # same act from the candidate's side: they save the posting, then move it
+        # along a stage. The posting's own fields are copied in rather than
+        # referenced, because the live feed rotates — a saved job has to survive
+        # the listing being taken down, and the index being rebuilt.
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS saved_jobs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                posting_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                company TEXT DEFAULT '',
+                location TEXT DEFAULT '',
+                remote INTEGER DEFAULT 0,
+                employment_type TEXT DEFAULT '',
+                salary_text TEXT DEFAULT '',
+                published TEXT DEFAULT '',
+                url TEXT DEFAULT '',
+                source TEXT DEFAULT '',
+                status TEXT NOT NULL DEFAULT 'saved',
+                note TEXT DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, posting_id),
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            );
+        """)
+
+        # 8. Upgrade databases created before the questionnaire, the salary
         # provenance or the roadmap provenance grew: existing rows are kept and the
         # new columns are appended in place.
         _add_missing_columns(conn, "profiles", {

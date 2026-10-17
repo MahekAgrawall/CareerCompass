@@ -1,5 +1,5 @@
 """Pydantic request/response models for the API."""
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -175,3 +175,67 @@ class RoleJobsResponse(BaseModel):
     available: bool
     count: int
     results: List[JobPosting]
+
+
+# ── Saved jobs & application tracking ─────────────────────────────────────────
+#: Mirrors `services.application_service.STATUSES`; a test keeps the two in step.
+ApplicationStatus = Literal["saved", "applied", "interview", "offer", "rejected"]
+
+
+class ApplicationCreate(BaseModel):
+    """A live posting, snapshotted at the moment the candidate saves it.
+
+    The client sends the whole posting rather than just its id, deliberately: the
+    boards rotate and the `job_role` index is rebuilt, so the saved row has to
+    stand on its own. Each value is capped at what a board can actually publish,
+    so the endpoint cannot be used as arbitrary storage.
+    """
+
+    posting_id: str = Field(min_length=1, max_length=200)
+    title: str = Field(min_length=1, max_length=300)
+    company: str = Field("", max_length=200)
+    location: str = Field("", max_length=200)
+    remote: bool = False
+    employment_type: str = Field("", max_length=100)
+    salary_text: str = Field("", max_length=200)
+    published: str = Field("", max_length=40)
+    url: str = Field("", max_length=1000)
+    source: str = Field("", max_length=60)
+    # Recording a posting the candidate has *already* applied to is a real flow —
+    # they met the listing on the board, then filed it here — so the stage can be
+    # set on the way in. It only applies to a new row: re-saving never moves one.
+    status: ApplicationStatus = "saved"
+    note: str = Field("", max_length=1000)
+
+
+class ApplicationUpdate(BaseModel):
+    """A stage change, a note edit, or both. At least one field is required."""
+
+    status: Optional[ApplicationStatus] = None
+    note: Optional[str] = Field(None, max_length=1000)
+
+
+class SavedJob(BaseModel):
+    """One saved posting: the snapshot a candidate filed, plus where it got to."""
+
+    id: int
+    posting_id: str
+    title: str
+    company: str = ""
+    location: str = ""
+    remote: bool = False
+    employment_type: str = ""
+    salary_text: str = ""
+    published: str = ""
+    url: str = ""
+    source: str = ""
+    status: ApplicationStatus
+    note: str = ""
+    #: When it was filed, and when it was last moved or edited.
+    created_at: str
+    updated_at: str
+
+
+class ApplicationListResponse(BaseModel):
+    count: int
+    results: List[SavedJob]

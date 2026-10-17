@@ -9,6 +9,7 @@ import MatchesPage from "@/pages/MatchesPage";
 import DirectoryPage from "@/pages/DirectoryPage";
 import RoleDetailPage from "@/pages/RoleDetailPage";
 import JobsPage from "@/pages/JobsPage";
+import ApplicationsPage from "@/pages/ApplicationsPage";
 import ComparePage from "@/pages/ComparePage";
 import RoadmapPage from "@/pages/RoadmapPage";
 import RoadmapsPage from "@/pages/RoadmapsPage";
@@ -32,6 +33,14 @@ export default function App() {
         <Route path="/roadmaps" element={<RequireAuth><RoadmapsPage /></RequireAuth>} />
         <Route path="/tracker" element={<RequireAuth><TrackerPage /></RequireAuth>} />
         <Route path="/tracker/:roleId" element={<RequireAuth><TrackerPage /></RequireAuth>} />
+        <Route
+          path="/applications"
+          element={
+            <RequireAuth>
+              <ApplicationsPage />
+            </RequireAuth>
+          }
+        />
         <Route path="/chat/:roleId" element={<ChatPage />} />
         <Route path="/directory" element={<Navigate to="/roles" replace />} />
         <Route path="*" element={<NotFoundPage />} />

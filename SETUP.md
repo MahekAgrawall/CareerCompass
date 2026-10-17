@@ -267,8 +267,13 @@ Then try **All Roles** — if the full 100-role catalog loads, the frontend is t
 
 Then open **💼 Jobs** in the navigation. Type a role (e.g. `kubernetes engineer`) and press
 **Search jobs**: you should get live postings. Add a location or pick an experience level and the
-list narrows while the page still reports how many postings the index ranked. If §2.9 has not been
+list narrows while the page still reports how many postings the collection holds. If §2.9 has not been
 run, the page shows a note telling you to run the migration instead of an error — that is expected.
+
+With an account, each posting also offers **🔖 Save job**. Save one, open **📋 Applications** in the
+navigation, and you should see it under **Saved**; move it to **Interview** with the stage selector and
+it moves section, with the counts at the top following it. Signed out, the same button reads
+**🔑 Sign in to save** — saved jobs are per-account, so that page requires a session.
 
 The same page is reachable from any match card: open **My Matches** and press **💼 Explore Jobs** on
 a card. The role is filled into the search box and the results load immediately.
@@ -377,7 +382,7 @@ backend's `CORS_ORIGINS`.
 | Roadmap/Copilot: "took too long to respond" | The request to Gemini timed out (slow/offline connection). Check your network and try again. |
 | Roadmap/Copilot: "a lot of AI requests in a short time" (429) | The per-caller AI budget is spent (`AI_RATE_LIMIT` per `AI_RATE_WINDOW_SECONDS`). Wait for the `Retry-After`, or raise the limit in `backend/.env` and restart. Matches still load — only the AI half is gated. |
 | Want a clean database | Stop the backend, delete `backend/data/career_compass.db`, restart — it is recreated and the role catalog is loaded from `roles.json` again. |
-| Existing database after an upgrade | Nothing to do. On startup `init_db()` appends any columns added since your database was created, refreshes the role catalog from `roles.json` in place, and keeps every existing row — user profiles, roadmaps and tracker progress included. |
+| Existing database after an upgrade | Nothing to do. On startup `init_db()` creates any table added since your database was created (the saved-jobs table for application tracking, for instance) and appends any columns added since, refreshes the role catalog from `roles.json` in place, and keeps every existing row — user profiles, roadmaps and tracker progress included. |
 | Roles are missing after editing `roles.json` | Restart the backend. The catalog is read at startup, and roles are never deleted from the database (so saved roadmaps can't be orphaned), which also means removing a role from the JSON leaves its old row in place. |
 | A role shows the **generic** stack (Python / Java / TypeScript / Go / C++) | `data/stacks.json` is read once at import, so the running process still has the old copy. Restart the backend. If you edited the file while `--reload` was running, make sure the old server actually exited — a lingering reload worker keeps port 8000 and keeps serving the old content. |
 | Migration says the index is **locked** / "another process … is holding it open" | Embedded Qdrant allows one process at a time. Stop the API server (and any stray `python -m uvicorn` process) and re-run. Or set `QDRANT_URL` to a Qdrant server, which needs no lock. |
@@ -412,7 +417,9 @@ calls Gemini or touches your real `backend/data/qdrant/` index. The live job-fee
 (`test_job_feed.py`) replace the single function that touches the network, so no test reaches a job
 board either; `test_job_api.py` covers the `/jobs/search` and `/jobs/for-role` read paths against a
 throwaway index, including the payload filters and the honest counts (`count` vs `matched` vs
-`indexed`). `test_prompts.py` checks the prompt library: every template the AI calls need exists
+`indexed`), and `test_applications.py` covers saved jobs end to end — auth, idempotent saving,
+ownership, the stage vocabulary and the snapshot round-trip. `test_prompts.py` checks the prompt
+library: every template the AI calls need exists
 on disk, renders without a leftover placeholder, reaches the model as the same text the inline prompt
 used to, and survives a crafted answer that tries to open its own `Guidelines:` block
 (`google-generativeai` itself is mocked — no network). `test_rate_limit.py` covers the AI budget:

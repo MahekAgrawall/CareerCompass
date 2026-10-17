@@ -50,6 +50,9 @@ export default function Navbar() {
           <NavLink to="/tracker" className={navClass}>
             📅 Tracker
           </NavLink>
+          <NavLink to="/applications" className={navClass}>
+            📋 Applications
+          </NavLink>
           <NavLink to={count > 0 ? "/compare" : "/roles"} className={navClass}>
             Compare{count > 0 ? ` (${count})` : ""}
           </NavLink>

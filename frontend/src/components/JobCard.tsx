@@ -1,4 +1,5 @@
 import Badge from "./Badge";
+import SaveJobButton from "./SaveJobButton";
 import type { JobPosting } from "@/api/types";
 import { formatDate, truncate } from "@/lib/format";
 import { sourceLabel } from "@/lib/jobs";
@@ -60,7 +61,7 @@ export default function JobCard({ posting }: { posting: JobPosting }) {
         Relevance {posting.similarity.toFixed(2)}
       </p>
 
-      <div className="mt-auto pt-4">
+      <div className="mt-auto space-y-2 pt-4">
         <a
           href={posting.url}
           target="_blank"
@@ -69,6 +70,7 @@ export default function JobCard({ posting }: { posting: JobPosting }) {
         >
           Apply on {board} ↗
         </a>
+        <SaveJobButton posting={posting} />
       </div>
     </div>
   );

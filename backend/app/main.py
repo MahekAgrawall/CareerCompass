@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import API_TITLE, API_VERSION, CORS_ORIGINS
-from app.routers import auth, chat, jobs, match, profile, roadmap, roles, tracker
+from app.routers import applications, auth, chat, jobs, match, profile, roadmap, roles, tracker
 from database.db import init_db
 from services import vector_store
 
@@ -37,6 +37,7 @@ app.include_router(profile.router)
 app.include_router(match.router)
 app.include_router(roadmap.router)
 app.include_router(tracker.router)
+app.include_router(applications.router)
 app.include_router(chat.router)
 
 

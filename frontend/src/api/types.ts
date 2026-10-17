@@ -261,6 +261,60 @@ export interface RoleJobsResponse {
   results: JobPosting[];
 }
 
+// ── Saved jobs & application tracking ─────────────────────────────────────────
+/**
+ * The stages a saved posting moves through, in the order a search really goes.
+ * `saved` is the bookmark every row starts at; `rejected` is a stage rather than
+ * a deletion, so an application that went nowhere stops cluttering the ones that
+ * are still live. Mirrors `backend/services/application_service.py`.
+ */
+export type ApplicationStatus = "saved" | "applied" | "interview" | "offer" | "rejected";
+
+/**
+ * One saved posting. The fields are a *snapshot* taken when it was filed, not a
+ * live reference: the boards rotate and the index is rebuilt, so this is what the
+ * candidate applied to even after the listing is gone.
+ */
+export interface SavedJob {
+  id: number;
+  posting_id: string;
+  title: string;
+  company: string;
+  location: string;
+  remote: boolean;
+  employment_type: string;
+  salary_text: string;
+  published: string;
+  url: string;
+  source: string;
+  status: ApplicationStatus;
+  note: string;
+  /** When it was filed, and when it was last moved or edited. */
+  created_at: string;
+  updated_at: string;
+}
+
+/** The snapshot body `POST /applications` takes (the posting, as the card showed it). */
+export interface ApplicationInput {
+  posting_id: string;
+  title: string;
+  company?: string;
+  location?: string;
+  remote?: boolean;
+  employment_type?: string;
+  salary_text?: string;
+  published?: string;
+  url?: string;
+  source?: string;
+  status?: ApplicationStatus;
+  note?: string;
+}
+
+export interface ApplicationListResponse {
+  count: number;
+  results: SavedJob[];
+}
+
 // ── Chat ──────────────────────────────────────────────────────────────────────
 export type ChatRole = "user" | "model";
 
