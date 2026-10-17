@@ -164,7 +164,7 @@ export default function RoleCard({ role, match, onCompareFull }: RoleCardProps) 
           <summary className="cursor-pointer text-xs font-semibold text-slate-600">
             💼 Live openings from the job boards
           </summary>
-          <div className="mt-2">{jobsOpen && <RoleJobs roleId={role.id} />}</div>
+          <div className="mt-2">{jobsOpen && <RoleJobs roleId={role.id} roleTitle={role.title} />}</div>
         </details>
       </div>
     </div>

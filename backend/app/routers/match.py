@@ -16,6 +16,7 @@ def match(payload: schemas.MatchRequest):
         "career_goal": payload.career_goal,
         "experience": payload.experience,
         "work_mode": payload.work_mode,
+        "location": payload.location,
     }
     results = career_service.match_roles_smart(profile)
 

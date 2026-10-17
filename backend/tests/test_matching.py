@@ -17,7 +17,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import INTEREST_OPTIONS, SKILL_OPTIONS  # noqa: E402
+from config import INTEREST_OPTIONS, LOCATION_OPTIONS, SKILL_OPTIONS  # noqa: E402
 from services import career_service  # noqa: E402
 from tests.harness import client  # noqa: E402,F401  (points the live DB at a throwaway file)
 
@@ -184,6 +184,32 @@ class SuggestedSkillTests(unittest.TestCase):
 
         self.assertEqual(best["skill_score"], 0)
         self.assertTrue(best["suggested_skills"])
+
+
+class QuestionnaireVocabularyTests(unittest.TestCase):
+    """The questionnaire has to be able to name where the boards actually publish.
+
+    The Indian hubs stay (the salary bands and company lists are built around
+    them), but the live board feed skews European and North-American — a
+    candidate aiming there must be able to say so instead of picking a hub that is
+    not theirs.
+    """
+
+    def test_the_indian_hubs_are_still_offered(self):
+        self.assertIn("Bangalore", LOCATION_OPTIONS)
+        self.assertIn("Remote / Flexible anywhere", LOCATION_OPTIONS)
+
+    def test_international_hubs_are_offered_too(self):
+        for expected in (
+            "London (UK)",
+            "Berlin (Germany)",
+            "Amsterdam (Netherlands)",
+            "Singapore",
+            "Toronto / Vancouver (Canada)",
+            "San Francisco / Bay Area (USA)",
+        ):
+            with self.subTest(hub=expected):
+                self.assertIn(expected, LOCATION_OPTIONS)
 
 
 if __name__ == "__main__":

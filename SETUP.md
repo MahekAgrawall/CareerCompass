@@ -141,7 +141,8 @@ Leave this terminal running.
 Matching has two stages: candidate roles are **recalled** from a Qdrant vector
 index, then **scored and explained** by the same transparent 65/35 formula as
 before. Recall adds roles that match the *meaning* of your profile (interests,
-skills and free-text goal) even when no interest chip overlaps.
+skills, free-text goal, experience, preferred work setup and work hub) even when
+no interest chip overlaps.
 
 The index is a derived artifact, so it is built by an explicit migration — never
 at startup, and it is not in git:
@@ -264,6 +265,12 @@ Now check the per-role job links and the roadmap copilot:
 - On any role card press **🗺️ Generate AI Roadmap**. It lands on the role's roadmap page, which
   generates the plan and now hosts the **Roadmap Copilot** on the *same page*, below the plan: ask it a
   question and the answer streams in without leaving the roadmap.
+
+**Preferred Work Hub** also lists international hubs now (London, Berlin, Amsterdam, Zurich, Dubai,
+Singapore, Toronto, New York, the Bay Area, Sydney…), not just the Indian ones — the live boards skew
+European and North-American, so a candidate aiming there can say so. The hub feeds the semantic recall
+stage of matching and the query behind each role's live openings; it is never used to filter the
+curated catalog.
 
 Leave this terminal running.
 

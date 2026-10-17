@@ -54,10 +54,13 @@ class MatchRequest(BaseModel):
     current_skills: List[str] = []
     explain: bool = True
     # Extra context for the semantic recall stage only — it never enters the
-    # score. A free-text goal is the strongest signal the index gets.
+    # score. A free-text goal is the strongest signal the index gets; the work hub
+    # matters because the live boards are location-bound even though the curated
+    # roles are not.
     career_goal: str = ""
     experience: str = ""
     work_mode: str = ""
+    location: str = ""
 
 
 class MatchResult(BaseModel):

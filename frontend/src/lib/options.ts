@@ -1,7 +1,7 @@
 /**
  * Shared option vocabularies.
- * Ported verbatim from the legacy Streamlit `config.py` so the questionnaire,
- * matching engine and UI stay in sync across both clients.
+ * Kept in step with `backend/config.py` so the questionnaire, matching engine
+ * and UI agree; originally ported verbatim from the legacy Streamlit app.
  */
 
 export const GRAD_YEAR_OPTIONS = [
@@ -20,6 +20,12 @@ export const EXPERIENCE_OPTIONS = [
   "2+ years",
 ] as const;
 
+/**
+ * Preferred work hub. The Indian hubs come first because the salary bands and
+ * hiring-company lists are built around them, then the international hubs the
+ * live job boards actually publish into — those boards skew European and
+ * North-American, so a candidate aiming at them has to be able to name one.
+ */
 export const LOCATION_OPTIONS = [
   "Bangalore",
   "Mumbai / Pune",
@@ -27,6 +33,19 @@ export const LOCATION_OPTIONS = [
   "Hyderabad",
   "Chennai",
   "Remote / Flexible anywhere",
+  "London (UK)",
+  "Dublin (Ireland)",
+  "Berlin (Germany)",
+  "Amsterdam (Netherlands)",
+  "Zurich (Switzerland)",
+  "Barcelona / Madrid (Spain)",
+  "Stockholm (Sweden)",
+  "Dubai (UAE)",
+  "Singapore",
+  "Toronto / Vancouver (Canada)",
+  "New York (USA)",
+  "San Francisco / Bay Area (USA)",
+  "Sydney (Australia)",
 ] as const;
 
 export const WORK_MODE_OPTIONS = [
@@ -36,7 +55,12 @@ export const WORK_MODE_OPTIONS = [
   "Remote",
 ] as const;
 
-export const RELOCATE_OPTIONS = ["Not sure yet", "Yes, anywhere in India", "Only my current city"] as const;
+export const RELOCATE_OPTIONS = [
+  "Not sure yet",
+  "Yes, anywhere in India",
+  "Yes, anywhere in the world",
+  "Only my current city",
+] as const;
 
 export const CAREER_GOAL_OPTIONS = [
   "Still exploring",

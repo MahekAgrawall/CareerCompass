@@ -88,7 +88,8 @@ reference and design source.
 
 1. **Recall** — `career_service.match_roles_smart()` searches a Qdrant index of every role's
    profile text (title, description, responsibilities, skills) using the candidate's interests,
-   skills and free-text goal. The pool is the keyword-interest matches **plus** the nearest roles
+   skills and free-text goal, plus the rest of the questionnaire — experience, preferred work setup
+   and **preferred work hub**. The pool is the keyword-interest matches **plus** the nearest roles
    the index found that keywords missed.
 2. **Score** — those candidates go through the unchanged, explainable scorer: 65% interest fit +
    35% skill fit, with the matched chips and suggested additions shown on every card.
@@ -97,6 +98,14 @@ Recall can only ever *add* candidates; it never changes a score, so the arithmet
 reads stays exactly reproducible. Vectors live in a collection named after their embedding space
 (provider + model + width) and everything degrades to keyword-only matching when the index is
 missing, stale or unreachable.
+
+**Where you want to work.** The questionnaire's *Preferred Work Hub* offers the Indian hubs the
+salary bands and hiring-company lists are built around, then the international hubs the live boards
+actually publish into — London, Dublin, Berlin, Amsterdam, Zurich, Barcelona/Madrid, Stockholm,
+Dubai, Singapore, Toronto/Vancouver, New York, the Bay Area and Sydney — and *Open to Relocating*
+runs from "only my current city" to "anywhere in the world". The answer is a recall signal for
+matching and part of the query behind `POST /jobs/for-role`, so naming a hub steers both the role
+recall and that role's live openings.
 
 **Which embeddings?** Gemini (`gemini-embedding-001`, Matryoshka-truncated to 768 dims) when
 `GEMINI_API_KEY` is set, otherwise a deterministic offline embedder that needs no key, no network
@@ -325,7 +334,7 @@ streamlit run app.py        # http://localhost:8501
 | `POST` | `/jobs/for-role` | — | Live job postings nearest to one catalogued role, ranked with the candidate's questionnaire answers (`available: false` until the index is built) |
 | `GET` | `/profile` | ✅ | Saved profile |
 | `PUT` | `/profile` | ✅ | Save profile |
-| `POST` | `/match` | — | Ranked role matches with a score breakdown (+ optional AI explanation) |
+| `POST` | `/match` | — | Ranked role matches with a score breakdown (+ optional AI explanation); the questionnaire's goal, experience, work setup and work hub feed the semantic recall stage only |
 | `POST` | `/roadmap` | optional | Generate an AI roadmap (saved when authenticated) |
 | `GET` | `/roadmaps` | ✅ | Saved roadmap library |
 | `DELETE` | `/roadmaps/{id}` | ✅ | Delete a saved roadmap |

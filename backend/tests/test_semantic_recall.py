@@ -204,6 +204,14 @@ class DocumentTests(unittest.TestCase):
         self.assertIn("Docker", query)
         self.assertIn("self-driving", query)
 
+    def test_profile_query_includes_the_work_hub(self):
+        """The hub is part of the questionnaire, so it reaches the index too."""
+        query = vector_store.profile_query({
+            "interests": ["Cloud, DevOps & Linux"],
+            "location": "Berlin (Germany)",
+        })
+        self.assertIn("Berlin (Germany)", query)
+
 
 class SemanticIndexTests(IndexBackedTest):
     def test_search_returns_nothing_without_an_index(self):
@@ -371,6 +379,30 @@ class SemanticApiTests(IndexBackedTest):
             self.assertIn("recalled_by", match)
             self.assertIn("semantic_similarity", match)
             self.assertIn("keyword", match["recalled_by"])
+
+    def test_match_forwards_the_whole_questionnaire_to_the_index(self):
+        """Recall must see every answer, not just the three it once passed on."""
+        captured = {}
+
+        def capture(profile):
+            captured.update(profile)
+            return []
+
+        with mock.patch.object(career_service, "match_roles_smart", side_effect=capture):
+            response = client.post("/match", json={
+                "interests": ["Cloud, DevOps & Linux"],
+                "current_skills": ["Docker"],
+                "career_goal": "platform engineering",
+                "experience": "0–6 months (internship)",
+                "work_mode": "Remote",
+                "location": "Berlin (Germany)",
+                "explain": False,
+            })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(captured["location"], "Berlin (Germany)")
+        self.assertEqual(captured["career_goal"], "platform engineering")
+        self.assertEqual(captured["work_mode"], "Remote")
 
     def test_health_reports_the_semantic_index(self):
         status = client.get("/health").json()["semantic_index"]

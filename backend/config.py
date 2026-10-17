@@ -17,6 +17,9 @@ EXPERIENCE_OPTIONS = [
     "2+ years",
 ]
 
+# Preferred work hubs: the Indian hubs the salary bands are built around first,
+# then the international hubs the live job boards actually publish into. Kept in
+# step with `frontend/src/lib/options.ts`.
 LOCATION_OPTIONS = [
     "Bangalore",
     "Mumbai / Pune",
@@ -24,6 +27,19 @@ LOCATION_OPTIONS = [
     "Hyderabad",
     "Chennai",
     "Remote / Flexible anywhere",
+    "London (UK)",
+    "Dublin (Ireland)",
+    "Berlin (Germany)",
+    "Amsterdam (Netherlands)",
+    "Zurich (Switzerland)",
+    "Barcelona / Madrid (Spain)",
+    "Stockholm (Sweden)",
+    "Dubai (UAE)",
+    "Singapore",
+    "Toronto / Vancouver (Canada)",
+    "New York (USA)",
+    "San Francisco / Bay Area (USA)",
+    "Sydney (Australia)",
 ]
 
 INTEREST_OPTIONS = [

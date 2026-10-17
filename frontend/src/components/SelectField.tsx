@@ -11,11 +11,16 @@ export default function SelectField({
   onChange: (value: string) => void;
   hint?: string;
 }) {
+  // A saved answer the vocabulary no longer offers — a work hub that was
+  // retired, a profile saved against an older list — stays selectable instead of
+  // leaving the control blank and silently hiding the candidate's own answer.
+  const choices = value && !options.includes(value) ? [value, ...options] : options;
+
   return (
     <label className="block">
       <span className="label">{label}</span>
       <select className="input" value={value} onChange={(e) => onChange(e.target.value)}>
-        {options.map((option) => (
+        {choices.map((option) => (
           <option key={option} value={option}>
             {option}
           </option>

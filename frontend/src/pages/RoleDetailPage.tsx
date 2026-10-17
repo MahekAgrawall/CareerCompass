@@ -209,7 +209,7 @@ export default function RoleDetailPage() {
             into account. Each link opens the original listing on the board that published it.
           </p>
           <div className="mt-3">
-            <RoleJobs roleId={role.id} limit={5} />
+            <RoleJobs roleId={role.id} roleTitle={role.title} limit={5} />
           </div>
 
           <hr className="my-6 border-slate-200" />

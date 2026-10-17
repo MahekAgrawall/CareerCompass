@@ -34,6 +34,7 @@ export default function MatchesPage() {
     careerGoal: profile?.career_goal ?? "",
     experience: profile?.experience ?? "",
     workMode: profile?.work_mode ?? "",
+    location: profile?.location ?? "",
   };
   const contextKey = Object.values(recallContext).join("|");
   const canMatch = Boolean(profile && profile.interests.length > 0);

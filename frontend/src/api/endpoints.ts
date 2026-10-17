@@ -56,12 +56,14 @@ export const getRole = (roleId: string) => api.get<Role>(`/roles/${encodeURIComp
 /**
  * `context` only feeds the semantic recall stage (it never enters the score), so
  * the free-text goal can surface roles whose chips do not overlap the profile.
+ * The work hub rides along for the same reason: the curated roles are not
+ * location-bound, but the index should still know where the candidate is aiming.
  */
 export const matchRoles = (
   interests: string[],
   currentSkills: string[],
   explain = true,
-  context: { careerGoal?: string; experience?: string; workMode?: string } = {},
+  context: { careerGoal?: string; experience?: string; workMode?: string; location?: string } = {},
 ) =>
   api.post<MatchResponse>("/match", {
     interests,
@@ -70,6 +72,7 @@ export const matchRoles = (
     career_goal: context.careerGoal ?? "",
     experience: context.experience ?? "",
     work_mode: context.workMode ?? "",
+    location: context.location ?? "",
   });
 
 // ── Live jobs ─────────────────────────────────────────────────────────────────
