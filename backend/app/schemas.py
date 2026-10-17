@@ -110,3 +110,35 @@ class ChatRequest(BaseModel):
     new_message: str
     history: List[Dict[str, str]] = []
     profile: Dict[str, Any] = {}
+
+
+# ── Live job postings ─────────────────────────────────────────────────────────
+class JobPosting(BaseModel):
+    id: str
+    title: str
+    company: str = ""
+    location: str = ""
+    remote: bool = False
+    employment_type: str = ""
+    seniority: List[str] = []
+    categories: List[str] = []
+    # Rendered by the ingest from whatever the board published ("EUR 80000-100000
+    # / annual"), or "" when the board disclosed nothing.
+    salary_text: str = ""
+    published: str = ""
+    url: str
+    source: str = ""
+    excerpt: str = ""
+    # Cosine similarity from the job index — the only ranking signal here, since
+    # these are live listings rather than catalogued roles with a fit score.
+    similarity: float
+
+
+class JobSearchResponse(BaseModel):
+    query: str
+    # False when the `job_role` index has not been built (scripts.ingest_jobs).
+    # The endpoint still answers 200 — it simply has nothing to search — so a
+    # client can hide the section instead of showing an error.
+    available: bool
+    count: int
+    results: List[JobPosting]

@@ -125,6 +125,7 @@ Drop `--reload` for a stable run.
 
 - Health check → <http://127.0.0.1:8000/health>  (expect `{"status":"ok",...}`)
 - Interactive API docs → <http://127.0.0.1:8000/docs>
+- Live job search (after §2.9) → <http://127.0.0.1:8000/jobs/search?q=kubernetes+platform+engineer>
 
 Leave this terminal running.
 
@@ -180,8 +181,10 @@ add a Gemini key after building offline) is refused instead of mixing
 incomparable vectors — re-run with `--rebuild` to replace it. Rebuilding this
 collection never touches the catalog index, and vice versa.
 
-This step is data plumbing: nothing in the API reads `job_role` yet, so skipping it
-changes nothing about how the app behaves.
+`GET /jobs/search?q=…` serves these postings (public, like `/roles`): semantic search over the
+collection, returning each listing with its salary text, publication date and the board's own URL.
+Until §2.9 has been run the endpoint still answers `200` with `available: false` and no rows, so a
+client can hide the section instead of surfacing an error — nothing else in the app depends on it.
 
 ---
 
@@ -310,6 +313,7 @@ backend's `CORS_ORIGINS`.
 | Matches look keyword-only after an upgrade | Expected until §2.8 runs. Without an index the matcher behaves exactly as before; `recalled_by` on every result says how it was found. |
 | `scripts.ingest_jobs` refuses: "was built in embedding space … but the active embeddings are …" | `job_role` already holds vectors from another space (usually you added a `GEMINI_API_KEY` after building offline). Re-run with `--rebuild` to replace the collection, or pin `EMBEDDING_PROVIDER` to the space it holds. |
 | `scripts.ingest_jobs` reports no postings / a board was skipped | A job board was unreachable or returned nothing; the other board was still used. Re-run later, or ingest the saved `data/job_postings.json` with `--from-file`. |
+| `GET /jobs/search` returns `available: false` and no rows | The `job_role` collection has not been built yet. Run §2.9 (or `--from-file data\job_postings.json` if you already collected once). The endpoint answers honestly rather than erroring — nothing else depends on it. |
 | `FutureWarning` about `google.generativeai` | Harmless; the SDK is deprecated and migration is planned. |
 
 ---
@@ -332,7 +336,7 @@ The semantic-index tests are hermetic too: the harness forces the offline embedd
 (`EMBEDDING_PROVIDER=local`) and points `QDRANT_PATH` at a temporary directory, so no test ever
 calls Gemini or touches your real `backend/data/qdrant/` index. The live job-feed tests
 (`test_job_feed.py`) replace the single function that touches the network, so no test reaches a job
-board either.
+board either; `test_job_api.py` covers the `/jobs/search` read path against a throwaway index.
 
 **Frontend** (TypeScript check + production build):
 ```powershell

@@ -326,6 +326,15 @@ def record_space(collection: str, space: str) -> None:
         log.warning("Could not record the embedding space for %s (%s)", collection, exc)
 
 
+def collection_exists(name: str) -> bool:
+    """Whether a collection is present in the store. Never raises."""
+    try:
+        return bool(_client().collection_exists(name))
+    except Exception as exc:  # noqa: BLE001 - diagnostics must never raise
+        log.warning("Could not look up collection %s (%s)", name, exc)
+        return False
+
+
 def count_points(name: str) -> int:
     """Number of points in a collection, 0 when it does not exist."""
     try:

@@ -117,14 +117,18 @@ board name and original link.
 A harvest of 1,000 fetched postings de-duplicates by title and company — roughly 5% of what the
 boards return is the same opening advertised twice — and the surviving records are embedded into
 `job_role` with the same embedder as the catalog. The two collections share one store but not one
-fate:
-rebuilding either one leaves the other untouched. Because `job_role` is a plain, human-chosen
+fate: rebuilding either one leaves the other untouched. Because `job_role` is a plain, human-chosen
 name, which embedding space it holds is recorded in a sidecar file (`<index>/job_role.space`) and
 a later ingest in a different space is refused rather than silently mixing incomparable vectors —
 `--rebuild` is the explicit opt-in to switch.
 
-The collection is data infrastructure today: nothing in the API reads it yet, and skipping the
-migration breaks nothing.
+`GET /jobs/search?q=…` serves them: a semantic search returning the stored posting — title, company,
+location, remote flag, employment type, seniority, categories, rendered salary, publication date,
+the board's own URL and an excerpt — with the cosine `similarity` as its only ranking signal. There
+is deliberately no fallback here, because unlike the curated catalog the index is the *only* copy of
+this data: when the index has not been built the endpoint still answers `200`, with
+`available: false` and no rows, so a client hides the section instead of surfacing an error. The
+endpoint is public, like `/roles` — these are public listings carrying no user data.
 
 ---
 
@@ -162,7 +166,7 @@ career-compass/
 │   │   ├── schemas.py         ← Pydantic request/response models
 │   │   ├── security.py        ← JWT create/decode
 │   │   ├── dependencies.py    ← get_current_user / get_optional_user
-│   │   └── routers/           ← auth · roles · profile · match · roadmap · tracker · chat
+│   │   └── routers/           ← auth · roles · jobs · profile · match · roadmap · tracker · chat
 │   ├── services/              ← ai · career · tracker · auth · embeddings · vector_store · job_feed
 │   ├── scripts/               ← ingest_roles.py · ingest_jobs.py (index migrations)
 │   ├── database/db.py         ← connection, schema, role-catalog sync
@@ -292,6 +296,7 @@ streamlit run app.py        # http://localhost:8501
 | `GET` | `/roles` | — | Full role catalog, each role carrying its salary bands, review date and sources |
 | `GET` | `/roles/categories` | — | Distinct categories |
 | `GET` | `/roles/{role_id}` | — | Single role, including its salary provenance |
+| `GET` | `/jobs/search?q=…&limit=…` | — | Live job postings nearest to a query (`available: false` until the `job_role` index is built) |
 | `GET` | `/profile` | ✅ | Saved profile |
 | `PUT` | `/profile` | ✅ | Save profile |
 | `POST` | `/match` | — | Ranked role matches with a score breakdown (+ optional AI explanation) |
@@ -371,6 +376,10 @@ de-duplication collapses the same opening advertised twice, a board being down d
 harvest instead of failing it, and — the part worth pinning — the `job_role` collection refuses an
 incompatible embedding space rather than mixing vectors, and rebuilding it leaves the curated role
 index intact. Its network layer is replaced, so no test reaches a job board.
+`tests/test_job_api.py` guards the read path over those postings: results never bleed in from the
+catalog index sitting beside them in the same store, the nearest posting wins for a platform query,
+the inputs are validated, and with no index built the endpoint answers `available: false` instead of
+erroring.
 
 The frontend is checked with the TypeScript compiler and a production build:
 
@@ -392,8 +401,10 @@ GitHub Actions runs both on every push and pull request (see `.github/workflows/
   Gemini embeddings are markedly better at pure paraphrase; configure a key and re-run the
   migration to use them.
 - **The live feed reflects its sources** — the public boards it harvests skew towards remote and
-  European/North-American postings, and the two collections must be re-ingested separately when
-  the embedding space changes. `job_role` is data infrastructure: nothing in the API serves it yet.
+  European/North-American postings, so `/jobs/search` is a window onto *those* boards rather than a
+  complete picture of the market, and the two collections must be re-ingested separately when the
+  embedding space changes. The postings are shown as the boards published them: no salary
+  normalisation and no cross-board de-duplication beyond title and company.
 - **Refresh tokens** — access tokens are long-lived for a demo; refresh-token rotation is future work.
 - **Theming** — a single polished light theme.
 
