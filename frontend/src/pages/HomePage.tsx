@@ -7,7 +7,7 @@ const pillars = [
   {
     icon: "🎯",
     title: "Smart Interest Matching",
-    body: "Filters roles based strictly on your genuine career interests, eliminating generic or mismatched suggestions.",
+    body: "Ranks roles strictly on the interests and skills you actually have — 65% interest fit, 35% skill fit — and shows the arithmetic. Semantic recall can surface a role that matches the meaning of your profile, never a score you cannot check.",
   },
   {
     icon: "📊",
@@ -62,7 +62,8 @@ export default function HomePage() {
         <SectionCard className="flex flex-col p-6" hover>
           <h3 className="text-lg font-bold text-slate-900">📚 Explore All Roles</h3>
           <p className="mt-2 text-sm text-slate-500">
-            Browse our database of 15+ technology and corporate roles.
+            Browse the catalog by category, demand or salary — then open any role for its
+            roadmap and study tracker.
           </p>
           <Link to="/roles" className="btn btn-secondary mt-5 w-full">
             Open Role Directory

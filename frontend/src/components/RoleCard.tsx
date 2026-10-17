@@ -98,6 +98,16 @@ export default function RoleCard({ role, match, onCompareFull }: RoleCardProps) 
                 {extraSuggestions > 0 && ` +${extraSuggestions} more`}
               </p>
             )}
+            {match.recalled_by.includes("semantic") && (
+              <p>
+                <span className="font-semibold text-slate-700">How it was found: </span>
+                {match.recalled_by.includes("keyword")
+                  ? "your interests, and by meaning in the role index"
+                  : "by meaning in the role index — your interests do not overlap this role yet"}
+                {match.semantic_similarity !== null &&
+                  ` · similarity ${match.semantic_similarity.toFixed(2)}`}
+              </p>
+            )}
           </div>
         </details>
       )}

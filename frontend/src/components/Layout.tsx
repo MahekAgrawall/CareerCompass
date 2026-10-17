@@ -13,8 +13,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       </main>
       <footer className="border-t border-slate-200 bg-white py-6">
         <div className="mx-auto max-w-6xl px-4 text-center text-xs text-slate-400">
-          CareerCompass — built with FastAPI + React. Salary benchmarks aggregated from AmbitionBox,
-          Glassdoor and LinkedIn India tech data.
+          CareerCompass — built with FastAPI + React. Salary bands are reviewed envelopes citing
+          public sources (Indeed India, Levels.fyi, TeamLease); each role page lists its own.
         </div>
       </footer>
     </div>

@@ -128,6 +128,32 @@ Drop `--reload` for a stable run.
 
 Leave this terminal running.
 
+### 2.8 Build the semantic role index (one-off, optional)
+
+Matching has two stages: candidate roles are **recalled** from a Qdrant vector
+index, then **scored and explained** by the same transparent 65/35 formula as
+before. Recall adds roles that match the *meaning* of your profile (interests,
+skills and free-text goal) even when no interest chip overlaps.
+
+The index is a derived artifact, so it is built by an explicit migration — never
+at startup, and it is not in git:
+
+```powershell
+# With the API stopped (embedded Qdrant locks its directory)
+.\.venv\Scripts\python.exe -m scripts.ingest_roles --query "cloud infrastructure pipelines"
+```
+
+Re-run it whenever `data/roles.json` changes; add `--rebuild` to drop the old
+collection first. Until then, matching is keyword-only, exactly as before —
+nothing breaks.
+
+Embeddings come from Gemini when `GEMINI_API_KEY` is set, otherwise from a
+deterministic offline embedder (no key, no network, no model download). If Gemini
+is configured but unusable — quota exhausted, model retired, offline — the script
+says so and builds the offline index instead. Either way the provider that built
+the index is recorded beside it, so the API always queries the right collection.
+See §8 for what to do if you change keys or models later.
+
 ---
 
 ## 3. Frontend — React (Vite)
@@ -168,7 +194,7 @@ npm run dev
 ### 3.4 Verify
 
 Open <http://localhost:5173>. You should see the CareerCompass home page.
-Then try **All Roles** — if the full 30-role catalog loads, the frontend is talking to the backend.
+Then try **All Roles** — if the full 100-role catalog loads, the frontend is talking to the backend.
 
 Leave this terminal running.
 
@@ -184,6 +210,9 @@ Leave this terminal running.
 
 **First run checklist:** build a profile → see matches → open a role → generate a roadmap →
 open the study tracker → chat with the copilot.
+
+Run the one-off migration in §2.8 too if you want matches recalled by meaning
+(it needs the API stopped, so it is easiest before you start the servers).
 
 ---
 
@@ -246,6 +275,10 @@ backend's `CORS_ORIGINS`.
 | Existing database after an upgrade | Nothing to do. On startup `init_db()` appends any columns added since your database was created, refreshes the role catalog from `roles.json` in place, and keeps every existing row — user profiles, roadmaps and tracker progress included. |
 | Roles are missing after editing `roles.json` | Restart the backend. The catalog is read at startup, and roles are never deleted from the database (so saved roadmaps can't be orphaned), which also means removing a role from the JSON leaves its old row in place. |
 | A role shows the **generic** stack (Python / Java / TypeScript / Go / C++) | `data/stacks.json` is read once at import, so the running process still has the old copy. Restart the backend. If you edited the file while `--reload` was running, make sure the old server actually exited — a lingering reload worker keeps port 8000 and keeps serving the old content. |
+| Migration says the index is **locked** / "another process … is holding it open" | Embedded Qdrant allows one process at a time. Stop the API server (and any stray `python -m uvicorn` process) and re-run. Or set `QDRANT_URL` to a Qdrant server, which needs no lock. |
+| `/health` shows `semantic_index.points: 0`, or `other_collections` is listed | You are querying a different embedding space than the one that was ingested — usually because a `GEMINI_API_KEY` was added/removed, or `GEMINI_EMBEDDING_MODEL` changed, after the migration. Re-run §2.8 (with `--rebuild`), or pin `EMBEDDING_PROVIDER` to the space you want. |
+| Migration prints "Gemini embeddings unavailable … falling back" | Gemini is configured but unreachable (quota, retired model, offline). The offline index is built instead and recorded, so matching still works. Fix the key/quota and re-run §2.8 with `--rebuild` to switch to Gemini vectors. |
+| Matches look keyword-only after an upgrade | Expected until §2.8 runs. Without an index the matcher behaves exactly as before; `recalled_by` on every result says how it was found. |
 | `FutureWarning` about `google.generativeai` | Harmless; the SDK is deprecated and migration is planned. |
 
 ---
@@ -263,6 +296,10 @@ so the suite never reads or writes `backend/data/career_compass.db`. `test_api.p
 the endpoint contracts (and per-user ownership); `test_e2e_journey.py` walks the full
 candidate journey end to end. An individual file also runs directly, e.g.
 `python tests/test_e2e_journey.py`.
+
+The semantic-index tests are hermetic too: the harness forces the offline embedder
+(`EMBEDDING_PROVIDER=local`) and points `QDRANT_PATH` at a temporary directory, so no test ever
+calls Gemini or touches your real `backend/data/qdrant/` index.
 
 **Frontend** (TypeScript check + production build):
 ```powershell

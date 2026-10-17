@@ -40,8 +40,12 @@ class CatalogContentTests(unittest.TestCase):
         self.roles = load_catalog()
 
     def test_catalog_is_within_the_target_size(self):
-        self.assertGreaterEqual(len(self.roles), 25, "the catalog should offer at least 25 roles")
-        self.assertLessEqual(len(self.roles), 35, "beyond 35 roles the catalogue stops being scannable")
+        self.assertGreaterEqual(len(self.roles), 90, "the catalog should offer a broad set of roles")
+        self.assertLessEqual(
+            len(self.roles), 130,
+            "past ~130 roles the directory stops being scannable and belongs behind search, "
+            "not one long list — the semantic index is what keeps the big catalog useful",
+        )
 
     def test_role_ids_are_unique(self):
         ids = [r["id"] for r in self.roles]

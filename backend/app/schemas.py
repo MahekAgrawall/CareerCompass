@@ -1,5 +1,5 @@
 """Pydantic request/response models for the API."""
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -53,6 +53,11 @@ class MatchRequest(BaseModel):
     interests: List[str] = []
     current_skills: List[str] = []
     explain: bool = True
+    # Extra context for the semantic recall stage only — it never enters the
+    # score. A free-text goal is the strongest signal the index gets.
+    career_goal: str = ""
+    experience: str = ""
+    work_mode: str = ""
 
 
 class MatchResult(BaseModel):
@@ -65,6 +70,11 @@ class MatchResult(BaseModel):
     matched_skills: List[str]
     # Profile chips that would raise the skill half of this match.
     suggested_skills: List[str]
+    # How the role was found: "keyword" (interest chips), "semantic" (vector
+    # search over the catalog), or both.
+    recalled_by: List[str] = []
+    # Cosine similarity from the semantic index, when it contributed.
+    semantic_similarity: Optional[float] = None
 
 
 class MatchResponse(BaseModel):

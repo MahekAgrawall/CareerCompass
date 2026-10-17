@@ -5,3 +5,4 @@ PyJWT==2.15.1
 python-dotenv==1.2.4
 google-generativeai==0.8.6
 httpx==0.28.1
+qdrant-client==1.19.1

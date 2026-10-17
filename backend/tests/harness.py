@@ -35,6 +35,12 @@ TMP_DIR = tempfile.mkdtemp(prefix="careercompass_tests_")
 db.DB_PATH = os.path.join(TMP_DIR, "career_compass_test.db")
 atexit.register(shutil.rmtree, TMP_DIR, True)
 
+# The retrieval layer is kept out of the suite's way too: the local embedder
+# needs no key and no network, and pointing QDRANT_PATH at an empty temporary
+# directory means semantic recall is off unless a test builds an index itself.
+os.environ["EMBEDDING_PROVIDER"] = "local"
+os.environ["QDRANT_PATH"] = os.path.join(TMP_DIR, "qdrant")
+
 db.init_db()
 
 from fastapi.testclient import TestClient  # noqa: E402

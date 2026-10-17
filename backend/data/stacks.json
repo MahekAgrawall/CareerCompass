@@ -787,6 +787,1781 @@
           "Release Readiness & Launch Coordination"
         ]
       }
+    },
+    "ios_developer": {
+      "dim1": {
+        "label": "1. Primary Apple Stack",
+        "options": [
+          "Swift / SwiftUI",
+          "Kotlin / Jetpack Compose"
+        ]
+      },
+      "dim2": {
+        "label": "2. Device Data & Services",
+        "options": [
+          "On-Device Local Persistence with Core Data",
+          "Firebase Auth & Firestore",
+          "REST & GraphQL API Design"
+        ]
+      },
+      "dim3": {
+        "label": "3. Release & Quality",
+        "options": [
+          "App Store & Play Store Release Engineering",
+          "App Performance Profiling & Startup Time",
+          "Selenium & Playwright Automation"
+        ]
+      }
+    },
+    "flutter_developer": {
+      "dim1": {
+        "label": "1. Primary Mobile Stack",
+        "options": [
+          "Dart / Flutter",
+          "Kotlin / Jetpack Compose",
+          "React Native"
+        ]
+      },
+      "dim2": {
+        "label": "2. Device Data & Services",
+        "options": [
+          "Firebase Auth & Firestore",
+          "On-Device Local Persistence with Core Data",
+          "Redis (In-Memory Cache)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Release & Quality",
+        "options": [
+          "App Store & Play Store Release Engineering",
+          "App Performance Profiling & Startup Time",
+          "Selenium & Playwright Automation"
+        ]
+      }
+    },
+    "react_native_developer": {
+      "dim1": {
+        "label": "1. Primary Mobile Stack",
+        "options": [
+          "Dart / Flutter",
+          "Kotlin / Jetpack Compose",
+          "React Native"
+        ]
+      },
+      "dim2": {
+        "label": "2. Device Data & Services",
+        "options": [
+          "Firebase Auth & Firestore",
+          "On-Device Local Persistence with Core Data",
+          "Redis (In-Memory Cache)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Release & Quality",
+        "options": [
+          "App Store & Play Store Release Engineering",
+          "App Performance Profiling & Startup Time",
+          "Selenium & Playwright Automation"
+        ]
+      }
+    },
+    "python_developer": {
+      "dim1": {
+        "label": "1. Primary Backend Language",
+        "options": [
+          "Python",
+          "Go (Golang)",
+          "Java"
+        ]
+      },
+      "dim2": {
+        "label": "2. Database & Caching",
+        "options": [
+          "PostgreSQL (Relational)",
+          "Redis (In-Memory Cache)",
+          "MongoDB (Document)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Framework & Delivery",
+        "options": [
+          "FastAPI / Async REST (Python)",
+          "Django & DRF",
+          "Docker & Kubernetes"
+        ]
+      }
+    },
+    "java_enterprise_developer": {
+      "dim1": {
+        "label": "1. Primary Backend Language",
+        "options": [
+          "Java",
+          "Python",
+          "Go (Golang)"
+        ]
+      },
+      "dim2": {
+        "label": "2. Database & Caching",
+        "options": [
+          "PostgreSQL (Relational)",
+          "MongoDB (Document)",
+          "Redis (In-Memory Cache)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Framework & Delivery",
+        "options": [
+          "Spring Boot 3 (Java)",
+          "REST & GraphQL API Design",
+          "CI/CD Build Pipelines with Jenkins"
+        ]
+      }
+    },
+    "dotnet_developer": {
+      "dim1": {
+        "label": "1. Primary Backend Language",
+        "options": [
+          "C# / .NET",
+          "Java",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. Data & Caching",
+        "options": [
+          "MySQL (Relational)",
+          "PostgreSQL (Relational)",
+          "Redis (In-Memory Cache)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Service Architecture",
+        "options": [
+          "REST & GraphQL API Design",
+          "gRPC Services & Bounded Contexts",
+          "CI/CD Build Pipelines with Jenkins"
+        ]
+      }
+    },
+    "go_backend_developer": {
+      "dim1": {
+        "label": "1. Primary Backend Language",
+        "options": [
+          "Go (Golang)",
+          "Python",
+          "Java"
+        ]
+      },
+      "dim2": {
+        "label": "2. Data Stores & Caching",
+        "options": [
+          "PostgreSQL (Relational)",
+          "Redis (In-Memory Cache)",
+          "MongoDB (Document)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Service Architecture",
+        "options": [
+          "gRPC Services & Bounded Contexts",
+          "REST & GraphQL API Design",
+          "Docker & Kubernetes"
+        ]
+      }
+    },
+    "php_developer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "PHP / Laravel",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. Data & CMS Layer",
+        "options": [
+          "MySQL (Relational)",
+          "WordPress Themes & Plugins",
+          "Redis (In-Memory Cache)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Delivery & Standards",
+        "options": [
+          "REST & GraphQL API Design",
+          "Accessibility & WCAG 2.2",
+          "CI/CD Build Pipelines with Jenkins"
+        ]
+      }
+    },
+    "wordpress_developer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "PHP / Laravel",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. Data & CMS Layer",
+        "options": [
+          "MySQL (Relational)",
+          "WordPress Themes & Plugins",
+          "Redis (In-Memory Cache)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Delivery & Standards",
+        "options": [
+          "REST & GraphQL API Design",
+          "Accessibility & WCAG 2.2",
+          "CI/CD Build Pipelines with Jenkins"
+        ]
+      }
+    },
+    "low_code_developer": {
+      "dim1": {
+        "label": "1. Platform Focus",
+        "options": [
+          "Low-Code Platform Delivery",
+          "Salesforce Administration & Apex"
+        ]
+      },
+      "dim2": {
+        "label": "2. Data & Integration",
+        "options": [
+          "REST & GraphQL API Design",
+          "SQL Analytics & Warehouse Queries",
+          "Power BI Dashboards"
+        ]
+      },
+      "dim3": {
+        "label": "3. Delivery Practice",
+        "options": [
+          "ServiceNow ITSM & Ticketing",
+          "Technical Writing & Documentation",
+          "Stakeholder Alignment & Escalation"
+        ]
+      }
+    },
+    "blockchain_developer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "Solidity / Smart Contracts",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. Data & Storage",
+        "options": [
+          "MongoDB (Document)",
+          "Redis (In-Memory Cache)",
+          "PostgreSQL (Relational)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Security & Delivery",
+        "options": [
+          "Threat Modelling & Secure Code Review",
+          "REST & GraphQL API Design",
+          "CI/CD Build Pipelines with Jenkins"
+        ]
+      }
+    },
+    "ar_vr_developer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "C# / .NET",
+          "C++"
+        ]
+      },
+      "dim2": {
+        "label": "2. Real-Time Visuals",
+        "options": [
+          "3D Rendering & Shaders",
+          "OpenCV / Computer Vision",
+          "PostgreSQL (Relational)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Experience & Release",
+        "options": [
+          "Prototyping & Developer Handoff",
+          "Interaction Design & Micro-Interactions",
+          "App Performance Profiling & Startup Time"
+        ]
+      }
+    },
+    "desktop_application_developer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "C# / .NET",
+          "C++",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. App Data & Packaging",
+        "options": [
+          "Desktop Application Packaging & Code Signing",
+          "PostgreSQL (Relational)",
+          "Redis (In-Memory Cache)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Quality & Delivery",
+        "options": [
+          "CI/CD Build Pipelines with Jenkins",
+          "Observability (Metrics, Traces & SLOs)",
+          "REST & GraphQL API Design"
+        ]
+      }
+    },
+    "microservices_developer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "Java",
+          "Go (Golang)",
+          "Python"
+        ]
+      },
+      "dim2": {
+        "label": "2. Service Architecture",
+        "options": [
+          "gRPC Services & Bounded Contexts",
+          "Redis (In-Memory Cache)",
+          "PostgreSQL (Relational)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Delivery & Observability",
+        "options": [
+          "Docker & Kubernetes",
+          "Observability (Metrics, Traces & SLOs)",
+          "Progressive Delivery & Canary Releases"
+        ]
+      }
+    },
+    "sdet_engineer": {
+      "dim1": {
+        "label": "1. Primary Automation Language",
+        "options": [
+          "Python",
+          "Java",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. Test Tooling",
+        "options": [
+          "Selenium & Playwright Automation",
+          "Manual Exploratory Testing",
+          "JMeter Load & Soak Testing"
+        ]
+      },
+      "dim3": {
+        "label": "3. Quality Gates & Support",
+        "options": [
+          "CI/CD Build Pipelines with Jenkins",
+          "REST & GraphQL API Design",
+          "Observability (Metrics, Traces & SLOs)"
+        ]
+      }
+    },
+    "performance_test_engineer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "Python",
+          "Java"
+        ]
+      },
+      "dim2": {
+        "label": "2. Performance Tooling",
+        "options": [
+          "JMeter Load & Soak Testing",
+          "Observability (Metrics, Traces & SLOs)",
+          "Selenium & Playwright Automation"
+        ]
+      },
+      "dim3": {
+        "label": "3. Environment & Delivery",
+        "options": [
+          "Docker & Kubernetes",
+          "CI/CD Build Pipelines with Jenkins",
+          "Progressive Delivery & Canary Releases"
+        ]
+      }
+    },
+    "manual_qa_analyst": {
+      "dim1": {
+        "label": "1. Testing Craft",
+        "options": [
+          "Manual Exploratory Testing",
+          "REST & GraphQL API Design"
+        ]
+      },
+      "dim2": {
+        "label": "2. Evidence & Data",
+        "options": [
+          "Data Storytelling & Decision Readouts",
+          "Selenium & Playwright Automation",
+          "SQL Analytics & Warehouse Queries"
+        ]
+      },
+      "dim3": {
+        "label": "3. Release Discipline",
+        "options": [
+          "Release Readiness & Cross-Team Launch",
+          "CI/CD Build Pipelines with Jenkins"
+        ]
+      }
+    },
+    "accessibility_test_engineer": {
+      "dim1": {
+        "label": "1. Accessibility Practice",
+        "options": [
+          "Accessibility & WCAG 2.2",
+          "Usability Testing & User Interviews"
+        ]
+      },
+      "dim2": {
+        "label": "2. Interface Craft",
+        "options": [
+          "Design Tokens, Typography & Colour Systems",
+          "Interaction Design & Micro-Interactions",
+          "Information Architecture & User Flows"
+        ]
+      },
+      "dim3": {
+        "label": "3. Test Tooling",
+        "options": [
+          "Selenium & Playwright Automation",
+          "Manual Exploratory Testing"
+        ]
+      }
+    },
+    "platform_engineer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "Go (Golang)",
+          "Python",
+          "Java"
+        ]
+      },
+      "dim2": {
+        "label": "2. Platform Tooling",
+        "options": [
+          "Docker & Kubernetes",
+          "Terraform & Infrastructure as Code",
+          "Linux Administration, systemd & Shell Automation"
+        ]
+      },
+      "dim3": {
+        "label": "3. Delivery & Reliability",
+        "options": [
+          "Observability (Metrics, Traces & SLOs)",
+          "CI/CD Build Pipelines with Jenkins",
+          "Progressive Delivery & Canary Releases"
+        ]
+      }
+    },
+    "azure_cloud_engineer": {
+      "dim1": {
+        "label": "1. Primary Automation Language",
+        "options": [
+          "Python",
+          "Go (Golang)",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. Cloud & Infrastructure",
+        "options": [
+          "Terraform & Infrastructure as Code",
+          "Docker & Kubernetes",
+          "Ansible Configuration Management"
+        ]
+      },
+      "dim3": {
+        "label": "3. Networking & Reliability",
+        "options": [
+          "Networking (Switching, VLANs & Routing)",
+          "Observability (Metrics, Traces & SLOs)",
+          "Firewalls & VPN"
+        ]
+      }
+    },
+    "aws_cloud_architect": {
+      "dim1": {
+        "label": "1. Primary Automation Language",
+        "options": [
+          "Python",
+          "Go (Golang)",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. Cloud & Infrastructure",
+        "options": [
+          "Terraform & Infrastructure as Code",
+          "Docker & Kubernetes",
+          "Ansible Configuration Management"
+        ]
+      },
+      "dim3": {
+        "label": "3. Networking & Reliability",
+        "options": [
+          "Networking (Switching, VLANs & Routing)",
+          "Observability (Metrics, Traces & SLOs)",
+          "Firewalls & VPN"
+        ]
+      }
+    },
+    "build_release_engineer": {
+      "dim1": {
+        "label": "1. Pipeline Language",
+        "options": [
+          "Python",
+          "Go (Golang)",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. Build & Artefact Tooling",
+        "options": [
+          "CI/CD Build Pipelines with Jenkins",
+          "Docker & Kubernetes",
+          "Ansible Configuration Management"
+        ]
+      },
+      "dim3": {
+        "label": "3. Release Safety",
+        "options": [
+          "Progressive Delivery & Canary Releases",
+          "Trunk-Based Development & Merge Queues",
+          "Observability (Metrics, Traces & SLOs)"
+        ]
+      }
+    },
+    "observability_engineer": {
+      "dim1": {
+        "label": "1. Instrumentation Language",
+        "options": [
+          "Go (Golang)",
+          "Python",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. Telemetry Tooling",
+        "options": [
+          "Observability (Metrics, Traces & SLOs)",
+          "Docker & Kubernetes",
+          "Linux Administration, systemd & Shell Automation"
+        ]
+      },
+      "dim3": {
+        "label": "3. Reliability Practice",
+        "options": [
+          "Incident Response & Blameless Postmortems",
+          "Progressive Delivery & Canary Releases",
+          "Cloud Cost & FinOps"
+        ]
+      }
+    },
+    "systems_linux_engineer": {
+      "dim1": {
+        "label": "1. Systems Language",
+        "options": [
+          "Python",
+          "Go (Golang)"
+        ]
+      },
+      "dim2": {
+        "label": "2. Host Administration",
+        "options": [
+          "Linux Administration, systemd & Shell Automation",
+          "Ansible Configuration Management",
+          "Firewalls & VPN"
+        ]
+      },
+      "dim3": {
+        "label": "3. Operations Practice",
+        "options": [
+          "Observability (Metrics, Traces & SLOs)",
+          "Backup, Restore & Point-in-Time Recovery",
+          "Networking (Switching, VLANs & Routing)"
+        ]
+      }
+    },
+    "network_operations_engineer": {
+      "dim1": {
+        "label": "1. Network Automation Language",
+        "options": [
+          "Python",
+          "Go (Golang)"
+        ]
+      },
+      "dim2": {
+        "label": "2. Network Engineering",
+        "options": [
+          "Networking (Switching, VLANs & Routing)",
+          "OSPF/BGP Dynamic Routing",
+          "DHCP, DNS & Load Balancing"
+        ]
+      },
+      "dim3": {
+        "label": "3. Security & Operations",
+        "options": [
+          "Firewalls & VPN",
+          "Observability (Metrics, Traces & SLOs)",
+          "SD-WAN & Hybrid Connectivity"
+        ]
+      }
+    },
+    "it_support_engineer": {
+      "dim1": {
+        "label": "1. Endpoint Platform",
+        "options": [
+          "Windows Server & Group Policy",
+          "Linux Administration, systemd & Shell Automation"
+        ]
+      },
+      "dim2": {
+        "label": "2. Device & Service Management",
+        "options": [
+          "Intune & Endpoint Management",
+          "ServiceNow ITSM & Ticketing",
+          "Networking (Switching, VLANs & Routing)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Access & Escalation",
+        "options": [
+          "Identity & Access Management (Entra ID)",
+          "Firewalls & VPN",
+          "Technical Writing & Documentation"
+        ]
+      }
+    },
+    "virtualization_engineer": {
+      "dim1": {
+        "label": "1. Automation Language",
+        "options": [
+          "Python",
+          "Go (Golang)"
+        ]
+      },
+      "dim2": {
+        "label": "2. Virtualisation Platform",
+        "options": [
+          "VMware vSphere & Virtualisation",
+          "Windows Server & Group Policy",
+          "Linux Administration, systemd & Shell Automation"
+        ]
+      },
+      "dim3": {
+        "label": "3. Resilience & Capacity",
+        "options": [
+          "Backup, Restore & Point-in-Time Recovery",
+          "Observability (Metrics, Traces & SLOs)",
+          "Ansible Configuration Management"
+        ]
+      }
+    },
+    "technical_support_engineer": {
+      "dim1": {
+        "label": "1. Debugging Language",
+        "options": [
+          "Python",
+          "TypeScript / JavaScript",
+          "Go (Golang)"
+        ]
+      },
+      "dim2": {
+        "label": "2. Product & Data Access",
+        "options": [
+          "SQL Analytics & Warehouse Queries",
+          "Docker & Kubernetes",
+          "Observability (Metrics, Traces & SLOs)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Service Practice",
+        "options": [
+          "ServiceNow ITSM & Ticketing",
+          "Technical Writing & Documentation",
+          "Stakeholder Alignment & Escalation"
+        ]
+      }
+    },
+    "bi_developer": {
+      "dim1": {
+        "label": "1. Analytics Language",
+        "options": [
+          "SQL Analytics & Warehouse Queries",
+          "Python",
+          "R & MATLAB Statistical Computing"
+        ]
+      },
+      "dim2": {
+        "label": "2. BI Platform",
+        "options": [
+          "Power BI Dashboards",
+          "Tableau Dashboards",
+          "Data Warehouse & Star Schema"
+        ]
+      },
+      "dim3": {
+        "label": "3. Modelling Practice",
+        "options": [
+          "Analytics Engineering & Semantic Layer",
+          "Data Quality & Contracts",
+          "Experimentation: A/B Test Design & Readouts"
+        ]
+      }
+    },
+    "data_architect": {
+      "dim1": {
+        "label": "1. Platform Language",
+        "options": [
+          "Python",
+          "SQL Analytics & Warehouse Queries",
+          "Java"
+        ]
+      },
+      "dim2": {
+        "label": "2. Warehouse & Lakehouse",
+        "options": [
+          "Amazon Redshift & Snowflake Warehousing",
+          "Data Warehouse & Star Schema",
+          "Spark on Hadoop & Hive"
+        ]
+      },
+      "dim3": {
+        "label": "3. Governance & Modelling",
+        "options": [
+          "Semantic Layer & Warehouse Modelling",
+          "Data Quality & Contracts",
+          "Pipeline Freshness & SLA Monitoring"
+        ]
+      }
+    },
+    "database_administrator": {
+      "dim1": {
+        "label": "1. Engine & Language",
+        "options": [
+          "PostgreSQL (Relational)",
+          "MySQL (Relational)",
+          "Python"
+        ]
+      },
+      "dim2": {
+        "label": "2. Reliability Engineering",
+        "options": [
+          "Replication & Failover",
+          "Backup, Restore & Point-in-Time Recovery",
+          "Query Plans, Indexing & Isolation Levels"
+        ]
+      },
+      "dim3": {
+        "label": "3. Scale & Change",
+        "options": [
+          "Sharding & Partitioning Strategies",
+          "Zero-Downtime Schema Migrations",
+          "Observability (Metrics, Traces & SLOs)"
+        ]
+      }
+    },
+    "etl_developer": {
+      "dim1": {
+        "label": "1. Pipeline Language",
+        "options": [
+          "Python",
+          "SQL Analytics & Warehouse Queries",
+          "Java"
+        ]
+      },
+      "dim2": {
+        "label": "2. Orchestration & Modelling",
+        "options": [
+          "Airflow DAG Design & Backfills",
+          "Analytics Engineering & Semantic Layer",
+          "Pipeline Freshness & SLA Monitoring"
+        ]
+      },
+      "dim3": {
+        "label": "3. Storage & Quality",
+        "options": [
+          "Amazon Redshift & Snowflake Warehousing",
+          "Data Quality & Contracts",
+          "Zero-Downtime Schema Migrations"
+        ]
+      }
+    },
+    "big_data_engineer": {
+      "dim1": {
+        "label": "1. Processing Language",
+        "options": [
+          "Python",
+          "Java",
+          "Go (Golang)"
+        ]
+      },
+      "dim2": {
+        "label": "2. Distributed Platforms",
+        "options": [
+          "Spark on Hadoop & Hive",
+          "Airflow DAG Design & Backfills",
+          "Amazon Redshift & Snowflake Warehousing"
+        ]
+      },
+      "dim3": {
+        "label": "3. Scale & Reliability",
+        "options": [
+          "Sharding & Partitioning Strategies",
+          "Pipeline Freshness & SLA Monitoring",
+          "Observability (Metrics, Traces & SLOs)"
+        ]
+      }
+    },
+    "marketing_analyst": {
+      "dim1": {
+        "label": "1. Analytics Language",
+        "options": [
+          "SQL Analytics & Warehouse Queries",
+          "Python",
+          "R & MATLAB Statistical Computing"
+        ]
+      },
+      "dim2": {
+        "label": "2. Measurement Platform",
+        "options": [
+          "Power BI Dashboards",
+          "Tableau Dashboards",
+          "Journey Analytics & Design Measurement"
+        ]
+      },
+      "dim3": {
+        "label": "3. Growth Practice",
+        "options": [
+          "Go-To-Market & Launch Messaging",
+          "Experimentation: A/B Test Design & Readouts",
+          "Pricing, Packaging & Positioning"
+        ]
+      }
+    },
+    "quantitative_analyst": {
+      "dim1": {
+        "label": "1. Modelling Language",
+        "options": [
+          "R & MATLAB Statistical Computing",
+          "Python",
+          "SQL Analytics & Warehouse Queries"
+        ]
+      },
+      "dim2": {
+        "label": "2. Data & Modelling Tools",
+        "options": [
+          "Spreadsheet Modelling & Valuation",
+          "Amazon Redshift & Snowflake Warehousing",
+          "Data Warehouse & Star Schema"
+        ]
+      },
+      "dim3": {
+        "label": "3. Analysis Practice",
+        "options": [
+          "Experimentation: A/B Test Design & Readouts",
+          "Data Storytelling & Decision Readouts",
+          "Risk Registers, Mitigation & Change Control"
+        ]
+      }
+    },
+    "supply_chain_analyst": {
+      "dim1": {
+        "label": "1. Analytics Language",
+        "options": [
+          "SQL Analytics & Warehouse Queries",
+          "Python"
+        ]
+      },
+      "dim2": {
+        "label": "2. Planning & Reporting Tools",
+        "options": [
+          "Spreadsheet Modelling & Valuation",
+          "Power BI Dashboards",
+          "Amazon Redshift & Snowflake Warehousing"
+        ]
+      },
+      "dim3": {
+        "label": "3. Operations Practice",
+        "options": [
+          "Data Storytelling & Decision Readouts",
+          "Stakeholder Alignment & Escalation",
+          "Experimentation: A/B Test Design & Readouts"
+        ]
+      }
+    },
+    "risk_analyst": {
+      "dim1": {
+        "label": "1. Analytics Language",
+        "options": [
+          "R & MATLAB Statistical Computing",
+          "SQL Analytics & Warehouse Queries",
+          "Python"
+        ]
+      },
+      "dim2": {
+        "label": "2. Risk & Reporting Tools",
+        "options": [
+          "Spreadsheet Modelling & Valuation",
+          "Power BI Dashboards",
+          "Governance, Risk & Compliance (ISO 27001)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Governance Practice",
+        "options": [
+          "Risk Registers, Mitigation & Change Control",
+          "ISO 27001 & Regulatory Compliance Audits",
+          "Data Storytelling & Decision Readouts"
+        ]
+      }
+    },
+    "generative_ai_engineer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "Python",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. Model & Retrieval Layer",
+        "options": [
+          "Vector Databases & RAG",
+          "Hugging Face Transformers",
+          "PyTorch Deep Learning"
+        ]
+      },
+      "dim3": {
+        "label": "3. Evaluation & Guardrails",
+        "options": [
+          "Prompt Engineering & LLM Evaluation",
+          "Evaluation Harnesses & Human Review",
+          "Agentic Workflows & Tool Calling"
+        ]
+      }
+    },
+    "ai_research_scientist": {
+      "dim1": {
+        "label": "1. Research Language",
+        "options": [
+          "Python",
+          "C++"
+        ]
+      },
+      "dim2": {
+        "label": "2. Modelling Stack",
+        "options": [
+          "PyTorch Deep Learning",
+          "TensorFlow / Keras",
+          "Hugging Face Transformers"
+        ]
+      },
+      "dim3": {
+        "label": "3. Evidence & Deployment",
+        "options": [
+          "Evaluation Harnesses & Human Review",
+          "Vector Databases & RAG",
+          "Model Serving & Latency Budgets"
+        ]
+      }
+    },
+    "prompt_engineer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "Python",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. Model & Retrieval Layer",
+        "options": [
+          "Vector Databases & RAG",
+          "Hugging Face Transformers",
+          "PyTorch Deep Learning"
+        ]
+      },
+      "dim3": {
+        "label": "3. Evaluation & Guardrails",
+        "options": [
+          "Prompt Engineering & LLM Evaluation",
+          "Evaluation Harnesses & Human Review",
+          "Agentic Workflows & Tool Calling"
+        ]
+      }
+    },
+    "speech_ai_engineer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "Python",
+          "C++"
+        ]
+      },
+      "dim2": {
+        "label": "2. Audio Modelling Stack",
+        "options": [
+          "Speech Recognition & Voice Pipelines",
+          "PyTorch Deep Learning",
+          "Hugging Face Transformers"
+        ]
+      },
+      "dim3": {
+        "label": "3. Signal & Evaluation",
+        "options": [
+          "Digital Signal Processing & Filters",
+          "Evaluation Harnesses & Human Review",
+          "Model Serving & Latency Budgets"
+        ]
+      }
+    },
+    "recommendation_engineer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "Python",
+          "Java"
+        ]
+      },
+      "dim2": {
+        "label": "2. Ranking Stack",
+        "options": [
+          "PyTorch Deep Learning",
+          "Amazon Redshift & Snowflake Warehousing",
+          "Vector Databases & RAG"
+        ]
+      },
+      "dim3": {
+        "label": "3. Ranking & Measurement",
+        "options": [
+          "Recommendation & Ranking Systems",
+          "Experimentation: A/B Test Design & Readouts",
+          "Model Serving & Latency Budgets"
+        ]
+      }
+    },
+    "autonomous_systems_engineer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "C++",
+          "Python",
+          "Embedded C & Bare-Metal Firmware"
+        ]
+      },
+      "dim2": {
+        "label": "2. Perception & Control",
+        "options": [
+          "ROS 2 & Motion Planning",
+          "OpenCV / Computer Vision",
+          "MQTT / IoT Telemetry"
+        ]
+      },
+      "dim3": {
+        "label": "3. Embedded & Safety",
+        "options": [
+          "RTOS Scheduling & Real-Time Tasks",
+          "Firmware Debugging with Oscilloscope & JTAG",
+          "Digital Signal Processing & Filters"
+        ]
+      }
+    },
+    "ai_solutions_architect": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "Python",
+          "TypeScript / JavaScript",
+          "Java"
+        ]
+      },
+      "dim2": {
+        "label": "2. Platform Components",
+        "options": [
+          "Vector Databases & RAG",
+          "Docker & Kubernetes",
+          "PostgreSQL (Relational)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Architecture & Reliability",
+        "options": [
+          "REST & GraphQL API Design",
+          "Observability (Metrics, Traces & SLOs)",
+          "Threat Modelling & Secure Code Review"
+        ]
+      }
+    },
+    "responsible_ai_analyst": {
+      "dim1": {
+        "label": "1. Analysis Language",
+        "options": [
+          "Python",
+          "SQL Analytics & Warehouse Queries"
+        ]
+      },
+      "dim2": {
+        "label": "2. Evidence & Risk Tools",
+        "options": [
+          "Governance, Risk & Compliance (ISO 27001)",
+          "Evaluation Harnesses & Human Review",
+          "Power BI Dashboards"
+        ]
+      },
+      "dim3": {
+        "label": "3. Governance Practice",
+        "options": [
+          "ISO 27001 & Regulatory Compliance Audits",
+          "Risk Registers, Mitigation & Change Control",
+          "Data Storytelling & Decision Readouts"
+        ]
+      }
+    },
+    "cloud_security_engineer": {
+      "dim1": {
+        "label": "1. Automation Language",
+        "options": [
+          "Python",
+          "Go (Golang)"
+        ]
+      },
+      "dim2": {
+        "label": "2. Cloud Platform & Attack Surface",
+        "options": [
+          "Terraform & Infrastructure as Code",
+          "Docker & Kubernetes",
+          "Cloud & Container Attack Paths"
+        ]
+      },
+      "dim3": {
+        "label": "3. Secure Engineering",
+        "options": [
+          "Threat Modelling & Secure Code Review",
+          "Identity & Access Management (Entra ID)",
+          "DevSecOps Scanning Gates"
+        ]
+      }
+    },
+    "soc_analyst": {
+      "dim1": {
+        "label": "1. Analysis Language",
+        "options": [
+          "Python",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. Detection Tooling",
+        "options": [
+          "Splunk Enterprise SIEM",
+          "Networking (Switching, VLANs & Routing)",
+          "Malware Analysis & Reverse Engineering"
+        ]
+      },
+      "dim3": {
+        "label": "3. Response Practice",
+        "options": [
+          "SIEM Alert Triage & Incident Response",
+          "Threat Intelligence & OSINT",
+          "Incident Response & Blameless Postmortems"
+        ]
+      }
+    },
+    "grc_analyst": {
+      "dim1": {
+        "label": "1. Analysis Language",
+        "options": [
+          "Python",
+          "SQL Analytics & Warehouse Queries"
+        ]
+      },
+      "dim2": {
+        "label": "2. Control & Evidence Tools",
+        "options": [
+          "Governance, Risk & Compliance (ISO 27001)",
+          "Splunk Enterprise SIEM",
+          "Windows Server & Group Policy"
+        ]
+      },
+      "dim3": {
+        "label": "3. Assurance Practice",
+        "options": [
+          "ISO 27001 & Regulatory Compliance Audits",
+          "Risk Registers, Mitigation & Change Control",
+          "Identity & Access Management (Entra ID)"
+        ]
+      }
+    },
+    "identity_access_engineer": {
+      "dim1": {
+        "label": "1. Automation Language",
+        "options": [
+          "Python",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. Directory & Access Tooling",
+        "options": [
+          "Windows Server & Group Policy",
+          "Identity & Access Management (Entra ID)",
+          "Firewalls & VPN"
+        ]
+      },
+      "dim3": {
+        "label": "3. Hardening & Assurance",
+        "options": [
+          "Active Directory Attack Paths",
+          "Threat Modelling & Secure Code Review",
+          "ISO 27001 & Regulatory Compliance Audits"
+        ]
+      }
+    },
+    "malware_analyst": {
+      "dim1": {
+        "label": "1. Analysis Language",
+        "options": [
+          "Python",
+          "C++"
+        ]
+      },
+      "dim2": {
+        "label": "2. Analysis Environment",
+        "options": [
+          "Malware Analysis & Reverse Engineering",
+          "Linux Administration, systemd & Shell Automation",
+          "Firewalls & VPN"
+        ]
+      },
+      "dim3": {
+        "label": "3. Threat Practice",
+        "options": [
+          "Threat Intelligence & OSINT",
+          "SIEM Alert Triage & Incident Response",
+          "Threat Modelling & Secure Code Review"
+        ]
+      }
+    },
+    "devsecops_engineer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "Python",
+          "Go (Golang)",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. Pipeline & Platform",
+        "options": [
+          "CI/CD Build Pipelines with Jenkins",
+          "Docker & Kubernetes",
+          "Terraform & Infrastructure as Code"
+        ]
+      },
+      "dim3": {
+        "label": "3. Secure Delivery",
+        "options": [
+          "DevSecOps Scanning Gates",
+          "Software Supply Chain & SBOM Hygiene",
+          "Threat Modelling & Secure Code Review"
+        ]
+      }
+    },
+    "threat_intelligence_analyst": {
+      "dim1": {
+        "label": "1. Analysis Language",
+        "options": [
+          "Python",
+          "TypeScript / JavaScript"
+        ]
+      },
+      "dim2": {
+        "label": "2. Intelligence Sources & Tooling",
+        "options": [
+          "Threat Intelligence & OSINT",
+          "Splunk Enterprise SIEM",
+          "Malware Analysis & Reverse Engineering"
+        ]
+      },
+      "dim3": {
+        "label": "3. Reporting Practice",
+        "options": [
+          "Technical Writing & Documentation",
+          "SIEM Alert Triage & Incident Response",
+          "Stakeholder Alignment & Escalation"
+        ]
+      }
+    },
+    "associate_product_manager": {
+      "dim1": {
+        "label": "1. Product Data & Modelling",
+        "options": [
+          "SQL Analytics & Warehouse Queries",
+          "Python",
+          "Spreadsheet Modelling & Valuation"
+        ]
+      },
+      "dim2": {
+        "label": "2. Evidence & Instrumentation",
+        "options": [
+          "Experimentation: A/B Test Design & Readouts",
+          "Journey Analytics & Design Measurement",
+          "Data Storytelling & Decision Readouts"
+        ]
+      },
+      "dim3": {
+        "label": "3. Discovery & Delivery",
+        "options": [
+          "Product Discovery & Opportunity Assessment",
+          "Dependency Mapping & Critical Path Planning",
+          "Stakeholder Alignment & Escalation"
+        ]
+      }
+    },
+    "product_owner": {
+      "dim1": {
+        "label": "1. Backlog & Requirement Craft",
+        "options": [
+          "Technical Writing & Documentation",
+          "Product Discovery & Opportunity Assessment"
+        ]
+      },
+      "dim2": {
+        "label": "2. Evidence & Instrumentation",
+        "options": [
+          "Journey Analytics & Design Measurement",
+          "Experimentation: A/B Test Design & Readouts",
+          "SQL Analytics & Warehouse Queries"
+        ]
+      },
+      "dim3": {
+        "label": "3. Delivery & Coordination",
+        "options": [
+          "Dependency Mapping & Critical Path Planning",
+          "Release Readiness & Cross-Team Launch",
+          "Stakeholder Alignment & Escalation"
+        ]
+      }
+    },
+    "ai_product_manager": {
+      "dim1": {
+        "label": "1. Product Data & Modelling",
+        "options": [
+          "SQL Analytics & Warehouse Queries",
+          "Python"
+        ]
+      },
+      "dim2": {
+        "label": "2. AI Product Evidence",
+        "options": [
+          "Vector Databases & RAG",
+          "Evaluation Harnesses & Human Review",
+          "Power BI Dashboards"
+        ]
+      },
+      "dim3": {
+        "label": "3. Product Practice",
+        "options": [
+          "Product Discovery & Opportunity Assessment",
+          "Experimentation: A/B Test Design & Readouts",
+          "Stakeholder Alignment & Escalation"
+        ]
+      }
+    },
+    "product_marketing_manager": {
+      "dim1": {
+        "label": "1. Market & Product Data",
+        "options": [
+          "SQL Analytics & Warehouse Queries",
+          "Spreadsheet Modelling & Valuation"
+        ]
+      },
+      "dim2": {
+        "label": "2. Positioning & Pricing",
+        "options": [
+          "Go-To-Market & Launch Messaging",
+          "Pricing, Packaging & Positioning",
+          "Journey Analytics & Design Measurement"
+        ]
+      },
+      "dim3": {
+        "label": "3. Measurement & Influence",
+        "options": [
+          "Data Storytelling & Decision Readouts",
+          "Stakeholder Alignment & Escalation",
+          "Experimentation: A/B Test Design & Readouts"
+        ]
+      }
+    },
+    "ux_researcher": {
+      "dim1": {
+        "label": "1. Research Craft",
+        "options": [
+          "Usability Testing & User Interviews",
+          "Information Architecture & User Flows"
+        ]
+      },
+      "dim2": {
+        "label": "2. Evidence & Prototyping",
+        "options": [
+          "Journey Analytics & Design Measurement",
+          "Prototyping & Developer Handoff",
+          "Interaction Design & Micro-Interactions"
+        ]
+      },
+      "dim3": {
+        "label": "3. Synthesis & Influence",
+        "options": [
+          "Data Storytelling & Decision Readouts",
+          "Experimentation: A/B Test Design & Readouts",
+          "Accessibility & WCAG 2.2"
+        ]
+      }
+    },
+    "content_designer": {
+      "dim1": {
+        "label": "1. Content & Language Craft",
+        "options": [
+          "Technical Writing & Documentation",
+          "Design Tokens, Typography & Colour Systems"
+        ]
+      },
+      "dim2": {
+        "label": "2. Structure & Prototyping",
+        "options": [
+          "Information Architecture & User Flows",
+          "Prototyping & Developer Handoff",
+          "Usability Testing & User Interviews"
+        ]
+      },
+      "dim3": {
+        "label": "3. System & Standards",
+        "options": [
+          "Design Ops & Component Libraries",
+          "Accessibility & WCAG 2.2",
+          "Stakeholder Alignment & Escalation"
+        ]
+      }
+    },
+    "program_manager": {
+      "dim1": {
+        "label": "1. Planning Craft",
+        "options": [
+          "Dependency Mapping & Critical Path Planning",
+          "Risk Registers, Mitigation & Change Control"
+        ]
+      },
+      "dim2": {
+        "label": "2. Delivery & Release",
+        "options": [
+          "Release Readiness & Cross-Team Launch",
+          "Experimentation: A/B Test Design & Readouts",
+          "Data Storytelling & Decision Readouts"
+        ]
+      },
+      "dim3": {
+        "label": "3. Influence & Communication",
+        "options": [
+          "Stakeholder Alignment & Escalation",
+          "Technical Writing & Documentation"
+        ]
+      }
+    },
+    "management_consultant": {
+      "dim1": {
+        "label": "1. Engagement Craft",
+        "options": [
+          "Stakeholder Alignment & Escalation",
+          "Dependency Mapping & Critical Path Planning"
+        ]
+      },
+      "dim2": {
+        "label": "2. Analysis & Evidence",
+        "options": [
+          "Spreadsheet Modelling & Valuation",
+          "Data Storytelling & Decision Readouts",
+          "Experimentation: A/B Test Design & Readouts"
+        ]
+      },
+      "dim3": {
+        "label": "3. Delivery & Communication",
+        "options": [
+          "Release Readiness & Cross-Team Launch",
+          "Technical Writing & Documentation"
+        ]
+      }
+    },
+    "technology_consultant": {
+      "dim1": {
+        "label": "1. Engagement Craft",
+        "options": [
+          "Stakeholder Alignment & Escalation",
+          "Dependency Mapping & Critical Path Planning"
+        ]
+      },
+      "dim2": {
+        "label": "2. Analysis & Evidence",
+        "options": [
+          "Spreadsheet Modelling & Valuation",
+          "Data Storytelling & Decision Readouts",
+          "Experimentation: A/B Test Design & Readouts"
+        ]
+      },
+      "dim3": {
+        "label": "3. Delivery & Communication",
+        "options": [
+          "Release Readiness & Cross-Team Launch",
+          "Technical Writing & Documentation"
+        ]
+      }
+    },
+    "technical_account_manager": {
+      "dim1": {
+        "label": "1. Customer Context & Data",
+        "options": [
+          "SQL Analytics & Warehouse Queries",
+          "Technical Writing & Documentation"
+        ]
+      },
+      "dim2": {
+        "label": "2. Product & Platform Fluency",
+        "options": [
+          "REST & GraphQL API Design",
+          "Vector Databases & RAG",
+          "Observability (Metrics, Traces & SLOs)"
+        ]
+      },
+      "dim3": {
+        "label": "3. Relationship & Escalation",
+        "options": [
+          "Stakeholder Alignment & Escalation",
+          "Data Storytelling & Decision Readouts",
+          "Product Discovery & Opportunity Assessment"
+        ]
+      }
+    },
+    "technical_writer": {
+      "dim1": {
+        "label": "1. Documentation Craft",
+        "options": [
+          "Technical Writing & Documentation",
+          "REST & GraphQL API Design"
+        ]
+      },
+      "dim2": {
+        "label": "2. Structure & Systems",
+        "options": [
+          "Information Architecture & User Flows",
+          "Design Tokens, Typography & Colour Systems",
+          "Prototyping & Developer Handoff"
+        ]
+      },
+      "dim3": {
+        "label": "3. Audience & Influence",
+        "options": [
+          "Data Storytelling & Decision Readouts",
+          "Stakeholder Alignment & Escalation"
+        ]
+      }
+    },
+    "vlsi_design_engineer": {
+      "dim1": {
+        "label": "1. Design Language & Flow",
+        "options": [
+          "Verilog / SystemVerilog",
+          "Embedded C & Bare-Metal Firmware"
+        ]
+      },
+      "dim2": {
+        "label": "2. Design & Verification Flow",
+        "options": [
+          "CMOS Physical Design & Signoff",
+          "UVM Functional Verification",
+          "FPGA RTL & Timing Closure"
+        ]
+      },
+      "dim3": {
+        "label": "3. Signal & Silicon Practice",
+        "options": [
+          "Digital Signal Processing & Filters",
+          "Firmware Debugging with Oscilloscope & JTAG",
+          "RTOS Scheduling & Real-Time Tasks"
+        ]
+      }
+    },
+    "semiconductor_verification_engineer": {
+      "dim1": {
+        "label": "1. Verification Language",
+        "options": [
+          "Verilog / SystemVerilog",
+          "Python"
+        ]
+      },
+      "dim2": {
+        "label": "2. Verification Flow",
+        "options": [
+          "UVM Functional Verification",
+          "FPGA RTL & Timing Closure",
+          "CMOS Physical Design & Signoff"
+        ]
+      },
+      "dim3": {
+        "label": "3. Debug & Coverage Practice",
+        "options": [
+          "Firmware Debugging with Oscilloscope & JTAG",
+          "Digital Signal Processing & Filters",
+          "Technical Writing & Documentation"
+        ]
+      }
+    },
+    "fpga_engineer": {
+      "dim1": {
+        "label": "1. Design Language",
+        "options": [
+          "Verilog / SystemVerilog",
+          "Embedded C & Bare-Metal Firmware"
+        ]
+      },
+      "dim2": {
+        "label": "2. FPGA & RTL Flow",
+        "options": [
+          "FPGA RTL & Timing Closure",
+          "Digital Signal Processing & Filters",
+          "CMOS Physical Design & Signoff"
+        ]
+      },
+      "dim3": {
+        "label": "3. Bring-up & Interfaces",
+        "options": [
+          "Firmware Debugging with Oscilloscope & JTAG",
+          "I2C / SPI / UART / CAN Interfaces",
+          "RTOS Scheduling & Real-Time Tasks"
+        ]
+      }
+    },
+    "embedded_firmware_engineer": {
+      "dim1": {
+        "label": "1. Firmware Language",
+        "options": [
+          "Embedded C & Bare-Metal Firmware",
+          "C++",
+          "Verilog / SystemVerilog"
+        ]
+      },
+      "dim2": {
+        "label": "2. Hardware Interfaces & RTOS",
+        "options": [
+          "I2C / SPI / UART / CAN Interfaces",
+          "RTOS Scheduling & Real-Time Tasks",
+          "Embedded Linux & Device Drivers"
+        ]
+      },
+      "dim3": {
+        "label": "3. Bring-up & Connectivity",
+        "options": [
+          "Firmware Debugging with Oscilloscope & JTAG",
+          "MQTT / IoT Telemetry",
+          "Digital Signal Processing & Filters"
+        ]
+      }
+    },
+    "robotics_engineer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "Python",
+          "C++",
+          "Embedded C & Bare-Metal Firmware"
+        ]
+      },
+      "dim2": {
+        "label": "2. Perception & Autonomy",
+        "options": [
+          "ROS 2 & Motion Planning",
+          "OpenCV / Computer Vision",
+          "MQTT / IoT Telemetry"
+        ]
+      },
+      "dim3": {
+        "label": "3. Embedded & Real-Time",
+        "options": [
+          "RTOS Scheduling & Real-Time Tasks",
+          "Firmware Debugging with Oscilloscope & JTAG",
+          "Digital Signal Processing & Filters"
+        ]
+      }
+    },
+    "iot_engineer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "Embedded C & Bare-Metal Firmware",
+          "Python",
+          "C++"
+        ]
+      },
+      "dim2": {
+        "label": "2. Device & Cloud Connectivity",
+        "options": [
+          "MQTT / IoT Telemetry",
+          "Embedded Linux & Device Drivers",
+          "I2C / SPI / UART / CAN Interfaces"
+        ]
+      },
+      "dim3": {
+        "label": "3. Fleet & Reliability",
+        "options": [
+          "Firmware Debugging with Oscilloscope & JTAG",
+          "Observability (Metrics, Traces & SLOs)",
+          "Terraform & Infrastructure as Code"
+        ]
+      }
+    },
+    "dsp_engineer": {
+      "dim1": {
+        "label": "1. Primary Language",
+        "options": [
+          "C++",
+          "Embedded C & Bare-Metal Firmware",
+          "Python"
+        ]
+      },
+      "dim2": {
+        "label": "2. Signal & Model Work",
+        "options": [
+          "Digital Signal Processing & Filters",
+          "R & MATLAB Statistical Computing",
+          "OpenCV / Computer Vision"
+        ]
+      },
+      "dim3": {
+        "label": "3. Target & Bring-up",
+        "options": [
+          "FPGA RTL & Timing Closure",
+          "RTOS Scheduling & Real-Time Tasks",
+          "Firmware Debugging with Oscilloscope & JTAG"
+        ]
+      }
     }
   }
 }

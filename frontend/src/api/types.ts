@@ -105,6 +105,10 @@ export interface MatchResult {
   matched_skills: string[];
   /** Profile chips that would raise the skill half of this match. */
   suggested_skills: string[];
+  /** How the role was found: "keyword" (interest chips) and/or "semantic" (role index). */
+  recalled_by: Array<"keyword" | "semantic">;
+  /** Cosine similarity from the semantic index, when it helped recall this role. */
+  semantic_similarity: number | null;
 }
 
 export interface MatchResponse {

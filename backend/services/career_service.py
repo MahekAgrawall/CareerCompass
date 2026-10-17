@@ -5,14 +5,54 @@ Handles database queries for roles, market intelligence retrieval, and smart can
 
 import json
 import re
+from functools import lru_cache
 from typing import List, Dict, Any, Optional
+from app_logging import get_logger
 from config import SKILL_OPTIONS
 from database.db import get_connection
+
+log = get_logger("careercompass.matching")
 
 # How much each half of the score is worth. Kept here (not in the UI) so the
 # explanation a candidate reads can never drift from the ranking they see.
 INTEREST_WEIGHT = 65
 SKILL_WEIGHT = 35
+
+# Semantic recall tuning. The vector index only ever decides *which* roles get
+# scored — it never changes a score — and it can only ever add candidates on top
+# of those that qualify on interest keywords, so a missing or stale index cannot
+# take a role away from a candidate.
+SEMANTIC_RECALL_LIMIT = 40   # neighbours requested from the index
+SEMANTIC_EXTRA_LIMIT = 10    # meaning-only roles allowed to reach the results
+# Cosine similarity below which "nearest" means "unrelated". The local hashing
+# embedder and Gemini live on different similarity scales, so the floor travels
+# with the provider rather than being one shared number.
+SEMANTIC_FLOOR = {"local": 0.15, "gemini": 0.60}
+
+
+def _semantic_floor() -> float:
+    """Similarity below which "nearest" means "unrelated", for the active embedder."""
+    try:
+        from services import embeddings
+        provider = embeddings.active_provider()
+    except Exception:  # pragma: no cover - import guard
+        provider = "local"
+    return SEMANTIC_FLOOR.get(provider, SEMANTIC_FLOOR["local"])
+
+
+def _semantic_recall(profile: Dict[str, Any]) -> Dict[str, float]:
+    """Nearest roles by meaning, keyed by role id — {} when there is no index.
+
+    Imported lazily and defensively so `/match` keeps working (keyword-only)
+    even where the retrieval stack or its optional dependency is unavailable.
+    """
+    try:
+        from services import vector_store
+    except Exception as exc:  # pragma: no cover - import guard
+        log.warning("Semantic recall unavailable (%s)", exc)
+        return {}
+    query = vector_store.profile_query(profile)
+    return dict(vector_store.semantic_search(query, limit=SEMANTIC_RECALL_LIMIT))
 
 
 def _row_to_role_dict(row) -> Dict[str, Any]:
@@ -123,9 +163,15 @@ def search_and_filter_roles(
 _WORD_RE = re.compile(r"[a-z0-9+#]+")
 
 
-def _keywords(text: str) -> set:
-    """Lowercase word tokens, keeping symbols used in tech terms (c++, c#, .net)."""
-    return set(_WORD_RE.findall(text.lower()))
+@lru_cache(maxsize=None)
+def _keywords(text: str) -> frozenset:
+    """Lowercase word tokens, keeping symbols used in tech terms (c++, c#).
+
+    Memoised: matching scores every role's skills against every profile chip, and
+    the same short strings come up thousands of times per request under the
+    test-suite's exhaustive sweeps.
+    """
+    return frozenset(_WORD_RE.findall(text.lower()))
 
 
 def _terms_overlap(user_term: str, role_term: str) -> bool:
@@ -170,7 +216,9 @@ def match_roles_smart(profile: Dict[str, Any]) -> List[Dict[str, Any]]:
         {"role": role, "score": int,
          "interest_score": int, "skill_score": int,
          "matched_interests": [...], "matched_skills": [...],
-         "suggested_skills": [...]}
+         "suggested_skills": [...],
+         "recalled_by": ["keyword" | "semantic", ...],
+         "semantic_similarity": float | None}
 
     Matching is deliberately explainable: the two component scores are 0-100
     percentages of what the candidate actually supplied, they are what the
@@ -181,6 +229,13 @@ def match_roles_smart(profile: Dict[str, Any]) -> List[Dict[str, Any]]:
     Roles with zero genuine interest alignment are excluded, so every result
     reflects at least one interest the candidate explicitly chose. Scores are
     honest — there is no artificial floor or ceiling.
+
+    Two stages feed the ranking. *Recall* decides which roles are worth scoring:
+    every role whose interests overlap the candidate's chips, plus a small
+    number of roles the vector index finds semantically near the profile (see
+    `recalled_by`). *Ranking* is still this transparent scorer, unchanged — so a
+    role found purely by meaning still has to earn a non-zero score on real
+    skills before it is shown.
     """
     roles = get_all_roles()
     # Original casing is preserved in the output so the explanation can quote the
@@ -191,18 +246,41 @@ def match_roles_smart(profile: Dict[str, Any]) -> List[Dict[str, Any]]:
     if not user_interests:
         return []
 
+    semantic_scores = _semantic_recall(profile)
+    score_floor = _semantic_floor()
+    roles_by_id = {role["id"]: role for role in roles}
+
+    # Stage 1 — recall. Keyword-qualified roles are always candidates.
+    candidates: List[tuple] = []
+    for role in roles:
+        matched = [
+            ui for ui in user_interests
+            if any(_terms_overlap(ui, ri) for ri in [i.lower() for i in role["matching_interests"]])
+        ]
+        if matched:
+            candidates.append((role, matched))
+
+    # Then the best meaning-only neighbours, capped: a vague profile should not
+    # be able to flood the page with roles that share no interest at all.
+    keyword_ids = {role["id"] for role, _ in candidates}
+    meaning_only = sorted(
+        (
+            (role_id, similarity)
+            for role_id, similarity in semantic_scores.items()
+            if role_id not in keyword_ids
+            and role_id in roles_by_id
+            and similarity >= score_floor
+        ),
+        key=lambda pair: pair[1],
+        reverse=True,
+    )[:SEMANTIC_EXTRA_LIMIT]
+    for role_id, _similarity in meaning_only:
+        candidates.append((roles_by_id[role_id], []))
+
     results: List[Dict[str, Any]] = []
 
-    for role in roles:
+    for role, matched_interests in candidates:
         role_skills = [s.lower() for s in role["matching_skills"]]
-        role_interests = [i.lower() for i in role["matching_interests"]]
-
-        matched_interests = [
-            ui for ui in user_interests
-            if any(_terms_overlap(ui, ri) for ri in role_interests)
-        ]
-        if not matched_interests:
-            continue  # strict: no interest synergy, no recommendation
 
         matched_skills = [
             us for us in user_skills
@@ -219,6 +297,18 @@ def match_roles_smart(profile: Dict[str, Any]) -> List[Dict[str, Any]]:
         score = (interest_score * INTEREST_WEIGHT + skill_score * SKILL_WEIGHT + 50) // 100
         score = max(0, min(100, score))
 
+        similarity = semantic_scores.get(role["id"])
+        # A role reached only by meaning has to score on something real; a 0%
+        # suggestion would be noise on a ranked page.
+        if not matched_interests and score <= 0:
+            continue
+
+        recalled_by = []
+        if matched_interests:
+            recalled_by.append("keyword")
+        if similarity is not None:
+            recalled_by.append("semantic")
+
         results.append({
             "role": role,
             "score": score,
@@ -227,6 +317,8 @@ def match_roles_smart(profile: Dict[str, Any]) -> List[Dict[str, Any]]:
             "matched_interests": matched_interests,
             "matched_skills": matched_skills,
             "suggested_skills": suggested_skills_for(role_skills, user_skills),
+            "recalled_by": recalled_by,
+            "semantic_similarity": round(similarity, 4) if similarity is not None else None,
         })
 
     results.sort(key=lambda item: item["score"], reverse=True)

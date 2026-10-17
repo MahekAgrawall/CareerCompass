@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import API_TITLE, API_VERSION, CORS_ORIGINS
 from app.routers import auth, chat, match, profile, roadmap, roles, tracker
 from database.db import init_db
+from services import vector_store
 
 
 @asynccontextmanager
@@ -40,4 +41,13 @@ app.include_router(chat.router)
 
 @app.get("/health", tags=["meta"])
 def health():
-    return {"status": "ok", "service": API_TITLE, "version": API_VERSION}
+    try:
+        semantic = vector_store.index_status()
+    except Exception as exc:  # never let diagnostics break liveness
+        semantic = {"available": False, "error": str(exc)}
+    return {
+        "status": "ok",
+        "service": API_TITLE,
+        "version": API_VERSION,
+        "semantic_index": semantic,
+    }

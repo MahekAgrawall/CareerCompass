@@ -28,12 +28,20 @@ export default function MatchesPage() {
 
   const interestsKey = profile?.interests.join("|") ?? "";
   const skillsKey = profile?.current_skills.join("|") ?? "";
+  // Extra context for the semantic recall stage only: it decides which roles
+  // surface, never how they score (that stays the published 65/35 formula).
+  const recallContext = {
+    careerGoal: profile?.career_goal ?? "",
+    experience: profile?.experience ?? "",
+    workMode: profile?.work_mode ?? "",
+  };
+  const contextKey = Object.values(recallContext).join("|");
   const canMatch = Boolean(profile && profile.interests.length > 0);
 
   // Matching itself is deterministic and instant — fetch it on its own.
   const resultsQuery = useQuery({
-    queryKey: ["matches", interestsKey, skillsKey],
-    queryFn: () => endpoints.matchRoles(profile!.interests, profile!.current_skills, false),
+    queryKey: ["matches", interestsKey, skillsKey, contextKey],
+    queryFn: () => endpoints.matchRoles(profile!.interests, profile!.current_skills, false, recallContext),
     enabled: canMatch,
     staleTime: Infinity,
   });
@@ -41,8 +49,8 @@ export default function MatchesPage() {
   // The AI-written assessment is supplementary: load it separately so a slow or
   // unavailable model never blocks the ranked results.
   const explanationQuery = useQuery({
-    queryKey: ["match-explanation", interestsKey, skillsKey],
-    queryFn: () => endpoints.matchRoles(profile!.interests, profile!.current_skills, true),
+    queryKey: ["match-explanation", interestsKey, skillsKey, contextKey],
+    queryFn: () => endpoints.matchRoles(profile!.interests, profile!.current_skills, true, recallContext),
     enabled: canMatch,
     staleTime: Infinity,
     retry: 0,

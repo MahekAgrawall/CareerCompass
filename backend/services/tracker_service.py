@@ -626,6 +626,244 @@ _SPECIALIST_SYLLABUS = (
         "Launch-day coordination and update cadence",
         "Post-launch review and follow-through",
     ], 8.0),
+
+    # ── Enterprise & alternate language stacks ─────────────────────────────
+    (("c#", ".net", "dotnet"), "Core Language & OOP", "C# / .NET Service Development", [
+        "C# language, LINQ and async/await",
+        "ASP.NET Core APIs, middleware and DI",
+        "Entity Framework Core and migrations",
+        "Testing, observability and deployment of .NET services",
+    ], 12.0),
+    (("php", "laravel"), "Core Language & OOP", "PHP & Laravel Application Development", [
+        "Modern PHP: types, Composer and PSR standards",
+        "Laravel routing, Eloquent models and queues",
+        "Sessions, auth, caching and background jobs",
+        "Testing and deploying PHP applications safely",
+    ], 10.0),
+    (("angular",), "Web Engineering", "Angular & Vue Single-Page Applications", [
+        "Component architecture and state ownership",
+        "Reactive forms, routing and guards",
+        "Data fetching, caching and error states",
+        "Building, testing and shipping the bundle",
+    ], 10.0),
+    (("wordpress", "cms"), "Web Engineering", "WordPress, Themes & CMS Delivery", [
+        "Theme hierarchy, templates and the block editor",
+        "Custom post types, taxonomies and plugin hooks",
+        "Performance: caching, image and query tuning",
+        "Security hardening, backups and staging releases",
+    ], 8.0),
+    (("low-code", "power platform", "no-code"), "Enterprise Platforms", "Low-Code Platform Delivery (Power Platform)", [
+        "Modelling data in Dataverse and connector limits",
+        "Canvas vs. model-driven app trade-offs",
+        "Automating approvals with Power Automate",
+        "Application lifecycle: solutions, environments and governance",
+    ], 8.0),
+    (("salesforce", "apex"), "Enterprise Platforms", "Salesforce Platform & Apex Development", [
+        "Objects, relationships and declarative automation limits",
+        "Apex triggers, batch jobs and governor limits",
+        "Lightning Web Components and the UI layer",
+        "Integrations, data loads and release management",
+    ], 10.0),
+    (("sap", "abap"), "Enterprise Platforms", "SAP Configuration & ABAP Development", [
+        "Core modules and end-to-end business processes",
+        "ABAP programming, debugging and enhancements",
+        "IDoc, RFC and interface fundamentals",
+        "Transport management and cutover discipline",
+    ], 10.0),
+
+    # ── Silicon, signals and robotics ─────────────────────────────────────
+    (("verilog", "systemverilog", "rtl design", "fpga"), "Silicon & Hardware", "RTL Design, FPGA & Timing Closure", [
+        "Synthesizable RTL: FSMs, pipelines and clock domains",
+        "Simulation, waveforms and functional debug",
+        "Synthesis, place-and-route and static timing",
+        "FPGA bring-up, on-board test and reuse",
+    ], 14.0),
+    (("uvm", "functional verification", "coverage closure"), "Silicon & Hardware", "Functional Verification & UVM Testbenches", [
+        "Constrained-random stimulus and sequences",
+        "UVM agents, scoreboards and virtual sequences",
+        "Coverage models and closure strategy",
+        "Regression management and bug triage with designers",
+    ], 12.0),
+    (("cmos", "physical design", "static timing"), "Silicon & Hardware", "CMOS Physical Design & Signoff", [
+        "Standard cells, floorplanning and placement",
+        "Clock-tree synthesis and timing constraints",
+        "Routing, parasitics and signal integrity",
+        "Signoff: DRC/LVS, power and multi-corner timing",
+    ], 12.0),
+    (("dsp", "digital signal", "signal processing"), "Silicon & Hardware", "Digital Signal Processing & Filter Design", [
+        "Sampling, aliasing and the z-transform",
+        "FIR/IIR filter design and fixed-point effects",
+        "FFT, spectral analysis and windowing",
+        "Implementing algorithms in C/MATLAB and on hardware",
+    ], 12.0),
+    (("ros 2", "robotics", "motion planning"), "Robotics & Automation", "Robotics Software, ROS 2 & Motion Planning", [
+        "Nodes, topics, services and lifecycle management",
+        "Kinematics, transforms and sensor fusion",
+        "Path and motion planning with safety limits",
+        "Simulation, replay and hardware-in-the-loop testing",
+    ], 12.0),
+    (("mqtt", "iot"), "Robotics & Automation", "IoT Connectivity, MQTT & Telemetry", [
+        "Device provisioning, identity and secure boot",
+        "MQTT topics, QoS, retries and offline buffering",
+        "Edge buffering, time-series ingestion and alerts",
+        "Fleet updates, monitoring and decommissioning",
+    ], 10.0),
+
+    # ── Platform, virtualisation and big data operations ───────────────────
+    (("vmware", "vsphere", "virtualization", "virtualisation", "hypervisor"), "Platform Engineering", "Virtualisation, Hypervisors & VM Lifecycle", [
+        "Hosts, clusters, resource pools and HA/DRS",
+        "Storage: datastores, vMotion and snapshots",
+        "Networking: vSwitches, VLANs and uplinks",
+        "Capacity planning, patching and upgrade paths",
+    ], 10.0),
+    (("ansible", "configuration management"), "Platform Engineering", "Configuration Management & Fleet Automation", [
+        "Inventories, roles and idempotent playbooks",
+        "Templating configuration and secrets handling",
+        "Rolling upgrades with health gates",
+        "Testing changes before they reach production",
+    ], 8.0),
+    (("linux administration", "shell scripting", "systemd"), "Platform Engineering", "Linux Administration, systemd & Shell Automation", [
+        "Users, permissions, filesystems and package flow",
+        "systemd units, timers and service hardening",
+        "Boot, kernel and resource troubleshooting",
+        "Bash automation that is safe to re-run",
+    ], 10.0),
+    (("hadoop", "hive"), "Big Data", "Distributed Data Processing (Spark & Hive)", [
+        "DataFrames, partitions and shuffle behaviour",
+        "Joins, skew and memory tuning",
+        "Hive/table formats and partition layout",
+        "Scheduling, monitoring and cost control of big jobs",
+    ], 12.0),
+    (("dag", "backfill"), "Pipeline Operations", "Pipeline Orchestration with Airflow & dbt", [
+        "DAG design, dependencies and backfills",
+        "Idempotent tasks and retry semantics",
+        "dbt models, tests and documentation",
+        "Freshness SLAs, alerting and on-call habits",
+    ], 10.0),
+    (("redshift", "columnar warehouse"), "Warehouse Modelling", "Cloud Warehouse Platforms (Snowflake & BigQuery)", [
+        "Warehouses, clustering and partition keys",
+        "Separation of storage and compute costs",
+        "Role-based access, masking and governance",
+        "Semi-structured data and ELT patterns",
+    ], 10.0),
+
+    # ── Commercial, product and delivery craft ─────────────────────────────
+    (("spreadsheet", "valuation", "sensitivity analysis"), "Commercial Analysis", "Spreadsheet Modelling & Financial Analysis", [
+        "Model structure, assumptions and sanity checks",
+        "Scenario and sensitivity analysis",
+        "Cohort, margin and unit-economics maths",
+        "Presenting a model a non-analyst can trust",
+    ], 8.0),
+    (("statistics", "probability", "matlab", "simulink"), "Commercial Analysis", "Statistical Computing with MATLAB & R", [
+        "Distributions, sampling and hypothesis testing",
+        "Regression and time-series basics",
+        "Simulation and Monte-Carlo reasoning",
+        "Reproducible analysis notebooks and reporting",
+    ], 10.0),
+    (("product discovery", "opportunity assessment"), "Product Craft", "Product Discovery & Opportunity Assessment", [
+        "Framing the problem before the solution",
+        "Customer interviews and evidence gathering",
+        "Opportunity sizing and solution scoping",
+        "Deciding what not to build, and saying so",
+    ], 10.0),
+    (("pricing", "packaging", "positioning"), "Commercial Strategy", "Pricing, Packaging & Positioning", [
+        "Willingness-to-pay research and price bands",
+        "Packaging features into tiers that sell",
+        "Competitive positioning and messaging pillars",
+        "Measuring price and packaging changes",
+    ], 8.0),
+
+    # ── Quality engineering and IT operations ─────────────────────────────
+    (("load testing", "soak test"), "Quality Engineering", "Load, Stress & Performance Testing", [
+        "Modelling realistic traffic and test data",
+        "Running load, stress and soak profiles",
+        "Reading latency percentiles and saturation signs",
+        "Turning findings into capacity and tuning changes",
+    ], 10.0),
+    (("manual testing", "exploratory testing", "test case design"), "Quality Engineering", "Manual, Exploratory & Risk-Based Testing", [
+        "Risk-based test design and charters",
+        "Boundary, negative and state-transition cases",
+        "Reproducible bug reports with evidence",
+        "Release sign-off and regression scope",
+    ], 8.0),
+    (("servicenow", "itsm"), "IT Operations", "ITSM, Ticketing & Service Management", [
+        "Incident, request and problem workflows",
+        "Priorities, SLAs and escalation paths",
+        "Knowledge articles and shift handovers",
+        "Trend analysis that removes repeat tickets",
+    ], 8.0),
+    (("intune", "endpoint management", "mdm"), "IT Operations", "Endpoint Management & Device Compliance", [
+        "Enrolment, profiles and configuration baselines",
+        "Patch, antivirus and compliance policies",
+        "Application packaging and deployment",
+        "Remote support, wipe and lifecycle hygiene",
+    ], 8.0),
+    (("windows server", "group policy"), "IT Operations", "Windows Server & Directory Administration", [
+        "Roles, DNS/DHCP and file/print services",
+        "Group Policy design and troubleshooting",
+        "Identity lifecycle, groups and delegation",
+        "Backup, patching and recovery drills",
+    ], 10.0),
+
+    # ── Security assurance beyond the offensive track ──────────────────────
+    (("identity and access", "identity & access", "privileged access"), "Security Assurance", "Identity, SSO & Privileged Access Management", [
+        "SSO, SAML/OIDC flows and session security",
+        "Joiner-mover-leaver automation and least privilege",
+        "Privileged access vaulting and break-glass",
+        "Access reviews and audit evidence",
+    ], 10.0),
+    (("malware", "reverse engineering", "sandbox analysis"), "Threat Analysis", "Malware Analysis & Reverse Engineering", [
+        "Static triage: strings, imports and packers",
+        "Dynamic analysis in isolated sandboxes",
+        "Behavioural indicators and detection logic",
+        "Writing findings for defenders, not just researchers",
+    ], 12.0),
+    (("iso 27001", "regulatory", "control framework"), "Security Assurance", "Audit, ISO 27001 & Regulatory Compliance", [
+        "Control frameworks and statement of applicability",
+        "Evidence collection and control ownership",
+        "Risk assessments and treatment plans",
+        "Audit interviews and closing findings",
+    ], 10.0),
+
+    # ── Modern delivery and AI product engineering ─────────────────────────
+    (("jenkins", "release pipeline", "build pipeline"), "Delivery Engineering", "CI/CD Pipelines & Release Engineering", [
+        "Build/test stages, caching and reproducibility",
+        "Artefact versioning and promotion across environments",
+        "Secrets, approvals and least-privilege runners",
+        "Pipeline observability and flake control",
+    ], 10.0),
+    (("grpc", "service mesh", "bounded context"), "API Architecture", "Microservices, gRPC & Service Contracts", [
+        "Bounded contexts and decomposition trade-offs",
+        "Contract-first APIs and versioning rules",
+        "Timeouts, retries, idempotency and backpressure",
+        "Distributed tracing across service boundaries",
+    ], 12.0),
+    (("prompt engineering", "llm evaluation"), "Language Modelling", "Prompt Engineering, Guardrails & LLM Evaluation", [
+        "Task framing, examples and structured outputs",
+        "Golden sets and automated graders",
+        "Guardrails, refusal paths and jailbreak testing",
+        "Cost, latency and context-budget management",
+    ], 10.0),
+    (("speech recognition", "asr", "text-to-speech", "voice ai"), "Speech & Audio", "Speech Recognition, TTS & Voice Pipelines", [
+        "Audio capture, sampling and preprocessing",
+        "ASR/NLU pipelines and domain adaptation",
+        "TTS quality, latency and interruption handling",
+        "Evaluating word error rate in production",
+    ], 12.0),
+    (("recommendation", "ranking model", "recsys"), "Production ML", "Recommender & Ranking Systems", [
+        "Candidate generation and feature stores",
+        "Ranking objectives and offline metrics",
+        "Online A/B testing and counterfactual checks",
+        "Cold-start, feedback loops and guardrail metrics",
+    ], 12.0),
+
+    # ── Desktop and emerging client platforms ──────────────────────────────
+    (("desktop application", "installer", "code signing"), "Desktop Engineering", "Desktop Application Packaging & Distribution", [
+        "Cross-platform UI and native OS integration",
+        "Installers, silent updates and rollback",
+        "Code signing, notarisation and trust prompts",
+        "Crash reporting and telemetry with consent",
+    ], 10.0),
 )
 
 

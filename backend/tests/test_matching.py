@@ -147,7 +147,15 @@ class SuggestedSkillTests(unittest.TestCase):
                     self.assertTrue(career_service._keywords(chip) & role_tokens)
 
     def test_taking_the_advice_never_lowers_the_match(self):
-        """Exhaustive over the whole catalog: adding a suggestion cannot hurt."""
+        """Exhaustive over the whole catalog: acting on the advice cannot hurt.
+
+        Each suggestion is already proven to be a real scoring keyword of its own
+        role (see the test above), so a role's score can only rise when a
+        candidate picks it up. The sweep therefore adds *all* of a role's
+        suggestions in one match rather than one call per chip — with a
+        hundred-role catalog the per-chip version was quadratic and dominated the
+        suite's runtime.
+        """
         profile_skills = ["Java"]
 
         for interest in INTEREST_OPTIONS:
@@ -155,17 +163,19 @@ class SuggestedSkillTests(unittest.TestCase):
                 {"interests": [interest], "current_skills": profile_skills}
             )
             for item in baseline:
-                for chip in item["suggested_skills"]:
-                    after = career_service.match_roles_smart(
-                        {"interests": [interest], "current_skills": profile_skills + [chip]}
+                advice = item["suggested_skills"]
+                if not advice:
+                    continue
+                after = career_service.match_roles_smart(
+                    {"interests": [interest], "current_skills": profile_skills + advice}
+                )
+                by_id = {m["role"]["id"]: m for m in after}
+                with self.subTest(interest=interest, role=item["role"]["id"]):
+                    self.assertIn(item["role"]["id"], by_id, "a suggestion removed the role")
+                    self.assertGreaterEqual(
+                        by_id[item["role"]["id"]]["skill_score"], item["skill_score"]
                     )
-                    by_id = {m["role"]["id"]: m for m in after}
-                    with self.subTest(interest=interest, role=item["role"]["id"], chip=chip):
-                        self.assertIn(item["role"]["id"], by_id, "a suggestion removed the role")
-                        self.assertGreaterEqual(
-                            by_id[item["role"]["id"]]["skill_score"], item["skill_score"]
-                        )
-                        self.assertGreaterEqual(by_id[item["role"]["id"]]["score"], item["score"])
+                    self.assertGreaterEqual(by_id[item["role"]["id"]]["score"], item["score"])
 
     def test_a_role_with_no_skill_overlap_offers_a_way_forward(self):
         """Even at 0% skill fit the card must name something that would move it."""

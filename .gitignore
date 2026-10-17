@@ -21,6 +21,10 @@ legacy/data/*.db
 legacy/data/users.json
 legacy/data/session.json
 
+# Embedded vector index: derived data, rebuilt with
+# `python -m scripts.ingest_roles --rebuild`.
+backend/data/qdrant/
+
 # ── Streamlit ─────────────────────────────────────────────────────────────────
 .streamlit/secrets.toml
 

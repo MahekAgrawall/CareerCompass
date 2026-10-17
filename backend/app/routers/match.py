@@ -12,6 +12,10 @@ def match(payload: schemas.MatchRequest):
     profile = {
         "interests": payload.interests,
         "current_skills": payload.current_skills,
+        # Context for the semantic recall stage only; the score ignores it.
+        "career_goal": payload.career_goal,
+        "experience": payload.experience,
+        "work_mode": payload.work_mode,
     }
     results = career_service.match_roles_smart(profile)
 

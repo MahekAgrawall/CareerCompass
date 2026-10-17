@@ -16,11 +16,12 @@ and the original **Streamlit** app preserved in `legacy/` for reference.
 | Feature | What it does |
 |---|---|
 | 🎯 **Interest-first, transparent role matching** | Ranks roles by how well they align with your *stated* interests (65% weight) and your existing skills (35% weight), and filters out roles with zero interest synergy. Every card shows the arithmetic: the two component scores, the interests and skills that counted, and the profile chips that would raise the match. |
-| 📚 **Role catalog** | 30 curated corporate and modern engineering roles across 8 categories — including AI/ML, data, cloud, security, hardware and product tracks — each with responsibilities, qualifications, growth paths, and hiring companies. |
+| 🧠 **Semantic recall** | A two-stage matcher: candidates are first *recalled* from a Qdrant vector index (so a role can surface on the meaning of your profile and free-text goal, not only on identical chips), then *scored and explained* by the same transparent formula as ever. Each result says whether it was found by keywords, by meaning, or both. The index is optional and built by an explicit migration — without it, matching is keyword-only. |
+| 📚 **Role catalog** | 100 curated corporate and modern engineering roles across 8 categories — including AI/ML, data, cloud, security, hardware and product tracks — each with responsibilities, qualifications, growth paths, and hiring companies. |
 | 💰 **India salary benchmarks** | Fresher (0–1 yr), mid (1–3 yrs) and senior (3+ yrs) CTC bands for every role, each stated as an *envelope* — low end a typical mid-market/services offer, high end a strong product-company or GCC offer — with the market and product-company medians and every source (and its sample size) linked on the role page. |
 | 🤖 **AI skill roadmap** | Google Gemini generates a structured 3-phase plan (Immediate → Level Up → Explore) with one curated free resource per skill. |
 | 🛠️ **Portfolio projects** | Each roadmap includes 3 hands-on project ideas with difficulty ratings and validated skills. |
-| 📅 **Study tracker** | Configure weekday vs weekend study hours and a role-specific tech stack. Every one of the 30 roles ships a tailored three-dimension stack (mobile, games, embedded, design, offensive security and more), and each choice maps onto syllabus topics with subtopics. Progress, remaining hours, and projected weeks are computed live. |
+| 📅 **Study tracker** | Configure weekday vs weekend study hours and a role-specific tech stack. Every one of the 100 roles ships a tailored three-dimension stack (mobile, games, embedded, design, offensive security and more), and each choice maps onto syllabus topics with subtopics. Progress, remaining hours, and projected weeks are computed live. |
 | ⚖️ **Side-by-side comparison** | Compare up to 3 roles on demand, competition, AI-future relevance, salary, and must-have skills. |
 | 💬 **Roadmap Copilot** | A multi-turn Gemini chat pre-loaded with your profile, target role, and roadmap — replies stream in live. |
 | ⬇️ **Export & share** | Download any roadmap as a portable Markdown file. |
@@ -69,6 +70,10 @@ A monorepo with a clean client/server split and a layered backend:
 │                  services/tracker_service.py  (syllabus)   │
 │                  services/auth_service.py     (accounts)   │
 ├────────────────────────────────────────────────────────────┤
+│  retrieval       services/vector_store.py  →  Qdrant       │
+│                  services/embeddings.py    (Gemini/local)  │
+│                  scripts/ingest_roles.py   (migration)     │
+├────────────────────────────────────────────────────────────┤
 │  data layer      database/db.py  →  SQLite                 │
 │                  data/roles.json · data/stacks.json        │
 └────────────────────────────────────────────────────────────┘
@@ -76,6 +81,26 @@ A monorepo with a clean client/server split and a layered backend:
 
 `legacy/` holds the original Streamlit application (UI + the same services), kept as a working
 reference and design source.
+
+### 🧠 How matching works (two stages)
+
+1. **Recall** — `career_service.match_roles_smart()` searches a Qdrant index of every role's
+   profile text (title, description, responsibilities, skills) using the candidate's interests,
+   skills and free-text goal. The pool is the keyword-interest matches **plus** the nearest roles
+   the index found that keywords missed.
+2. **Score** — those candidates go through the unchanged, explainable scorer: 65% interest fit +
+   35% skill fit, with the matched chips and suggested additions shown on every card.
+
+Recall can only ever *add* candidates; it never changes a score, so the arithmetic a candidate
+reads stays exactly reproducible. Vectors live in a collection named after their embedding space
+(provider + model + width) and everything degrades to keyword-only matching when the index is
+missing, stale or unreachable.
+
+**Which embeddings?** Gemini (`gemini-embedding-001`, Matryoshka-truncated to 768 dims) when
+`GEMINI_API_KEY` is set, otherwise a deterministic offline embedder that needs no key, no network
+and no model download — which is also what the test suite and CI run on. The provider that built
+the index is recorded next to it, so the API always queries the collection that actually holds the
+vectors.
 
 ---
 
@@ -94,6 +119,7 @@ reference and design source.
 | Styling | Tailwind CSS 3 |
 | Routing / data | React Router 6 · TanStack Query 5 |
 | Persistence | SQLite (embedded, zero-config) |
+| Retrieval | Qdrant (`qdrant-client`, embedded local mode or a server) + Gemini / offline embeddings |
 | Config | `python-dotenv` (backend) · Vite env vars (frontend) |
 | CI | GitHub Actions |
 
@@ -112,9 +138,10 @@ career-compass/
 │   │   ├── security.py        ← JWT create/decode
 │   │   ├── dependencies.py    ← get_current_user / get_optional_user
 │   │   └── routers/           ← auth · roles · profile · match · roadmap · tracker · chat
-│   ├── services/              ← ai · career · tracker · auth (shared domain logic)
+│   ├── services/              ← ai · career · tracker · auth · embeddings · vector_store
+│   ├── scripts/               ← ingest_roles.py (semantic index migration)
 │   ├── database/db.py         ← connection, schema, role-catalog sync
-│   ├── data/                  ← roles.json · stacks.json
+│   ├── data/                  ← roles.json · stacks.json · qdrant/ (derived, git-ignored)
 │   ├── tests/                 ← unittest: API integration + end-to-end journey
 │   ├── requirements.txt
 │   └── .env.example
@@ -176,6 +203,19 @@ syllabus topics — a fixed keyword map for the original roles, plus a block per
 specialisation (mobile, games, embedded, design, offensive security, analytics engineering and
 product/technical-programme tracks). Both live in `services/tracker_service.py`.
 
+The semantic index is derived data: it is not committed and not built at startup, so run the
+migration once — with the API stopped, because the embedded Qdrant locks its directory:
+
+```bash
+python -m scripts.ingest_roles --query "cloud infrastructure pipelines"
+```
+
+Re-run it whenever `backend/data/roles.json` changes (`--rebuild` drops the old collection
+first). It embeds with Gemini when `GEMINI_API_KEY` is set, and with the deterministic offline
+embedder otherwise; if Gemini is configured but unusable (quota, retired model, offline) it says
+so and builds the offline index instead. Skip the migration entirely and matching stays
+keyword-only — nothing else changes.
+
 `JWT_SECRET` is required — generate one with
 `python -c "import secrets; print(secrets.token_urlsafe(48))"`. The API refuses to start without it.
 
@@ -207,7 +247,7 @@ streamlit run app.py        # http://localhost:8501
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| `GET` | `/health` | — | Service health |
+| `GET` | `/health` | — | Service health, including semantic-index status (provider, collection, points) |
 | `POST` | `/auth/signup` | — | Create an account, returns a JWT |
 | `POST` | `/auth/login` | — | Authenticate, returns a JWT |
 | `GET` | `/auth/me` | ✅ | Current user + profile |
@@ -281,7 +321,13 @@ combination produces a usable plan, and the original roles' shipped plans are pi
 adding content for newer roles cannot rewrite them. `tests/test_matching.py` guards the
 transparency contract: the two component scores reproduce the published score, half-point
 scores round the way a reader rounds them, and every suggested skill is a real chip that
-cannot lower the match it was offered for.
+cannot lower the match it was offered for. `tests/test_semantic_recall.py` guards the retrieval
+layer, and is hermetic by construction: the harness forces the offline embedder and a throwaway
+index directory, so no test ever calls Gemini or touches the developer's index. It pins that the
+local embeddings are byte-identical across processes, that an absent index leaves matching
+keyword-only, that recall can add candidates but never change a score, that meaning-only roles
+still need real skills to score, and that the migration records the provider it actually used —
+including when Gemini fails mid-run and the offline index is built instead.
 
 The frontend is checked with the TypeScript compiler and a production build:
 
@@ -298,6 +344,10 @@ GitHub Actions runs both on every push and pull request (see `.github/workflows/
 ## ⚠️ Known Limitations & Roadmap
 
 - **AI SDK** — `google-generativeai` is deprecated by Google; migrating to `google-genai` is planned.
+- **Offline embeddings are lexical** — the no-key fallback embedder is a signed hashing model over
+  words and character 4-grams. It shortlists sensibly and keeps the app (and CI) hermetic, but
+  Gemini embeddings are markedly better at pure paraphrase; configure a key and re-run the
+  migration to use them.
 - **Refresh tokens** — access tokens are long-lived for a demo; refresh-token rotation is future work.
 - **Theming** — a single polished light theme.
 

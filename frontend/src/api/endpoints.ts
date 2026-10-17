@@ -17,7 +17,20 @@ import type {
 } from "./types";
 
 // ── Meta ──────────────────────────────────────────────────────────────────────
-export const getHealth = () => api.get<{ status: string; service: string; version: string }>("/health");
+export const getHealth = () =>
+  api.get<{
+    status: string;
+    service: string;
+    version: string;
+    semantic_index?: {
+      provider: string;
+      model: string;
+      collection: string;
+      available: boolean;
+      points: number;
+      other_collections?: string[];
+    };
+  }>("/health");
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export const signup = (name: string, email: string, password: string) =>
@@ -38,8 +51,24 @@ export const listCategories = () => api.get<string[]>("/roles/categories");
 export const getRole = (roleId: string) => api.get<Role>(`/roles/${encodeURIComponent(roleId)}`);
 
 // ── Matching ──────────────────────────────────────────────────────────────────
-export const matchRoles = (interests: string[], currentSkills: string[], explain = true) =>
-  api.post<MatchResponse>("/match", { interests, current_skills: currentSkills, explain });
+/**
+ * `context` only feeds the semantic recall stage (it never enters the score), so
+ * the free-text goal can surface roles whose chips do not overlap the profile.
+ */
+export const matchRoles = (
+  interests: string[],
+  currentSkills: string[],
+  explain = true,
+  context: { careerGoal?: string; experience?: string; workMode?: string } = {},
+) =>
+  api.post<MatchResponse>("/match", {
+    interests,
+    current_skills: currentSkills,
+    explain,
+    career_goal: context.careerGoal ?? "",
+    experience: context.experience ?? "",
+    work_mode: context.workMode ?? "",
+  });
 
 // ── Roadmap ───────────────────────────────────────────────────────────────────
 export const generateRoadmap = (roleId: string, profile: Partial<Profile>, signal?: AbortSignal) =>
