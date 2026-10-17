@@ -118,6 +118,58 @@ and no model download — which is also what the test suite and CI run on. The p
 the index is recorded next to it, so the API always queries the collection that actually holds the
 vectors.
 
+### 📏 Does the index find the right role? (measured, not asserted)
+
+"Offline embeddings are weaker, Gemini is better" is exactly the kind of claim that deserves
+numbers, so recall is tuned against a labelled set rather than by reading a few examples.
+`backend/evals/` holds **35 questionnaire profiles** — interests and skills drawn from the real
+form, plus the career goal, so every profile is one a candidate could actually submit — each
+labelled with the role(s) it means. The harness walks them through the real recall path and reports
+what the current configuration does:
+
+```bash
+cd backend
+.\.venv\Scripts\python.exe -m evals.retrieval_eval --provider both
+```
+
+The labels are strict about what counts as evidence: every expectation is classified at run time,
+using the matcher's *own* keyword rule, as either **keyword-reachable** (the chip overlap would have
+found it anyway) or **meaning-only** (only the vector index can get there) — because only the second
+kind shows the index earning its place. Against the 100-role catalogue, at `k = 5`:
+
+| Metric | Offline embedder | Gemini `gemini-embedding-001` |
+| --- | --- | --- |
+| hit@5 — an expected role among the 5 nearest | 85.7% | **97.1%** |
+| recall@5 — share of the expected roles found | 81.4% | **97.1%** |
+| MRR — how high the first expected role ranks | 0.571 | **0.789** |
+| meaning-only hit@5 — the cases keywords cannot reach | 70.0% | **100%** |
+| served — an expected role reached the scored results | 97.1% | **100%** |
+| served@5 — an expected role reached the 5 ranked results | 45.7% | 45.7% |
+
+Both embedders clear the bar that matters — an expected role reaches the scored results in 97–100%
+of cases, against **71.4% with no index at all** — and Gemini is clearly better on the meaning-only
+cases, which is the "offline embeddings are lexical" caveat with a figure behind it at last. The
+harness also sweeps the similarity floor that gates meaning-only recall (`SEMANTIC_FLOOR`),
+reporting meaning-only recall against how many extra neighbours per candidate the gate lets through,
+with the configured value marked and the best-F1 point named. Three findings it makes visible:
+
+- **The configured floors are more permissive than the labels justify.** For Gemini, `0.60` keeps
+  every meaning-only label but passes essentially the entire 40-neighbour window (~39 extra
+  neighbours per candidate), while `0.70` keeps the *same* recall for ~4. For the offline embedder
+  the trade is genuine rather than free — `0.15` keeps 90.9% of the meaning-only labels, whereas
+  `0.35` would keep only 36.4% — which is why the two providers carry different floors. (Those
+  figures describe the *gate*; the page still caps meaning-only additions at
+  `SEMANTIC_EXTRA_LIMIT = 10`.) Retuning a floor changes what candidates see, so it is recorded here
+  as the next step rather than changed quietly.
+- **The index adds reach, not rank.** `served@5` does not move at all: a role found on meaning alone
+  earns a 0% interest score, so it sorts below the roles whose chips matched. That ordering is the
+  transparent scorer doing its job, not the index failing — the index's contribution is the
+  **+25.7pp** (offline) and **+28.6pp** (Gemini) of cases where the intended role reached the page at
+  all instead of not existing for that candidate.
+- **The sweep's precision is a lower bound.** It counts every role the labels do not mention as
+  wrong, so read it *across* thresholds — it is a relative signal, not a verdict on the index's
+  taste.
+
 ### 📥 Live job postings (`job_role`)
 
 Alongside the curated catalog there is a second, independent collection holding **real, currently
@@ -240,6 +292,7 @@ career-compass/
 │   ├── prompts/               ← system/ + user/ prompt templates, one pair per AI call (see its README)
 │   ├── services/              ← ai · career · tracker · auth · applications · embeddings · vector_store · job_feed · prompts
 │   ├── scripts/               ← ingest_roles.py · ingest_jobs.py (index migrations)
+│   ├── evals/                 ← labels.json · retrieval_eval.py (labelled-profile recall harness)
 │   ├── database/db.py         ← connection, schema, role-catalog sync
 │   ├── data/                  ← roles.json · stacks.json · qdrant/ · job_postings.json (last two derived)
 │   ├── tests/                 ← unittest: API integration + end-to-end journey
@@ -489,6 +542,18 @@ renders without a stray `$`, the values a caller passes actually reach the model
 matters now that the copilot's context arrives from the browser — a crafted answer (a fake
 `Guidelines:` block, a newline in a name, a malformed roadmap) cannot open a section of the system
 instruction and is instead flattened into the data it belongs to.
+`tests/test_retrieval_eval.py` guards the *instrument* rather than a score: the labelled set must be
+well formed and realistic (every expected role id exists in the catalogue, every interest and every
+skill is a real questionnaire option, ids are unique, and at least eight cases stay reachable only
+by meaning — so the harness cannot quietly stop exercising the semantic path while still printing a
+confident number), the metric arithmetic is right on ranked lists whose answer is known by hand, and
+the whole path runs end to end against a real offline index. It also pins the honesty check that a
+first draft of the harness failed: `semantic_search` is *designed* to swallow a provider failure and
+return nothing, so an empty answer is probed and retried instead of being scored as a miss, and an
+index that answers nothing at all is reported as a broken measurement rather than a fake recall
+figure. The harness's own numbers are deliberately not asserted anywhere — they depend on the
+provider, the catalogue and the network — so they come from running
+`python -m evals.retrieval_eval` by hand and are recorded in the Architecture section above.
 
 The frontend is checked with the TypeScript compiler and a production build:
 
@@ -508,7 +573,16 @@ GitHub Actions runs both on every push and pull request (see `.github/workflows/
 - **Offline embeddings are lexical** — the no-key fallback embedder is a signed hashing model over
   words and character 4-grams. It shortlists sensibly and keeps the app (and CI) hermetic, but
   Gemini embeddings are markedly better at pure paraphrase; configure a key and re-run the
-  migration to use them.
+  migration to use them. The evaluation harness above puts a figure on the gap: 70% versus 100% of
+  the cases that keywords cannot reach.
+- **The retrieval evaluation is a small, hand-written label set** — 35 profiles is enough to compare
+  two embedders and to see where a similarity floor sits, and not enough to settle either question:
+  each label is one person's judgement, the larger families (platform/SRE, backend, data) are
+  represented by a handful of examples each, and the sweep's precision counts unlabelled roles as
+  wrong, so it reads as a relative signal rather than an absolute quality. Measuring both spaces
+  needs a quota-free Gemini key: a full run costs ~135 embed items, against a free-tier budget of
+  1,000 per day for `gemini-embedding-001` (about seven runs), which is also why the harness is
+  deliberately outside CI — its numbers depend on the provider, the catalogue and the network.
 - **The live feed reflects its sources** — the public boards it harvests skew towards remote and
   European/North-American postings, so `/jobs/search` is a window onto *those* boards rather than a
   complete picture of the market, and the two collections must be re-ingested separately when the

@@ -225,6 +225,32 @@ personalised. It fills the **live openings** list on each role card and on the r
 
 ---
 
+### 2.10 Measure how good the role recall actually is (optional)
+
+`backend/evals/` carries a labelled set of questionnaire profiles with the role(s) each one means,
+plus the harness that runs them through the real recall path and prints what the current index and
+similarity floor do with them:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m evals.retrieval_eval --provider both
+```
+
+It builds its **own** throwaway index and database in a temporary directory, so it neither touches
+`data/career_compass.db` nor contends for the lock the running API holds on `data/qdrant` — it is
+safe to run with the server up. `--provider both` measures the offline embedder and Gemini side by
+side (same labels, same documents, same scorer); a full run costs ~135 embed items, more than a
+free-tier key serves in a minute, so the harness waits out a rate limit and retries rather than
+failing two thirds of the way through (`--pace 0` to turn that waiting off). The free tier's *daily*
+budget is 1,000 embed items for this model — about seven full comparison runs — and once it is gone
+the harness says so and reports whichever provider did run instead of inventing a number.
+`--json` prints the whole report for scripting, and `--index-dir <dir>` measures an existing index
+instead of building a temporary one (stop the API first — embedded Qdrant locks its directory). The
+numbers it produces for this repository are in the README's *"Does the index find the right role?"*
+section.
+
+---
+
 ## 3. Frontend — React (Vite)
 
 Open a **second** terminal:
@@ -425,6 +451,13 @@ used to, and survives a crafted answer that tries to open its own `Guidelines:` 
 (`google-generativeai` itself is mocked — no network). `test_rate_limit.py` covers the AI budget:
 the sliding window in isolation, then the endpoint behaviour — a `429` with `Retry-After` from the
 copilot and roadmap, and a `/match` that still returns its ranked answer without the AI explanation.
+`test_retrieval_eval.py` guards the retrieval *evaluation* rather than a score: the labelled set must
+be well formed and realistic (every expected role exists in the catalogue, every interest and skill
+is a real questionnaire option, and at least eight labels stay reachable only by meaning, so the
+harness cannot quietly stop exercising the semantic path), the metric arithmetic is checked against
+ranked lists whose answer is known by hand, and an index that answers nothing at all is reported as a
+broken measurement instead of a fake recall figure. The harness's own numbers are not asserted
+anywhere, because they depend on the provider and the network — those come from §2.10, by hand.
 
 **Frontend** (TypeScript check + production build):
 ```powershell

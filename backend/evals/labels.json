@@ -1,0 +1,356 @@
+{
+  "version": 1,
+  "description": "Labelled profile -> expected-role pairs for the semantic role index. Each case is a questionnaire a real candidate could submit (interests and skills are drawn from config.INTEREST_OPTIONS and config.SKILL_OPTIONS, checked by tests/test_retrieval_eval.py) plus the role(s) the profile means. 'expect' is the set of roles the profile genuinely describes, so recall is measured over all of them; a case counts as a hit when any of them is recalled. The harness splits these labels into keyword-reachable and meaning-only at run time using the matcher's own rule, because the second kind is the only evidence that the vector index is earning its place.",
+  "cases": [
+    {
+      "id": "platform_sre",
+      "note": "The textbook platform profile: containers, Linux, cloud. Two labels, because this catalogue ships both 'Platform & SRE' and 'Platform Engineer' and both describe the profile equally well — demanding one specific one would measure label noise, not recall.",
+      "profile": {
+        "interests": ["Cloud, DevOps & Linux", "Coding & Problem Solving"],
+        "current_skills": ["Docker", "Kubernetes", "Linux", "AWS"],
+        "career_goal": "keep our container platform and deployment pipelines healthy"
+      },
+      "expect": ["sre_platform_engineer", "platform_engineer"]
+    },
+    {
+      "id": "devops_release_automation",
+      "note": "Same family but the emphasis is release tooling rather than running the platform.",
+      "profile": {
+        "interests": ["Cloud, DevOps & Linux", "Automation & Testing Quality"],
+        "current_skills": ["Docker", "Kubernetes", "Linux", "Git & GitHub"],
+        "career_goal": "automate builds and releases so deploys stop being manual"
+      },
+      "expect": ["devops_engineer"]
+    },
+    {
+      "id": "java_enterprise_backend",
+      "note": "Java plus Spring Boot is specific enough to name the enterprise track rather than 'backend' in general.",
+      "profile": {
+        "interests": ["Backend Systems & Databases", "Coding & Problem Solving"],
+        "current_skills": ["Java", "Spring Boot", "SQL / MySQL / PostgreSQL", "System Architecture"],
+        "career_goal": "design and run large internal services"
+      },
+      "expect": ["java_enterprise_developer"]
+    },
+    {
+      "id": "typescript_frontend",
+      "note": "The React/TypeScript front-end profile.",
+      "profile": {
+        "interests": ["UI/UX & Frontend Experiences", "Building Web Apps (Full Stack)"],
+        "current_skills": ["React.js", "TypeScript", "JavaScript", "HTML & CSS"],
+        "career_goal": "build accessible product interfaces people actually enjoy using"
+      },
+      "expect": ["frontend_dev"]
+    },
+    {
+      "id": "cross_platform_mobile",
+      "note": "A web background aiming at mobile; React Native is the bridge a candidate would take.",
+      "profile": {
+        "interests": ["UI/UX & Frontend Experiences", "Coding & Problem Solving"],
+        "current_skills": ["React.js", "TypeScript", "Node.js"],
+        "career_goal": "ship one codebase as a mobile app on both stores"
+      },
+      "expect": ["react_native_developer"]
+    },
+    {
+      "id": "analytics_engineering_warehouse",
+      "note": "Warehouse modelling for analysts — analytics engineering, not BI reporting.",
+      "profile": {
+        "interests": ["Data Analytics & Business Intelligence", "Backend Systems & Databases"],
+        "current_skills": ["SQL / MySQL / PostgreSQL", "Python", "Git & GitHub"],
+        "career_goal": "model warehouse tables so analysts trust the numbers"
+      },
+      "expect": ["analytics_engineer"]
+    },
+    {
+      "id": "bi_dashboards_stakeholders",
+      "note": "A reporting profile that sits with the business; Power BI names the tooling.",
+      "profile": {
+        "interests": ["Data Analytics & Business Intelligence", "Client Facing & Consulting"],
+        "current_skills": ["Power BI", "SQL / MySQL / PostgreSQL", "Excel Modeling"],
+        "career_goal": "own the dashboards leadership checks every Monday"
+      },
+      "expect": ["bi_developer"]
+    },
+    {
+      "id": "mlops_platform",
+      "note": "ML plus infrastructure — deploying and monitoring models, which is mlops rather than ml_engineer.",
+      "profile": {
+        "interests": ["Machine Learning & Research", "Cloud, DevOps & Linux"],
+        "current_skills": ["Python", "Docker", "Kubernetes", "Machine Learning (Scikit-Learn)"],
+        "career_goal": "put models into production and keep them from drifting"
+      },
+      "expect": ["mlops_engineer"]
+    },
+    {
+      "id": "llm_app_engineering",
+      "note": "Building applications on LLMs, which is the generative-AI engineering track.",
+      "profile": {
+        "interests": ["AI, LLMs & Autonomous Agents", "Machine Learning & Research"],
+        "current_skills": ["Python", "LLMs & Prompt Engineering", "LangChain / LangGraph"],
+        "career_goal": "build assistants that call tools and answer from our own documents"
+      },
+      "expect": ["generative_ai_engineer"]
+    },
+    {
+      "id": "application_security_review",
+      "note": "Code and API review rather than network defence; AppSec is the named role.",
+      "profile": {
+        "interests": ["Cybersecurity & Ethical Hacking", "Coding & Problem Solving"],
+        "current_skills": ["Python", "Java", "Docker"],
+        "career_goal": "find the vulnerabilities in our own services before someone else does"
+      },
+      "expect": ["application_security_engineer"]
+    },
+    {
+      "id": "offensive_security",
+      "note": "The attacker's perspective with exploitation tooling.",
+      "profile": {
+        "interests": ["Cybersecurity & Ethical Hacking"],
+        "current_skills": ["Linux", "Python", "C"],
+        "career_goal": "break into systems the way an attacker would, with permission"
+      },
+      "expect": ["penetration_tester"]
+    },
+    {
+      "id": "security_operations_shift",
+      "note": "Alert triage on a shift rota — SOC work rather than testing or research.",
+      "profile": {
+        "interests": ["Cybersecurity & Ethical Hacking", "Cloud, DevOps & Linux"],
+        "current_skills": ["Linux", "Python", "SQL / MySQL / PostgreSQL"],
+        "career_goal": "work the queue of security alerts and escalate what is real"
+      },
+      "expect": ["soc_analyst"]
+    },
+    {
+      "id": "ux_research_studies",
+      "note": "Interviews and usability testing, not visual design.",
+      "profile": {
+        "interests": ["UI/UX & Frontend Experiences", "Data Analytics & Business Intelligence"],
+        "current_skills": ["Client Communication", "Excel Modeling"],
+        "career_goal": "run user studies and turn what we hear into product decisions"
+      },
+      "expect": ["ux_researcher"]
+    },
+    {
+      "id": "associate_product_manager",
+      "note": "An early-career product profile: strategy interest plus enough data to be credible.",
+      "profile": {
+        "interests": ["Product Management & Strategy", "Data Analytics & Business Intelligence"],
+        "current_skills": ["SQL / MySQL / PostgreSQL", "Client Communication", "Excel Modeling"],
+        "career_goal": "own a feature from discovery through launch"
+      },
+      "expect": ["associate_product_manager"]
+    },
+    {
+      "id": "vlsi_rtl",
+      "note": "Low-level C plus RTL intent — chip design rather than software.",
+      "profile": {
+        "interests": ["Coding & Problem Solving", "Machine Learning & Research"],
+        "current_skills": ["C++", "C"],
+        "career_goal": "write RTL and verify chip designs before they are manufactured"
+      },
+      "expect": ["vlsi_design_engineer"]
+    },
+    {
+      "id": "embedded_firmware_bringup",
+      "note": "Firmware below the operating system, with testing discipline.",
+      "profile": {
+        "interests": ["Coding & Problem Solving", "Automation & Testing Quality"],
+        "current_skills": ["C", "C++", "Linux"],
+        "career_goal": "write firmware and bring up drivers on microcontroller boards"
+      },
+      "expect": ["embedded_firmware_engineer"]
+    },
+    {
+      "id": "etl_pipelines",
+      "note": "Scheduled data movement between systems — the ETL role rather than general data engineering.",
+      "profile": {
+        "interests": ["Data Analytics & Business Intelligence", "Backend Systems & Databases"],
+        "current_skills": ["Python", "SQL / MySQL / PostgreSQL", "Docker"],
+        "career_goal": "build and schedule the jobs that move data between systems"
+      },
+      "expect": ["etl_developer"]
+    },
+    {
+      "id": "fullstack_small_team",
+      "note": "End-to-end product work in a small team, which is the full-stack track.",
+      "profile": {
+        "interests": ["Building Web Apps (Full Stack)", "High-Impact Startup Fast-Paced"],
+        "current_skills": ["TypeScript", "React.js", "Node.js", "MongoDB"],
+        "career_goal": "ship features end to end on a small product team"
+      },
+      "expect": ["fullstack_dev"]
+    },
+    {
+      "id": "python_automation_services",
+      "note": "Python as glue and internal services rather than a typed backend stack.",
+      "profile": {
+        "interests": ["Coding & Problem Solving", "Automation & Testing Quality"],
+        "current_skills": ["Python", "FastAPI", "Docker"],
+        "career_goal": "automate back-office work and expose the results as small internal APIs"
+      },
+      "expect": ["python_developer"]
+    },
+    {
+      "id": "database_reliability",
+      "note": "Cares about the database itself: tuning, backups, availability.",
+      "profile": {
+        "interests": ["Backend Systems & Databases", "Cloud, DevOps & Linux"],
+        "current_skills": ["SQL / MySQL / PostgreSQL", "MongoDB", "Redis", "Linux"],
+        "career_goal": "keep production databases fast, backed up and available"
+      },
+      "expect": ["database_engineer"]
+    },
+    {
+      "id": "meaning_sre_from_frontend",
+      "note": "Only reachable by meaning: no interest chip overlaps the role's interests, but the skills and the goal describe running the platform. This is the case semantic recall exists for. Labelled with both platform roles for the same reason as 'platform_sre'.",
+      "profile": {
+        "interests": ["UI/UX & Frontend Experiences"],
+        "current_skills": ["Docker", "Kubernetes", "Linux", "AWS"],
+        "career_goal": "keep our deployment platform and its pipelines reliable"
+      },
+      "expect": ["sre_platform_engineer", "platform_engineer"]
+    },
+    {
+      "id": "meaning_data_scientist_from_qa",
+      "note": "A pivot out of test automation into statistical modelling; the chips say quality assurance, the skills and goal say data science.",
+      "profile": {
+        "interests": ["Automation & Testing Quality"],
+        "current_skills": ["Python", "Machine Learning (Scikit-Learn)", "SQL / MySQL / PostgreSQL", "Excel Modeling"],
+        "career_goal": "move from test automation into statistical modelling and forecasting"
+      },
+      "expect": ["data_scientist"]
+    },
+    {
+      "id": "meaning_security_analyst_from_coding",
+      "note": "A developer who wants to defend systems rather than attack them; no security chip chosen.",
+      "profile": {
+        "interests": ["Coding & Problem Solving"],
+        "current_skills": ["Linux", "Python", "SQL / MySQL / PostgreSQL"],
+        "career_goal": "investigate intrusions and watch network traffic for attackers"
+      },
+      "expect": ["cybersecurity_analyst"]
+    },
+    {
+      "id": "meaning_game_developer_from_ui",
+      "note": "Chose a UI interest but describes gameplay and engine work; the index should reach games through the goal and the C++.",
+      "profile": {
+        "interests": ["UI/UX & Frontend Experiences"],
+        "current_skills": ["C++", "C", "Problem Solving"],
+        "career_goal": "build 3D game worlds, physics and gameplay systems"
+      },
+      "expect": ["game_developer"]
+    },
+    {
+      "id": "meaning_data_engineer_from_ui",
+      "note": "Batch pipeline work described in the candidate's own words, with no data chip selected.",
+      "profile": {
+        "interests": ["UI/UX & Frontend Experiences"],
+        "current_skills": ["Python", "SQL / MySQL / PostgreSQL", "Docker", "AWS"],
+        "career_goal": "build and schedule the batch pipelines that feed the warehouse"
+      },
+      "expect": ["data_engineer"]
+    },
+    {
+      "id": "meaning_robotics_from_cloud",
+      "note": "Cloud chip, but the goal and C++/Python describe programming warehouse robots.",
+      "profile": {
+        "interests": ["Cloud, DevOps & Linux"],
+        "current_skills": ["Python", "C++", "Linux"],
+        "career_goal": "program ROS nodes that move goods around a warehouse floor"
+      },
+      "expect": ["robotics_engineer"]
+    },
+    {
+      "id": "meaning_computer_vision_from_cloud",
+      "note": "The goal names a perception problem the chips never mention.",
+      "profile": {
+        "interests": ["Cloud, DevOps & Linux"],
+        "current_skills": ["Python", "Deep Learning (PyTorch)", "Docker"],
+        "career_goal": "train models that detect and track objects in live camera feeds"
+      },
+      "expect": ["computer_vision_engineer"]
+    },
+    {
+      "id": "meaning_iot_from_ml",
+      "note": "Hardware-to-cloud bridging described directly, with an ML chip instead of a cloud one.",
+      "profile": {
+        "interests": ["Machine Learning & Research"],
+        "current_skills": ["C", "C++", "Python", "Linux"],
+        "career_goal": "connect factory sensors and machines to the cloud"
+      },
+      "expect": ["iot_engineer"]
+    },
+    {
+      "id": "meaning_grc_audit",
+      "note": "Compliance work: the goal names ISO 27001 and audits, which no chip expresses. The chip chosen is a quality/controls mindset — deliberately not one of the interest chips the role lists, so the case tests meaning rather than keyword overlap.",
+      "profile": {
+        "interests": ["Automation & Testing Quality"],
+        "current_skills": ["Excel Modeling", "Client Communication", "SQL / MySQL / PostgreSQL"],
+        "career_goal": "run security audits and keep us compliant with ISO 27001"
+      },
+      "expect": ["grc_analyst"]
+    },
+    {
+      "id": "meaning_quantitative_analyst",
+      "note": "Pricing and backtesting described in words; the quantitative role is the one meant, not a general analyst.",
+      "profile": {
+        "interests": ["Coding & Problem Solving"],
+        "current_skills": ["Python", "SQL / MySQL / PostgreSQL", "Excel Modeling"],
+        "career_goal": "price derivatives and backtest trading strategies"
+      },
+      "expect": ["quantitative_analyst"]
+    },
+    {
+      "id": "multi_ml_engineer_or_scientist",
+      "note": "A modelling profile that genuinely spans two roles: building models and investigating with them. Two labels, so recall is measured over both.",
+      "profile": {
+        "interests": ["Machine Learning & Research", "Coding & Problem Solving"],
+        "current_skills": ["Python", "Deep Learning (PyTorch)", "Machine Learning (Scikit-Learn)"],
+        "career_goal": "train models and measure whether they actually help"
+      },
+      "expect": ["ml_engineer", "data_scientist"]
+    },
+    {
+      "id": "multi_cloud_engineer_or_architect",
+      "note": "Multi-cloud depth with an architecture interest; both the hands-on and the design role are defensible.",
+      "profile": {
+        "interests": ["Cloud, DevOps & Linux", "Product Management & Strategy"],
+        "current_skills": ["AWS", "GCP", "Kubernetes", "System Architecture"],
+        "career_goal": "design how our services are laid out across cloud providers"
+      },
+      "expect": ["aws_cloud_architect", "cloud_engineer"]
+    },
+    {
+      "id": "dotnet_services_not_java",
+      "note": "Backend again, but with C/C++ rather than the Java stack: the label checks the index does not simply return 'a backend role' for every backend profile.",
+      "profile": {
+        "interests": ["Backend Systems & Databases", "Coding & Problem Solving"],
+        "current_skills": ["C", "C++", "System Architecture"],
+        "career_goal": "build C# services on .NET for internal systems"
+      },
+      "expect": ["dotnet_developer"]
+    },
+    {
+      "id": "nlp_conversational",
+      "note": "Language understanding rather than generative applications.",
+      "profile": {
+        "interests": ["AI, LLMs & Autonomous Agents", "Machine Learning & Research"],
+        "current_skills": ["Python", "Deep Learning (PyTorch)", "Machine Learning (Scikit-Learn)"],
+        "career_goal": "make our support system understand what customers are asking"
+      },
+      "expect": ["nlp_engineer"]
+    },
+    {
+      "id": "product_design_flows",
+      "note": "Interface design as a craft: the product designer, not the front-end developer.",
+      "profile": {
+        "interests": ["UI/UX & Frontend Experiences", "Product Management & Strategy"],
+        "current_skills": ["HTML & CSS", "Client Communication"],
+        "career_goal": "design the flows and screens for a new product area"
+      },
+      "expect": ["product_designer"]
+    }
+  ]
+}
