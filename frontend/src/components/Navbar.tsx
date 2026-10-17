@@ -41,6 +41,9 @@ export default function Navbar() {
           <NavLink to="/roles" className={navClass}>
             All Roles
           </NavLink>
+          <NavLink to="/jobs" className={navClass}>
+            💼 Jobs
+          </NavLink>
           <NavLink to="/roadmaps" className={navClass}>
             🗺️ Roadmaps
           </NavLink>

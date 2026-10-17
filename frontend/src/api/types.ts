@@ -195,6 +195,45 @@ export interface TrackerState {
   metrics: TrackerMetrics;
 }
 
+// ── Live job postings ─────────────────────────────────────────────────────────
+/**
+ * One posting from the public job boards, exactly as `GET /jobs/search` returns
+ * it (see `backend/app/schemas.py` → `JobPosting`). These are live listings, not
+ * catalogued roles: there is no fit score, only the index's cosine `similarity`.
+ */
+export interface JobPosting {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  /** The board's own remote flag; false means "not stated as remote". */
+  remote: boolean;
+  /** The board's own wording, e.g. "Full Time", "Internship"; "" when blank. */
+  employment_type: string;
+  /** The board's seniority labels; empty for boards that do not publish one. */
+  seniority: string[];
+  categories: string[];
+  /** Pre-rendered by the ingest, e.g. "EUR 80000-100000 / annual"; "" when undisclosed. */
+  salary_text: string;
+  /** Publication date (YYYY-MM-DD), or "" when the board gave none. */
+  published: string;
+  /** The board's own listing — the original application link. */
+  url: string;
+  /** Which board it came from, e.g. "himalayas" or "arbeitnow". */
+  source: string;
+  excerpt: string;
+  similarity: number;
+}
+
+export interface JobSearchResponse {
+  /** The query the server actually ran (echoed back). */
+  query: string;
+  /** False when the `job_role` index has not been built on this server. */
+  available: boolean;
+  count: number;
+  results: JobPosting[];
+}
+
 // ── Chat ──────────────────────────────────────────────────────────────────────
 export type ChatRole = "user" | "model";
 

@@ -186,6 +186,9 @@ collection, returning each listing with its salary text, publication date and th
 Until §2.9 has been run the endpoint still answers `200` with `available: false` and no rows, so a
 client can hide the section instead of surfacing an error — nothing else in the app depends on it.
 
+The React **Jobs** page (§3.4) is the front end for this endpoint, and every match card deep-links
+into it with its role prefilled.
+
 ---
 
 ## 3. Frontend — React (Vite)
@@ -227,6 +230,14 @@ npm run dev
 
 Open <http://localhost:5173>. You should see the CareerCompass home page.
 Then try **All Roles** — if the full 100-role catalog loads, the frontend is talking to the backend.
+
+Then open **💼 Jobs** in the navigation. Type a role (e.g. `kubernetes engineer`) and press
+**Search jobs**: you should get live postings. Add a location or pick an experience level and the
+list narrows while the page still reports how many postings the index ranked. If §2.9 has not been
+run, the page shows a note telling you to run the migration instead of an error — that is expected.
+
+The same page is reachable from any match card: open **My Matches** and press **💼 Explore Jobs** on
+a card. The role is filled into the search box and the results load immediately.
 
 Leave this terminal running.
 

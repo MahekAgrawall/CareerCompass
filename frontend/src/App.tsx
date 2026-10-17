@@ -8,6 +8,7 @@ import ProfilePage from "@/pages/ProfilePage";
 import MatchesPage from "@/pages/MatchesPage";
 import DirectoryPage from "@/pages/DirectoryPage";
 import RoleDetailPage from "@/pages/RoleDetailPage";
+import JobsPage from "@/pages/JobsPage";
 import ComparePage from "@/pages/ComparePage";
 import RoadmapPage from "@/pages/RoadmapPage";
 import RoadmapsPage from "@/pages/RoadmapsPage";
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/matches" element={<MatchesPage />} />
         <Route path="/roles" element={<DirectoryPage />} />
+        <Route path="/jobs" element={<JobsPage />} />
         <Route path="/roles/:roleId" element={<RoleDetailPage />} />
         <Route path="/compare" element={<ComparePage />} />
         <Route path="/roadmap/:roleId" element={<RoadmapPage />} />

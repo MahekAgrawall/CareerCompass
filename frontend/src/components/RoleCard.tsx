@@ -118,18 +118,29 @@ export default function RoleCard({ role, match, onCompareFull }: RoleCardProps) 
         1–3y: ₹{sal.mid_1_3.min}–{sal.mid_1_3.max} LPA
       </p>
 
-      <div className="mt-auto flex gap-2 pt-4">
-        <Link to={`/roles/${role.id}`} className="btn btn-primary flex-1">
-          View Specs & Roadmap
-        </Link>
-        <button
-          type="button"
-          onClick={handleCompare}
-          className="btn btn-secondary flex-1"
-          aria-pressed={selected}
-        >
-          {selected ? "✓ Added" : "⚖️ Compare"}
-        </button>
+      <div className="mt-auto pt-4">
+        <div className="flex gap-2">
+          <Link to={`/roles/${role.id}`} className="btn btn-primary flex-1">
+            View Specs & Roadmap
+          </Link>
+          <button
+            type="button"
+            onClick={handleCompare}
+            className="btn btn-secondary flex-1"
+            aria-pressed={selected}
+          >
+            {selected ? "✓ Added" : "⚖️ Compare"}
+          </button>
+        </div>
+        {/* Match cards only: the role you matched is the search you want next. */}
+        {match && (
+          <Link
+            to={`/jobs?role=${encodeURIComponent(role.title)}`}
+            className="btn btn-secondary mt-2 w-full"
+          >
+            💼 Explore Jobs
+          </Link>
+        )}
       </div>
     </div>
   );

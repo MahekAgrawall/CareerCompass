@@ -18,6 +18,7 @@ and the original **Streamlit** app preserved in `legacy/` for reference.
 | 🎯 **Interest-first, transparent role matching** | Ranks roles by how well they align with your *stated* interests (65% weight) and your existing skills (35% weight), and filters out roles with zero interest synergy. Every card shows the arithmetic: the two component scores, the interests and skills that counted, and the profile chips that would raise the match. |
 | 🧠 **Semantic recall** | A two-stage matcher: candidates are first *recalled* from a Qdrant vector index (so a role can surface on the meaning of your profile and free-text goal, not only on identical chips), then *scored and explained* by the same transparent formula as ever. Each result says whether it was found by keywords, by meaning, or both. The index is optional and built by an explicit migration — without it, matching is keyword-only. |
 | 📚 **Role catalog** | 100 curated corporate and modern engineering roles across 8 categories — including AI/ML, data, cloud, security, hardware and product tracks — each with responsibilities, qualifications, growth paths, and hiring companies. |
+| 💼 **Live jobs, filtered** | A dedicated **Jobs** page searches the postings collected from the public boards and filters them by role, location and experience. Every match card carries an **Explore Jobs** action that deep-links to the page with that role already filled in and searched. Cards show the posting's title, company, location, work arrangement, salary when the board states one, posting date, source and the original application link. |
 | 💰 **India salary benchmarks** | Fresher (0–1 yr), mid (1–3 yrs) and senior (3+ yrs) CTC bands for every role, each stated as an *envelope* — low end a typical mid-market/services offer, high end a strong product-company or GCC offer — with the market and product-company medians and every source (and its sample size) linked on the role page. |
 | 🤖 **AI skill roadmap** | Google Gemini generates a structured 3-phase plan (Immediate → Level Up → Explore) with one curated free resource per skill. |
 | 🛠️ **Portfolio projects** | Each roadmap includes 3 hands-on project ideas with difficulty ratings and validated skills. |
@@ -130,6 +131,18 @@ this data: when the index has not been built the endpoint still answers `200`, w
 `available: false` and no rows, so a client hides the section instead of surfacing an error. The
 endpoint is public, like `/roles` — these are public listings carrying no user data.
 
+The React **Jobs** page is that endpoint's front end. It opens from the navbar, and every match card
+carries an **Explore Jobs** action that deep-links to it with the role prefilled (`/jobs?role=…`), so
+going from a match to that role's live openings is one click; the URL stays the committed search, so
+the page is shareable and survives a refresh. Because the endpoint takes a *single* search string,
+the page's three filters work in two stages and say so: all of them steer the semantic ranking, and
+location and experience then narrow the returned window against the fields a posting actually
+carries (`location`, `remote`, `seniority`, `employment_type`, `title`). The page reports both
+numbers — what the index ranked and what survived filtering — instead of implying the filters swept
+the whole collection. It also handles the three load-time realities honestly: a spinner while the
+search runs, `available: false` as a "run the migration" note rather than an error, and a clear
+empty state when either nothing matched or the filters removed everything the index returned.
+
 ---
 
 ## 🧰 Tech Stack
@@ -178,12 +191,12 @@ career-compass/
 ├── frontend/
 │   ├── src/
 │   │   ├── api/               ← fetch client, typed endpoints, mirrored types
-│   │   ├── components/        ← navbar, role cards, badges, alerts, layout…
-│   │   ├── pages/             ← home · auth · profile · matches · directory
+│   │   ├── components/        ← navbar, role & job cards, badges, alerts, layout…
+│   │   ├── pages/             ← home · auth · profile · matches · directory · jobs
 │   │   │                        role detail · compare · roadmap · roadmaps
 │   │   │                        tracker · chat
 │   │   ├── state/             ← Auth · Profile · Compare · Roadmap contexts
-│   │   └── lib/               ← option vocabularies, formatting, markdown export
+│   │   └── lib/               ← option vocabularies, formatting, job filters, markdown export
 │   ├── package.json
 │   └── .env.example
 │
@@ -405,6 +418,11 @@ GitHub Actions runs both on every push and pull request (see `.github/workflows/
   complete picture of the market, and the two collections must be re-ingested separately when the
   embedding space changes. The postings are shown as the boards published them: no salary
   normalisation and no cross-board de-duplication beyond title and company.
+- **Job filters see the ranked window** — the endpoint has one search string and no location or
+  experience parameters, so the Jobs page's location and experience filters narrow the postings the
+  index ranked (the 50 closest), not the whole collection, and most boards leave `seniority` empty.
+  The page states the ranked and surviving counts for exactly that reason; teaching the endpoint
+  real payload filters is the natural next step.
 - **Refresh tokens** — access tokens are long-lived for a demo; refresh-token rotation is future work.
 - **Theming** — a single polished light theme.
 

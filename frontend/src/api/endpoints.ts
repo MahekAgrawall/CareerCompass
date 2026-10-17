@@ -2,6 +2,7 @@
 import { api, apiStream } from "./client";
 import type {
   ChatMessage,
+  JobSearchResponse,
   MatchResponse,
   MeResponse,
   Profile,
@@ -69,6 +70,17 @@ export const matchRoles = (
     experience: context.experience ?? "",
     work_mode: context.workMode ?? "",
   });
+
+// ── Live jobs ─────────────────────────────────────────────────────────────────
+/**
+ * `GET /jobs/search` takes exactly one free-text query and a bounded page size
+ * (`q` 1–200 characters, `limit` 1–50), and returns `{query, available, count,
+ * results}`. Location and experience are not separate server parameters, so the
+ * Jobs page feeds them into `q` and refines the returned window — see
+ * `lib/jobs.ts` for why.
+ */
+export const searchJobs = (query: string, limit = 50) =>
+  api.get<JobSearchResponse>(`/jobs/search?q=${encodeURIComponent(query)}&limit=${limit}`);
 
 // ── Roadmap ───────────────────────────────────────────────────────────────────
 export const generateRoadmap = (roleId: string, profile: Partial<Profile>, signal?: AbortSignal) =>
