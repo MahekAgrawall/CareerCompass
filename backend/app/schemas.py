@@ -139,6 +139,34 @@ class JobPosting(BaseModel):
     similarity: float
 
 
+class HarvestFreshness(BaseModel):
+    """When the live postings were pulled, and whether that is getting old.
+
+    Recorded by `scripts.ingest_jobs` beside the collection, never derived from
+    the postings themselves: a board keeps serving a listing after the job is
+    filled, so the boards' publication dates say when a job was posted — never
+    when CareerCompass last looked at it.
+
+    Empty strings mean "not recorded", which is the honest answer on a
+    `QDRANT_URL` deployment, whose sidecar is written next to the ingest rather
+    than next to the API. `age_days` and `stale` are the backend's own reading of
+    that date so no client has to re-implement the threshold.
+    """
+
+    #: UTC ISO 8601, e.g. "2026-10-18T09:14:02+00:00", or "" when unrecorded.
+    harvested_at: str = ""
+    #: When that harvest was loaded into the index. Informational: a re-ingest of
+    #: an old artifact moves this and leaves `harvested_at` alone.
+    ingested_at: str = ""
+    #: Whole days since the harvest, or None when there is no usable date.
+    age_days: Optional[int] = None
+    #: True once the harvest is at least `stale_after_days` old.
+    stale: bool = False
+    #: The threshold `stale` was decided with, so a client can word the warning
+    #: ("older than two weeks") without hard-coding the number.
+    stale_after_days: int = 14
+
+
 class JobSearchResponse(BaseModel):
     #: The text the ranking actually ran on: the caller's query, or their filter
     #: terms when they typed none.
@@ -154,6 +182,8 @@ class JobSearchResponse(BaseModel):
     matched: int
     # How many postings the collection holds, filters or no filters.
     indexed: int
+    # When this data was harvested, and whether that is old enough to warn about.
+    freshness: HarvestFreshness
     results: List[JobPosting]
 
 

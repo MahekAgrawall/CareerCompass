@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import API_TITLE, API_VERSION, CORS_ORIGINS
 from app.routers import applications, auth, chat, jobs, match, profile, roadmap, roles, tracker
 from database.db import init_db
-from services import vector_store
+from services import job_service, vector_store
 
 
 @asynccontextmanager
@@ -47,9 +47,18 @@ def health():
         semantic = vector_store.index_status()
     except Exception as exc:  # never let diagnostics break liveness
         semantic = {"available": False, "error": str(exc)}
+    # Reported here as well as on `/jobs/search` so an uptime monitor can see a
+    # feed going stale without running a search — the other half of scheduling a
+    # re-ingest is being able to tell that it is due.
+    jobs = {}
+    try:
+        jobs = job_service.freshness()
+    except Exception as exc:  # noqa: BLE001 - diagnostics must never raise
+        jobs = {"error": str(exc)}
     return {
         "status": "ok",
         "service": API_TITLE,
         "version": API_VERSION,
         "semantic_index": semantic,
+        "job_postings": jobs,
     }

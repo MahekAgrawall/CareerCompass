@@ -284,7 +284,11 @@ class CollectTests(unittest.TestCase):
         job_feed.save([PLATFORM, DESIGNER], path)
         self.assertEqual(job_feed.load(path), [PLATFORM, DESIGNER])
         with open(path, encoding="utf-8") as handle:
-            self.assertIsInstance(json.load(handle), list)
+            artifact = json.load(handle)
+        # The artifact is an object now: it carries the postings *and* when they
+        # were harvested (see `test_job_freshness`), not a bare list.
+        self.assertEqual(artifact["postings"], [PLATFORM, DESIGNER])
+        self.assertTrue(artifact["harvested_at"])
 
 
 class IngestJobsTests(IndexBackedTest):

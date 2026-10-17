@@ -18,7 +18,7 @@ and the original **Streamlit** app preserved in `legacy/` for reference.
 | 🎯 **Interest-first, transparent role matching** | Ranks roles by how well they align with your *stated* interests (65% weight) and your existing skills (35% weight), and filters out roles with zero interest synergy. Every card shows the arithmetic: the two component scores, the interests and skills that counted, and the profile chips that would raise the match. |
 | 🧠 **Semantic recall** | A two-stage matcher: candidates are first *recalled* from a Qdrant vector index (so a role can surface on the meaning of your profile and free-text goal, not only on identical chips), then *scored and explained* by the same transparent formula as ever. Each result says whether it was found by keywords, by meaning, or both. The index is optional and built by an explicit migration — without it, matching is keyword-only. |
 | 📚 **Role catalog** | 100 curated corporate and modern engineering roles across 8 categories — including AI/ML, data, cloud, security, hardware and product tracks — each with responsibilities, qualifications, growth paths, and hiring companies. |
-| 💼 **Live jobs, filtered** | A dedicated **Jobs** page searches the postings collected from the public boards and filters them by role, location, work arrangement and experience — the filters run in the vector store, so the counts cover the whole collection — and a **✨ Use my profile** action runs the search straight off your questionnaire answers. Every match card carries an **Explore Jobs** action that deep-links to the page with that role already filled in and searched, and each role card and role page also lists its own **live openings** inline, ranked with your profile folded in (`POST /jobs/for-role`). Cards show the posting's title, company, location, work arrangement, salary when the board states one, posting date, source and the original application link. |
+| 💼 **Live jobs, filtered** | A dedicated **Jobs** page searches the postings collected from the public boards and filters them by role, location, work arrangement and experience — the filters run in the vector store, so the counts cover the whole collection — and a **✨ Use my profile** action runs the search straight off your questionnaire answers. Every match card carries an **Explore Jobs** action that deep-links to the page with that role already filled in and searched, and each role card and role page also lists its own **live openings** inline, ranked with your profile folded in (`POST /jobs/for-role`). Cards show the posting's title, company, location, work arrangement, salary when the board states one, posting date, source and the original application link — and every search says when the postings were **harvested**, with an amber warning once that date is more than two weeks old. |
 | 🔖 **Saved jobs & application tracking** | Every posting carries a **Save job** button, and the saved ones live on an **Applications** page grouped by the stages a search actually follows — Saved → Applied → Interview → Offer, plus Closed for the ones that went nowhere — each with a free-text note, the date it was last moved, and a link back to the original listing. A row is a *snapshot* taken when it was saved, so it survives the board taking the listing down and the index being rebuilt; it is private to the account, and saving the same posting twice can never reset a stage you already advanced. |
 | 💰 **India salary benchmarks** | Fresher (0–1 yr), mid (1–3 yrs) and senior (3+ yrs) CTC bands for every role, each stated as an *envelope* — low end a typical mid-market/services offer, high end a strong product-company or GCC offer — with the market and product-company medians and every source (and its sample size) linked on the role page. |
 | 🤖 **AI skill roadmap** | Google Gemini generates a structured 3-phase plan (Immediate → Level Up → Explore) with one curated free resource per skill. Every role card has a one-click **Generate AI Roadmap** button that lands on the rendered plan. |
@@ -204,6 +204,22 @@ internship. There is deliberately no fallback here, because unlike the curated c
 the *only* copy of this data: when the index has not been built the endpoint still answers `200`, with
 `available: false` and no rows, so a client hides the section instead of surfacing an error. The
 endpoint is public, like `/roles` — these are public listings carrying no user data.
+
+Live postings age, so the feed also carries its own **provenance**. The harvest is stamped when it is
+pulled: `services/job_feed.save` writes `{"harvested_at", "postings"}` rather than a bare list (an
+artifact from an older version still loads, with no date), and `scripts.ingest_jobs` copies that date
+— plus the ingest time — into a sidecar beside the collection (`<index>/job_role.meta.json`, the same
+mechanism the embedding-space guard uses). `GET /jobs/search` therefore reports a `freshness` block:
+the harvest date, the whole days since it, and whether that has reached
+`job_service.STALE_AFTER_DAYS` (14). The judgement is the backend's and the page renders it rather
+than re-deciding, so it shows "Harvested on 2026‑09‑22 (25 days ago)" under the results and adds an
+amber warning past the threshold — because a board goes on serving a listing after the job is filled,
+so a posting's own date says when the *job* was posted, never when CareerCompass last looked. When
+nothing recorded a date, the response says so instead of inventing one, which is the honest answer on
+a `QDRANT_URL` deployment: the sidecar is written next to the ingest, and that is not necessarily the
+machine answering requests. `/health` reports the same block, so a monitor can see a feed going stale
+without running a search. Re-ingesting is still an explicit migration, but it now takes
+`--if-stale DAYS`, which makes a frequent schedule a no-op while the feed is young (see SETUP §2.9).
 
 `POST /jobs/for-role` is the other read over the same collection. Given a catalogued role id and the
 candidate's questionnaire answers, it ranks the postings against that role's own index document *plus*
@@ -413,14 +429,14 @@ streamlit run app.py        # http://localhost:8501
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| `GET` | `/health` | — | Service health, including semantic-index status (provider, collection, points) |
+| `GET` | `/health` | — | Service health, including semantic-index status (provider, collection, points) and job-feed freshness |
 | `POST` | `/auth/signup` | — | Create an account, returns a JWT |
 | `POST` | `/auth/login` | — | Authenticate, returns a JWT |
 | `GET` | `/auth/me` | ✅ | Current user + profile |
 | `GET` | `/roles` | — | Full role catalog, each role carrying its salary bands, review date and sources |
 | `GET` | `/roles/categories` | — | Distinct categories |
 | `GET` | `/roles/{role_id}` | — | Single role, including its salary provenance |
-| `GET` | `/jobs/search?q=…&location=…&remote=…&experience=…&limit=…` | — | Live job postings: `q` ranks, the filters are applied by the store, and the response reports `count`/`matched`/`indexed` (`available: false` until the `job_role` index is built) |
+| `GET` | `/jobs/search?q=…&location=…&remote=…&experience=…&limit=…` | — | Live job postings: `q` ranks, the filters are applied by the store, the response reports `count`/`matched`/`indexed` and how old the data is (`freshness`), and it says `available: false` until the `job_role` index is built |
 | `POST` | `/jobs/for-role` | — | Live job postings nearest to one catalogued role, ranked with the candidate's questionnaire answers (`available: false` until the index is built) |
 | `GET` | `/applications` | ✅ | The candidate's saved postings and their stages, most recently touched first |
 | `POST` | `/applications` | ✅ | Save a posting (the snapshot travels in the body). Idempotent by posting id: `201` when the row is new, `200` with the row already stored |
@@ -588,6 +604,15 @@ GitHub Actions runs both on every push and pull request (see `.github/workflows/
   complete picture of the market, and the two collections must be re-ingested separately when the
   embedding space changes. The postings are shown as the boards published them: no salary
   normalisation and no cross-board de-duplication beyond title and company.
+- **The live feed is refreshed by hand** — nothing in the app re-harvests on its own. It does now
+  *report* the harvest date (`freshness` on `/jobs/search`, `job_postings` on `/health`) and warns
+  past two weeks, and the migration takes `--if-stale N` so a scheduled run can be a cheap no-op —
+  but the schedule itself is a deployment decision (a cron entry, a systemd timer, a Task Scheduler
+  job; see SETUP §2.9), and on the default embedded Qdrant it can only run while the API is stopped,
+  because that index directory is locked by whichever process has it open. Until a schedule exists,
+  the honest thing the app does is *say* the feed is old instead of implying it is current. The
+  freshness sidecar is local-only, like the embedding-space one: a `QDRANT_URL` deployment that
+  shares no volume with the ingest reports the date as "not recorded".
 - **Job filters read the boards' own wording** — location, arrangement and experience are real
   payload filters now, applied to the whole `job_role` collection rather than to the 50 postings a
   search ranked, but they are only as good as what the boards publish. Most postings carry no

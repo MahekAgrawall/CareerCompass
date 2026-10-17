@@ -223,6 +223,49 @@ against that role's index document plus the candidate's questionnaire answers, s
 personalised. It fills the **live openings** list on each role card and on the role page. An empty
 `profile` is fine — the search then degrades to the role itself.
 
+**Freshness.** The feed records when it was harvested. The artifact carries a `harvested_at` stamp
+(`{"harvested_at", "postings"}` — an older bare-list file still loads, with no date), and the ingest
+writes that date plus its own into `<index>/job_role.meta.json`. `GET /jobs/search` reports both in a
+`freshness` block (`harvested_at`, `ingested_at`, `age_days`, `stale`, `stale_after_days` = 14), and
+`/health` reports the same under `job_postings`, so a monitor can alert on a stale feed without
+running a search. The Jobs page shows "Harvested on … (N days ago)" under every set of results, and
+an amber warning once the feed is past two weeks. A `--from-file` re-ingest reports the *artifact's*
+date rather than the day it ran, so re-loading old data cannot age it up to today. On a `QDRANT_URL`
+deployment the sidecar is written next to the ingest; a server that shares no volume with it reports
+the date as "not recorded" instead of guessing.
+
+**Re-ingest on a schedule.** `--if-stale DAYS` does nothing at all when the current harvest is
+younger than `DAYS`, which is what makes a frequent schedule cheap: point a scheduler at it and the
+run is a no-op until the feed is really getting old.
+
+```powershell
+# Hourly, but only actually harvests once the feed is 3 days old or more
+.\.venv\Scripts\python.exe -m scripts.ingest_jobs --limit 1000 --if-stale 3
+```
+
+Which schedule is possible depends on the store:
+
+* **Embedded Qdrant (the default)** — the index directory is locked by whichever process has it
+  open, so a harvest cannot run while the API is serving. Schedule it for a window with the server
+  stopped (a nightly maintenance slot is the usual answer); the API reports the new date as soon as
+  it is back up.
+* **`QDRANT_URL` set** — the store is a separate server, the lock is not a factor, and the harvest
+  can run on its own schedule. Both examples below assume this.
+
+```bash
+# cron: hourly, and the command itself decides whether there is work to do
+0 * * * * cd /srv/career-compass/backend && .venv/bin/python -m scripts.ingest_jobs --limit 1000 --if-stale 3 >> /var/log/careercompass-harvest.log 2>&1
+```
+
+```powershell
+# Windows Task Scheduler: one hourly trigger
+schtasks /create /tn "CareerCompass harvest" /sc HOURLY /mo 1 /f /tr "cmd /c cd /d C:\path\to\career-compass\backend && .venv\Scripts\python.exe -m scripts.ingest_jobs --limit 1000 --if-stale 3"
+```
+
+`--rebuild` overrides `--if-stale`, and a run with no recorded date yet (the first one) always does
+the work. To see what a schedule actually did, read the freshness rather than the log:
+<http://127.0.0.1:8000/health> → `job_postings`.
+
 ---
 
 ### 2.10 Measure how good the role recall actually is (optional)
@@ -419,6 +462,8 @@ backend's `CORS_ORIGINS`.
 | `scripts.ingest_jobs` reports no postings / a board was skipped | A job board was unreachable or returned nothing; the other board was still used. Re-run later, or ingest the saved `data/job_postings.json` with `--from-file`. |
 | `GET /jobs/search` returns `available: false` and no rows | The `job_role` collection has not been built yet. Run §2.9 (or `--from-file data\job_postings.json` if you already collected once). The endpoint answers honestly rather than erroring — nothing else depends on it. |
 | `/jobs/search` with a filter returns nothing, and the log says "Text index required" | Only affects `QDRANT_URL` deployments: a Qdrant server refuses a full-text filter unless the field has a text index, and this collection was ingested before the filters existed. Re-run §2.9 — it creates the payload indexes. The embedded store ignores payload indexes, so a default setup is never affected. |
+| The Jobs page says the postings are **getting old** | The feed has not been re-harvested since the date shown. Re-run §2.9 (which records a new harvest date), or wire up the schedule there. Nothing is broken: the page is saying the data is old rather than implying it is current. |
+| `/jobs/search` reports `harvested_at: ""` | Nothing recorded a harvest date for this index — it was built before freshness existed, or the sidecar is missing (with `QDRANT_URL` set it is written next to the *ingest*, not next to the API). Re-run §2.9 on the ingest host to record one; the feed otherwise works normally. |
 | `FutureWarning` about `google.generativeai` | Harmless; the SDK is deprecated and migration is planned. |
 
 ---
@@ -443,7 +488,10 @@ calls Gemini or touches your real `backend/data/qdrant/` index. The live job-fee
 (`test_job_feed.py`) replace the single function that touches the network, so no test reaches a job
 board either; `test_job_api.py` covers the `/jobs/search` and `/jobs/for-role` read paths against a
 throwaway index, including the payload filters and the honest counts (`count` vs `matched` vs
-`indexed`), and `test_applications.py` covers saved jobs end to end — auth, idempotent saving,
+`indexed`), and `test_job_freshness.py` covers the harvest provenance — the stamp on the artifact,
+the sidecar the ingest writes, the age the API reports (including "not recorded" when there is
+none), and that `--if-stale` skips without touching the collection. `test_applications.py` covers
+saved jobs end to end — auth, idempotent saving,
 ownership, the stage vocabulary and the snapshot round-trip. `test_prompts.py` checks the prompt
 library: every template the AI calls need exists
 on disk, renders without a leftover placeholder, reaches the model as the same text the inline prompt

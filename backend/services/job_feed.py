@@ -15,6 +15,12 @@ Both asks are respected: a descriptive `User-Agent`, a short pause between pages
 a hard cap on pages per source, and every posting keeps its board name and its own
 URL so the original listing stays one click away.
 
+What is collected is written to an artifact that records **when it was pulled**
+(`save`/`load_artifact`), because postings age: a board goes on serving a listing
+after the job is filled, and nothing in the posting itself says when we looked.
+That stamp travels with the data into the index, so the API can tell a candidate
+how old the feed is instead of implying it is live.
+
 Network access is confined to `_get_json`, so the whole module can be tested
 offline against captured fixtures. Normalisation, de-duplication and document
 building are pure functions.
@@ -345,17 +351,59 @@ def rows(postings: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 # ── Artifact ──────────────────────────────────────────────────────────────────
-def save(postings: List[Dict[str, Any]], path: str) -> str:
-    """Writes the collected postings next to the app, so re-ingesting is offline."""
+def harvest_stamp() -> str:
+    """Now, in the form an artifact records it: UTC, ISO 8601, second precision.
+
+    Seconds rather than microseconds because this is a date a person reads, not
+    an event to order: `2026-10-18T09:14:02+00:00`.
+    """
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def save(
+    postings: List[Dict[str, Any]], path: str, harvested_at: str = ""
+) -> str:
+    """Writes the collected postings *and when they were pulled*.
+
+    The timestamp is the artifact's own provenance. A board keeps serving a
+    listing after the job is filled, so postings age silently — the publication
+    dates say when a job was posted, never when we looked at it — and an index
+    built from this file inherits whatever date is written here. Passing one in
+    keeps `--from-file` honest, because a re-ingest of an old artifact must not
+    claim today's date.
+    """
+    artifact = {
+        "harvested_at": harvested_at or harvest_stamp(),
+        "postings": list(postings),
+    }
     directory = os.path.dirname(os.path.abspath(path))
     if directory:
         os.makedirs(directory, exist_ok=True)
     with open(path, "w", encoding="utf-8") as handle:
-        json.dump(postings, handle, ensure_ascii=False, indent=1)
+        json.dump(artifact, handle, ensure_ascii=False, indent=1)
     return path
+
+
+def load_artifact(path: str) -> Dict[str, Any]:
+    """The artifact as saved: `{"harvested_at": ..., "postings": [...]}`.
+
+    A bare JSON list is accepted as an artifact written before the harvest time
+    was recorded: it loads with an empty stamp rather than failing, so a file
+    collected by an older version still re-ingests.
+    """
+    with open(path, encoding="utf-8") as handle:
+        artifact = json.load(handle)
+    if isinstance(artifact, list):
+        return {"harvested_at": "", "postings": artifact}
+    if not isinstance(artifact, dict):
+        return {"harvested_at": "", "postings": []}
+    postings = artifact.get("postings")
+    return {
+        "harvested_at": str(artifact.get("harvested_at") or ""),
+        "postings": list(postings) if isinstance(postings, list) else [],
+    }
 
 
 def load(path: str) -> List[Dict[str, Any]]:
     """Reads a previously collected artifact (see `save`)."""
-    with open(path, encoding="utf-8") as handle:
-        return json.load(handle)
+    return load_artifact(path)["postings"]

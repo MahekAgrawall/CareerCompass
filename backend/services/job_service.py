@@ -18,8 +18,14 @@ they travel to Qdrant as a payload filter, so they narrow the whole collection
 and `matched` is an honest count of it. Running them in Python over the ranked
 window instead would make every number on the page a statement about the fifty
 postings the search happened to return.
+
+Every response also carries `freshness` (see the function): the date the postings
+were harvested, and whether that is old enough to warn about. Live postings age —
+a board keeps serving a listing after it is filled — so "12 of 87 matching" is
+only half a sentence without "harvested 20 days ago".
 """
 
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from services import vector_store
@@ -29,6 +35,12 @@ MAX_LIMIT = 50
 
 #: A role card shows a short list; the candidate opens more by searching.
 ROLE_DEFAULT_LIMIT = 5
+
+#: How old a harvest may get before the page says so. Two weeks is longer than a
+#: board's own listings usually survive, so past this the note is honest advice
+#: rather than a nag. `scripts.ingest_jobs --if-stale` defaults to the same
+#: number, so "too old to show without comment" and "time to refresh" agree.
+STALE_AFTER_DAYS = 14
 
 #: The experience buckets a client may ask for. Boards leave `seniority` blank
 #: for almost every posting (only one of the two boards publishes it at all), so
@@ -168,6 +180,48 @@ def posting_filter(
     return models.Filter(must=must) if must else None
 
 
+def age_days(harvested_at: str) -> Optional[int]:
+    """Whole UTC days since `harvested_at`, or None when it is not a timestamp.
+
+    Floors rather than rounds, so "13 days and 23 hours" still reads as 13 — the
+    page never claims more age than the record supports.
+    """
+    if not harvested_at:
+        return None
+    try:
+        harvested = datetime.fromisoformat(str(harvested_at).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if harvested.tzinfo is None:
+        harvested = harvested.replace(tzinfo=timezone.utc)
+    return max(0, (datetime.now(timezone.utc) - harvested).days)
+
+
+def freshness(meta: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """When the live postings were harvested, and whether that is getting old.
+
+    Read from the sidecar `scripts.ingest_jobs` writes beside the collection
+    (`vector_store.record_meta`), not derived from the postings: the boards'
+    publication dates say when a job was posted, never when we last looked. Every
+    date is UTC ISO 8601, and an empty string means "not recorded" — the honest
+    answer on a `QDRANT_URL` deployment, whose sidecar lives next to the ingest.
+
+    `age_days` is whole days since the harvest (None when unknown) and `stale`
+    is True once that reaches `STALE_AFTER_DAYS`; a client is given both, plus
+    the threshold, so it can word the warning without hard-coding the number.
+    """
+    meta = vector_store.recorded_meta(vector_store.JOBS_COLLECTION) if meta is None else meta
+    harvested_at = str(meta.get("harvested_at") or "")
+    age = age_days(harvested_at)
+    return {
+        "harvested_at": harvested_at,
+        "ingested_at": str(meta.get("ingested_at") or ""),
+        "age_days": age,
+        "stale": age is not None and age >= STALE_AFTER_DAYS,
+        "stale_after_days": STALE_AFTER_DAYS,
+    }
+
+
 def search_postings(
     query: str = "",
     limit: int = DEFAULT_LIMIT,
@@ -206,6 +260,7 @@ def search_postings(
         "indexed": (
             vector_store.count_points(vector_store.JOBS_COLLECTION) if available else 0
         ),
+        "freshness": freshness(),
         "results": [_result(score, payload) for score, payload in hits],
     }
 

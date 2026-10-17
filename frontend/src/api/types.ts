@@ -229,6 +229,29 @@ export interface JobPosting {
   similarity: number;
 }
 
+/**
+ * When the live postings were pulled, and whether that is getting old.
+ *
+ * Recorded by the ingest beside the collection, not derived from the postings:
+ * a board keeps serving a listing after the job is filled, so a posting's own
+ * `published` date says when the job was posted, never when we last looked at
+ * the board. Empty strings mean "not recorded" (a `QDRANT_URL` deployment keeps
+ * that file next to the ingest), and `age_days`/`stale` are the backend's own
+ * reading so the page cannot disagree with it about what counts as old.
+ */
+export interface HarvestFreshness {
+  /** UTC ISO 8601, or "" when nothing recorded it. */
+  harvested_at: string;
+  /** When that harvest was loaded into the index. */
+  ingested_at: string;
+  /** Whole days since the harvest, or null when there is no usable date. */
+  age_days: number | null;
+  /** True once the harvest is at least `stale_after_days` old. */
+  stale: boolean;
+  /** The threshold `stale` was decided with. */
+  stale_after_days: number;
+}
+
 export interface JobSearchResponse {
   /**
    * The text the ranking actually ran on (echoed back). It is the caller's own
@@ -244,6 +267,8 @@ export interface JobSearchResponse {
   matched: number;
   /** How many postings the collection holds in total. */
   indexed: number;
+  /** When this data was harvested, and whether that is old enough to warn about. */
+  freshness: HarvestFreshness;
   results: JobPosting[];
 }
 

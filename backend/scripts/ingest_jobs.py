@@ -6,15 +6,19 @@ Migration: collect live job postings and load them into the `job_role` collectio
 
 Why a script and not startup work? The API must never depend on a third-party job
 board being up, on an embedding key, or on a network call at boot. This is data
-plumbing: run it when you want fresh postings, skip it otherwise. Nothing in the
-app reads `job_role` yet, so skipping it breaks nothing.
+plumbing: run it when you want fresh postings, skip it otherwise. The Jobs page
+reads `job_role`, so a skipped run shows a stale feed rather than a broken app —
+which is why every ingest records *when* it happened and the API reports it.
 
 What it does:
 
 1. collects postings from the public job-board APIs (see `services.job_feed`);
-2. writes them to `data/job_postings.json`, so re-ingesting needs no network;
+2. writes them to `data/job_postings.json`, so re-ingesting needs no network, and
+   stamps the file with the harvest time;
 3. embeds each posting and upserts it into the `job_role` collection;
-4. creates the payload indexes the Jobs page's filters read (see
+4. records the harvest and ingest times in `<index>/job_role.meta.json`, which is
+   what `GET /jobs/search`'s `freshness` block reports;
+5. creates the payload indexes the Jobs page's filters read (see
    `services.job_service.FILTER_INDEXES`). Skipping this step breaks nothing in
    the embedded store, which ignores payload indexes — but a `QDRANT_URL`
    deployment needs the text indexes before Qdrant will run a full-text filter.
@@ -27,6 +31,12 @@ Options:
     --from-file PATH   ingest a previously collected JSON file instead of fetching
     --save PATH        where to write the collected postings
                        (default data/job_postings.json; '' skips writing)
+    --if-stale DAYS    do nothing when the current harvest is younger than DAYS
+
+`--if-stale` is what makes a frequent schedule cheap: point a scheduler at it
+hourly or daily and the run is a no-op until the feed is actually getting old.
+`--rebuild` overrides it, and the harvest time of a `--from-file` artifact is the
+artifact's own, so re-ingesting old data never ages it up to today.
 
 Embeddings follow the same `EMBEDDING_PROVIDER` rules as the role index. Because
 `job_role` is a fixed, human-chosen name, the space it holds is recorded in
@@ -65,19 +75,46 @@ def _explain(error: Exception) -> str:
     )
 
 
-def _collect(limit: int, sources, from_file: str, save_path: str) -> list:
-    """Postings, from the network or from a previously saved artifact."""
+def _collect(limit: int, sources, from_file: str, save_path: str) -> tuple:
+    """Postings, from the network or from a previously saved artifact.
+
+    Returns `(postings, harvested_at)`. The harvest time is when the data was
+    pulled: now for a fresh collect, and the artifact's own stamp for
+    `--from-file` — which is the point, because re-ingesting a week-old file must
+    not present it as today's harvest. An artifact written before the stamp
+    existed loads with `""`, which the API reports as "not recorded".
+    """
     if from_file:
-        postings = job_feed.load(from_file)
-        print(f"loaded     : {len(postings)} postings from {from_file}")
-        return postings
+        artifact = job_feed.load_artifact(from_file)
+        postings = artifact["postings"]
+        harvested_at = artifact["harvested_at"]
+        when = f", harvested {harvested_at}" if harvested_at else " (no harvest date in the file)"
+        print(f"loaded     : {len(postings)} postings from {from_file}{when}")
+        return postings, harvested_at
 
     print(f"collecting : up to {limit} postings from {', '.join(sources)}")
     postings = job_feed.collect(limit=limit, sources=sources)
+    harvested_at = job_feed.harvest_stamp()
     if save_path:
-        job_feed.save(postings, save_path)
+        job_feed.save(postings, save_path, harvested_at=harvested_at)
         print(f"saved      : {len(postings)} postings to {save_path}")
-    return postings
+    return postings, harvested_at
+
+
+def _skip_reason(max_age_days: int) -> str:
+    """Why a scheduled run has nothing to do, or '' when a refresh is due.
+
+    Separate from `ingest` so the decision can be tested without a scheduler, and
+    built only on the recorded sidecar — it never opens the collection.
+    """
+    state = job_service.freshness()
+    age = state["age_days"]
+    if age is None or age >= max_age_days:
+        return ""
+    return (
+        f"the index already holds postings harvested {state['harvested_at']} "
+        f"({age} day(s) ago), younger than --if-stale {max_age_days}"
+    )
 
 
 def ingest(
@@ -90,7 +127,7 @@ def ingest(
 ) -> dict:
     """Collects, embeds and stores live postings. Returns a summary."""
     sources = list(sources or job_feed.SOURCES)
-    postings = _collect(limit, sources, from_file, save_path)
+    postings, harvested_at = _collect(limit, sources, from_file, save_path)
 
     rows = [
         (row["record_id"], row["document"], row["payload"])
@@ -125,6 +162,11 @@ def ingest(
         raise SystemExit(_explain(error)) from error
 
     vector_store.record_space(collection, space)
+    ingested_at = job_feed.harvest_stamp()
+    vector_store.record_meta(
+        collection,
+        {"harvested_at": harvested_at, "ingested_at": ingested_at},
+    )
     payload_indexes = vector_store.ensure_payload_indexes(collection, job_service.FILTER_INDEXES)
     status = {
         "collection": collection,
@@ -135,6 +177,8 @@ def ingest(
         "points": vector_store.count_points(collection),
         "previous_points": previous_points,
         "postings": len(postings),
+        "harvested_at": harvested_at,
+        "ingested_at": ingested_at,
         "payload_indexes": payload_indexes,
     }
     log.info(
@@ -173,9 +217,19 @@ def main(argv=None) -> int:
                         help="ingest a saved JSON file instead of fetching")
     parser.add_argument("--save", default=DEFAULT_SAVE,
                         help="where to write collected postings ('' to skip)")
+    parser.add_argument("--if-stale", type=int, default=0, metavar="DAYS",
+                        help="do nothing when the harvested data is younger than DAYS "
+                             "(for a schedule; --rebuild overrides)")
     args = parser.parse_args(argv)
 
     try:
+        if args.if_stale and not args.rebuild:
+            reason = _skip_reason(args.if_stale)
+            if reason:
+                print(f"skipped    : {reason}")
+                print("             nothing was fetched or written; drop --if-stale to force a run")
+                return 0
+
         result = ingest(
             limit=args.limit,
             sources=args.sources,
@@ -190,6 +244,7 @@ def main(argv=None) -> int:
         print(f"space      : {status['space']}")
         print(f"location   : {status['location']}")
         print(f"points     : {status['points']} (wrote {result['written']})")
+        print(f"harvested  : {status['harvested_at'] or 'not recorded'}")
         print(f"filters    : payload indexes on {', '.join(status['payload_indexes']) or 'none'}")
 
         if args.query:

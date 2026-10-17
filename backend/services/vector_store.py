@@ -23,11 +23,14 @@ Two kinds of collection live here:
   another;
 * `job_role` — live job postings (see `services.job_feed`). That name is a plain,
   human-chosen one, so the space it holds is recorded in a sidecar file
-  (`<index>/job_role.space`) and checked before ingestion instead.
+  (`<index>/job_role.space`) and checked before ingestion instead, and the dates
+  its data was harvested and ingested live beside it in `<index>/job_role.meta.json`
+  (see `record_meta`/`recorded_meta`).
 """
 
 import gc
 import hashlib
+import json
 import os
 import shutil
 from typing import Any, Dict, List, Optional, Tuple
@@ -294,6 +297,10 @@ def _space_manifest(collection: str) -> str:
     return os.path.join(index_path(), f"{collection}.space")
 
 
+def _meta_manifest(collection: str) -> str:
+    return os.path.join(index_path(), f"{collection}.meta.json")
+
+
 def recorded_space(collection: str) -> str:
     """The embedding space a named collection was built in, or '' if unknown.
 
@@ -307,6 +314,42 @@ def recorded_space(collection: str) -> str:
             return handle.read().strip()
     except OSError:
         return ""
+
+
+def recorded_meta(collection: str) -> Dict[str, Any]:
+    """The provenance recorded beside a collection, or `{}` when there is none.
+
+    Same sidecar machinery, and the same server caveat, as `recorded_space`: a
+    `QDRANT_URL` deployment keeps this file next to the *ingest*, which is not
+    necessarily the machine answering requests — so the API reports "not
+    recorded" rather than inventing a date. Never raises: a missing or malformed
+    file means unknown, not broken.
+    """
+    if qdrant_url():
+        return {}
+    try:
+        with open(_meta_manifest(collection), encoding="utf-8") as handle:
+            meta = json.load(handle)
+    except (OSError, ValueError):
+        return {}
+    return meta if isinstance(meta, dict) else {}
+
+
+def record_meta(collection: str, meta: Dict[str, Any]) -> None:
+    """Remembers when a collection's data was harvested and ingested.
+
+    Written by `scripts.ingest_jobs`, read back by `services.job_service` so the
+    Jobs page can say how old its postings are. Best-effort: a failure here costs
+    a freshness note, never the ingestion itself.
+    """
+    if qdrant_url():
+        return
+    try:
+        os.makedirs(index_path(), exist_ok=True)
+        with open(_meta_manifest(collection), "w", encoding="utf-8") as handle:
+            json.dump(meta, handle, ensure_ascii=False, indent=1)
+    except OSError as exc:  # pragma: no cover - best effort
+        log.warning("Could not record the ingest metadata for %s (%s)", collection, exc)
 
 
 def record_space(collection: str, space: str) -> None:

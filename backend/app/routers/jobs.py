@@ -7,7 +7,8 @@ no data yet — see `schemas.JobSearchResponse.available`.
 
 `/search` takes a query *and* the structured filters the Jobs page offers. The
 filters are applied by the vector store, so they narrow the whole collection and
-`matched` is a real count of it — see `services.job_service`.
+`matched` is a real count of it — see `services.job_service`. It also reports how
+old the data is (`schemas.HarvestFreshness`), because live postings age silently.
 """
 from typing import Literal, Optional
 

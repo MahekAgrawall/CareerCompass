@@ -18,11 +18,13 @@ import {
   QUERY_MAX_LENGTH,
   SEARCH_LIMIT,
   arrangementFromParam,
+  harvestNote,
   hasAnyFilter,
   locationSuggestions,
   postingParams,
   profileQuery,
   remoteParam,
+  staleNote,
 } from "@/lib/jobs";
 import { useDocumentTitle } from "@/lib/hooks";
 import { useProfile } from "@/state/ProfileContext";
@@ -111,13 +113,18 @@ export default function JobsPage() {
 
   const data = jobsQuery.data;
   const searching = hasAnyFilter(committed);
+  // Live postings age silently, so the results carry their own harvest date —
+  // and an explicit warning once the backend judges it too old to trust.
+  const harvest = harvestNote(data?.freshness);
+  const stale = staleNote(data?.freshness);
 
   return (
     <div>
       <h1 className="section-title">💼 Live Tech Jobs</h1>
       <p className="caption mt-1">
-        Currently-open postings collected from the public Himalayas and Arbeitnow job
-        boards — live listings, not the curated role catalog.
+        Postings collected from the public Himalayas and Arbeitnow job boards — live
+        listings, not the curated role catalog. Boards rotate their openings, so every
+        search says when the postings were harvested.
       </p>
 
       <form
@@ -238,12 +245,20 @@ export default function JobsPage() {
                 Showing {data?.count ?? 0} of {data?.matched ?? 0} postings matching your
                 filters · {data?.indexed ?? 0} postings indexed
               </p>
-              <p className="caption mb-4">
+              <p className="caption">
                 Ranked by similarity to “{data?.query}”. Each card links straight to the
                 board that published it.
               </p>
+              {harvest && <p className="caption mt-1">🗓️ {harvest}</p>}
+              {stale && (
+                <div className="mt-3">
+                  <Alert tone="warning" title="These postings are getting old">
+                    {stale}
+                  </Alert>
+                </div>
+              )}
 
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {ranked.map((posting) => (
                   <JobCard key={posting.id} posting={posting} />
                 ))}

@@ -16,7 +16,8 @@
  * * the endpoint takes stable slugs (`experience=senior`, `remote=true`), so its
  *   contract does not move when a label is reworded.
  */
-import type { JobPosting, Profile } from "@/api/types";
+import { formatDate } from "@/lib/format";
+import type { HarvestFreshness, JobPosting, Profile } from "@/api/types";
 
 /** The endpoint accepts 1–50; ask for the widest page it will give. */
 export const SEARCH_LIMIT = 50;
@@ -133,6 +134,45 @@ const SOURCE_LABELS: Record<string, string> = {
 export function sourceLabel(source: string): string {
   if (!source) return "Unknown board";
   return SOURCE_LABELS[source] ?? source.charAt(0).toUpperCase() + source.slice(1);
+}
+
+/**
+ * One line saying when the postings were pulled.
+ *
+ * The date comes straight from the server's `harvested_at` (UTC), so the page
+ * never has to guess, and it is sliced rather than run through the browser's
+ * timezone: the day the harvest happened is a fact about the data, and shifting
+ * it a day to match a local clock would misdate it. Returns "" only when there is
+ * no freshness block at all; an index that recorded no date says so instead of
+ * staying quiet, because silence is how postings age unnoticed.
+ */
+export function harvestNote(freshness: HarvestFreshness | undefined): string {
+  if (!freshness) return "";
+  if (!freshness.harvested_at) return "Harvest date not recorded for this index.";
+  const day = formatDate(freshness.harvested_at);
+  const age = freshness.age_days;
+  if (age === null || age === undefined) return `Harvested on ${day}.`;
+  if (age <= 0) return `Harvested on ${day} (today).`;
+  if (age === 1) return `Harvested on ${day} (yesterday).`;
+  return `Harvested on ${day} (${age} days ago).`;
+}
+
+/**
+ * The staleness warning, or "" while the harvest is still young.
+ *
+ * The judgement is the backend's (`freshness.stale`), and its threshold is used
+ * in the wording, so the page cannot invent either one. The point is not to
+ * apologise for the data but to stop a candidate treating a three-week-old
+ * listing as something they can still apply to.
+ */
+export function staleNote(freshness: HarvestFreshness | undefined): string {
+  if (!freshness?.stale) return "";
+  const weeks = Math.round(freshness.stale_after_days / 7);
+  return (
+    `These postings were harvested ${freshness.age_days} days ago — older than the ` +
+    `${weeks}-week mark. Boards fill, withdraw and re-post their listings, so some of ` +
+    "what you see here has almost certainly gone. Re-run the harvest to refresh it."
+  );
 }
 
 /**
