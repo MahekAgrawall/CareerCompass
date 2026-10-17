@@ -51,7 +51,9 @@ export default function DirectoryPage() {
     <div>
       <h1 className="section-title">📚 Comprehensive Technology Roles Catalog</h1>
       <p className="caption mt-1">
-        Browse all corporate, AI, and specialized technology roles with Indian compensation benchmarks.
+        Browse all corporate, AI, and specialized technology roles with Indian compensation
+        benchmarks — then open one for its roadmap, or the live openings we find for it on the
+        public job boards.
       </p>
       <hr className="my-5 border-slate-200" />
 

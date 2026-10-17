@@ -1,10 +1,12 @@
 # 🧭 CareerCompass
 
-> An AI-powered career guidance and learning-progression platform for B.Tech CSE students and early-career professionals in India.
+> An AI-powered career platform for B.Tech CSE students and early-career professionals in India: match a high-fit role, benchmark the pay, plan the skills, and track the live jobs you apply to.
 
 CareerCompass is more than a role quiz. It matches you to high-fit tech roles, benchmarks Indian
 compensation, generates a personalized AI skill roadmap, and turns that roadmap into a trackable,
-week-by-week study plan — with a context-aware AI mentor you can chat with throughout.
+week-by-week study plan — with a context-aware AI mentor you can chat with throughout. It does not
+stop at the plan either: the same app searches **live postings** from the public job boards, links
+straight out to the original listing to apply, and keeps every application on a stage you can see.
 
 The project is a **monorepo**: a **FastAPI** backend, a **React + TypeScript** single-page frontend,
 and the original **Streamlit** app preserved in `legacy/` for reference.
