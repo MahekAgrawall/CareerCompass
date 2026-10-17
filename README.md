@@ -17,7 +17,7 @@ and the original **Streamlit** app preserved in `legacy/` for reference.
 |---|---|
 | 🎯 **Interest-first, transparent role matching** | Ranks roles by how well they align with your *stated* interests (65% weight) and your existing skills (35% weight), and filters out roles with zero interest synergy. Every card shows the arithmetic: the two component scores, the interests and skills that counted, and the profile chips that would raise the match. |
 | 📚 **Role catalog** | 30 curated corporate and modern engineering roles across 8 categories — including AI/ML, data, cloud, security, hardware and product tracks — each with responsibilities, qualifications, growth paths, and hiring companies. |
-| 💰 **India salary benchmarks** | Fresher (0–1 yr), mid (1–3 yrs), and senior (3+ yrs) CTC ranges aggregated from AmbitionBox, Glassdoor, and LinkedIn India tech data. |
+| 💰 **India salary benchmarks** | Fresher (0–1 yr), mid (1–3 yrs) and senior (3+ yrs) CTC bands for every role, each stated as an *envelope* — low end a typical mid-market/services offer, high end a strong product-company or GCC offer — with the market and product-company medians and every source (and its sample size) linked on the role page. |
 | 🤖 **AI skill roadmap** | Google Gemini generates a structured 3-phase plan (Immediate → Level Up → Explore) with one curated free resource per skill. |
 | 🛠️ **Portfolio projects** | Each roadmap includes 3 hands-on project ideas with difficulty ratings and validated skills. |
 | 📅 **Study tracker** | Configure weekday vs weekend study hours and a role-specific tech stack. Every one of the 30 roles ships a tailored three-dimension stack (mobile, games, embedded, design, offensive security and more), and each choice maps onto syllabus topics with subtopics. Progress, remaining hours, and projected weeks are computed live. |
@@ -26,6 +26,26 @@ and the original **Streamlit** app preserved in `legacy/` for reference.
 | ⬇️ **Export & share** | Download any roadmap as a portable Markdown file. |
 | 🔗 **Deep links** | Every view is its own URL (`/roles/backend_dev`, `/tracker/backend_dev`), so refreshing or sharing a link returns you to the same page. |
 | 🔑 **Accounts & persistence** | Sign up / sign in (JWT bearer, SQLite-backed), saved profiles, and a **My Roadmaps** library of every plan you generate. |
+
+### 💰 How the salary bands work
+
+The bands are an **envelope**, not a survey of one employer tier: the low end is a typical
+mid-market or services offer, the high end a strong product-company or GCC offer. They were
+last reviewed in **October 2026** against independently collected sources, and each role page
+links every one of them:
+
+| Reference point | Source | What it measures |
+|---|---|---|
+| Market median | [Indeed India salary pages](https://in.indeed.com/career/salaries) | What Indian employers actually post, mass market included (samples of 5–10,900 postings per title) |
+| Product-company median | [Levels.fyi India](https://www.levels.fyi) | What product companies and GCCs pay for the same title, from verified offer letters |
+| Fresher direction | [TeamLease Digital Skills & Salary Primer FY2025-26](https://business.teamleasedigital.com/digital-skills-and-salary-primer-fy2025-26/) | Where the 2026 fresher market sits (AI/Cloud start at ₹7–8.5 LPA) |
+
+Two honesty rules are enforced by tests: every role cites at least one market-wide source,
+and any role whose reference points are borrowed from an adjacent role family says so on the
+page instead of hiding it. Where the sources disagree — and they disagree by design, because
+they sample different employers — the band spans them rather than picking a winner.
+AmbitionBox and Glassdoor, which this project cited before, block automated access; they were
+replaced with sources a reader can actually open.
 
 ---
 
@@ -191,9 +211,9 @@ streamlit run app.py        # http://localhost:8501
 | `POST` | `/auth/signup` | — | Create an account, returns a JWT |
 | `POST` | `/auth/login` | — | Authenticate, returns a JWT |
 | `GET` | `/auth/me` | ✅ | Current user + profile |
-| `GET` | `/roles` | — | Full role catalog |
+| `GET` | `/roles` | — | Full role catalog, each role carrying its salary bands, review date and sources |
 | `GET` | `/roles/categories` | — | Distinct categories |
-| `GET` | `/roles/{role_id}` | — | Single role |
+| `GET` | `/roles/{role_id}` | — | Single role, including its salary provenance |
 | `GET` | `/profile` | ✅ | Saved profile |
 | `PUT` | `/profile` | ✅ | Save profile |
 | `POST` | `/match` | — | Ranked role matches with a score breakdown (+ optional AI explanation) |
@@ -248,8 +268,10 @@ database in a temporary directory, so no test can read or touch
 auth, role catalog, matching, tracker, profiles and saved roadmaps, including that a
 user can only ever reach their own records. `tests/test_roles_catalog.py` guards the
 catalog itself: every role carries the full content contract, the salary bands rise
-with seniority, every role is reachable from a real questionnaire answer, and an older
-database gains new roles on startup without losing saved work.
+with seniority, every band cites dated, attributable sources (and explains itself when its
+reference points are proxied from an adjacent role family), every role is reachable from a
+real questionnaire answer, and an older database gains new roles — and the salary
+provenance columns — on startup without losing saved work.
 `tests/test_e2e_journey.py` walks the whole
 candidate journey end to end: browse → register → sign in → profile → ranked matches →
 role detail → study plan → tick off a topic → saved library, plus a check that progress

@@ -12,6 +12,7 @@ things that are easy to break by hand-editing the JSON:
 """
 import json
 import os
+import re
 import sqlite3
 import sys
 import tempfile
@@ -218,6 +219,99 @@ class CatalogSyncTests(unittest.TestCase):
 
         self.assertEqual(self._counts()["roles"], before, "the last good catalog should stay in place")
         self.assertIsNotNone(career_service.get_role_by_id(LEGACY_ROLE_ID))
+
+
+class SalaryProvenanceTests(unittest.TestCase):
+    """Every band must say what it is measured against, where the figure came
+    from, and when it was last reviewed.
+
+    A salary range a candidate cannot check is just an assertion, so the
+    contract is enforced on `roles.json` — the single source of truth.
+    """
+
+    MONTH = re.compile(r"^\d{4}-\d{2}(-\d{2})?$")
+    KINDS = {"market", "product", "report"}
+
+    def setUp(self):
+        self.roles = load_catalog()
+
+    def test_every_role_dates_its_salary_review(self):
+        for role in self.roles:
+            with self.subTest(role=role["id"]):
+                self.assertRegex(role["salary"]["as_of"], self.MONTH)
+
+    def test_every_role_cites_at_least_one_market_source(self):
+        for role in self.roles:
+            with self.subTest(role=role["id"]):
+                sources = role["salary"]["sources"]
+                self.assertTrue(sources, "a band with no source is a number with no evidence")
+                self.assertTrue(
+                    any(source["kind"] == "market" for source in sources),
+                    "even a proxied title needs one market-wide reference point",
+                )
+
+    def test_every_source_is_attributable_and_dated(self):
+        for role in self.roles:
+            for source in role["salary"]["sources"]:
+                with self.subTest(role=role["id"], source=source["name"]):
+                    self.assertIn(source["kind"], self.KINDS)
+                    self.assertTrue(source["name"])
+                    self.assertTrue(source["sample"], "the reader should know how much data a figure rests on")
+                    self.assertTrue(source["url"].startswith("https://"))
+                    self.assertRegex(source["as_of"], self.MONTH)
+
+    def test_a_proxied_title_explains_the_proxy(self):
+        """Missing either reference point means the band was positioned by
+        judgement, and that judgement has to be written down."""
+        for role in self.roles:
+            with self.subTest(role=role["id"]):
+                salary = role["salary"]
+                both_anchored = salary["market_median"] is not None and salary["product_median"] is not None
+                self.assertTrue(both_anchored or salary.get("anchor_note"))
+
+    def test_median_anchors_are_plausible(self):
+        for role in self.roles:
+            with self.subTest(role=role["id"]):
+                for key in ("market_median", "product_median"):
+                    value = role["salary"][key]
+                    if value is not None:
+                        self.assertGreater(value, 0)
+                        self.assertLess(value, 200, "no India median for these roles is that high")
+
+    def test_the_bands_straddle_their_reference_points(self):
+        """The envelope claim: the market median and the product-company median
+        must both be reachable from inside the published band."""
+        for role in self.roles:
+            salary = role["salary"]
+            top = salary["senior_3_plus"]["max"]
+            with self.subTest(role=role["id"]):
+                for key in ("market_median", "product_median"):
+                    value = salary[key]
+                    if value is not None:
+                        self.assertGreaterEqual(top, value, f"the top band should reach the {key}")
+
+
+class SalaryApiTests(unittest.TestCase):
+    """Provenance has to survive JSON -> SQLite -> API, not just live in the file."""
+
+    def test_role_endpoint_returns_the_salary_provenance(self):
+        response = client.get("/roles/backend_dev")
+        self.assertEqual(response.status_code, 200)
+
+        salary = response.json()["salary"]
+        self.assertEqual(salary["as_of"], "2026-10")
+        self.assertTrue(salary["sources"], "sources must round-trip through the database")
+        self.assertIsNotNone(salary["market_median"])
+
+    def test_every_role_from_the_api_carries_its_sources(self):
+        response = client.get("/roles")
+        self.assertEqual(response.status_code, 200)
+
+        roles = response.json()
+        self.assertEqual(len(roles), len(load_catalog()))
+        for role in roles:
+            with self.subTest(role=role["id"]):
+                self.assertTrue(role["salary"]["sources"])
 
 
 if __name__ == "__main__":

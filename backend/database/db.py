@@ -86,6 +86,11 @@ def init_db():
                 salary_mid_max REAL,
                 salary_senior_min REAL,
                 salary_senior_max REAL,
+                salary_as_of TEXT,
+                salary_market_median REAL,
+                salary_product_median REAL,
+                salary_sources_json TEXT,
+                salary_anchor_note TEXT,
                 top_companies_json TEXT,
                 skills_must_have_json TEXT,
                 skills_good_to_have_json TEXT,
@@ -145,12 +150,20 @@ def init_db():
             );
         """)
 
-        # 7. Upgrade databases created before the questionnaire grew: existing
-        # rows are kept and the new columns are appended in place.
+        # 7. Upgrade databases created before the questionnaire or the salary
+        # provenance grew: existing rows are kept and the new columns are
+        # appended in place.
         _add_missing_columns(conn, "profiles", {
             "work_mode": "TEXT",
             "open_to_relocate": "TEXT",
             "career_goal": "TEXT",
+        })
+        _add_missing_columns(conn, "roles", {
+            "salary_as_of": "TEXT",
+            "salary_market_median": "REAL",
+            "salary_product_median": "REAL",
+            "salary_sources_json": "TEXT",
+            "salary_anchor_note": "TEXT",
         })
 
     # Load / refresh the role catalog from data/roles.json
@@ -211,10 +224,12 @@ def _sync_roles_from_json(conn: sqlite3.Connection):
                     salary_fresher_min, salary_fresher_max,
                     salary_mid_min, salary_mid_max,
                     salary_senior_min, salary_senior_max,
+                    salary_as_of, salary_market_median, salary_product_median,
+                    salary_sources_json, salary_anchor_note,
                     top_companies_json, skills_must_have_json, skills_good_to_have_json,
                     skills_can_have_json, matching_interests_json, matching_skills_json
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 )
                 ON CONFLICT(id) DO UPDATE SET
                     title = excluded.title,
@@ -235,6 +250,11 @@ def _sync_roles_from_json(conn: sqlite3.Connection):
                     salary_mid_max = excluded.salary_mid_max,
                     salary_senior_min = excluded.salary_senior_min,
                     salary_senior_max = excluded.salary_senior_max,
+                    salary_as_of = excluded.salary_as_of,
+                    salary_market_median = excluded.salary_market_median,
+                    salary_product_median = excluded.salary_product_median,
+                    salary_sources_json = excluded.salary_sources_json,
+                    salary_anchor_note = excluded.salary_anchor_note,
                     top_companies_json = excluded.top_companies_json,
                     skills_must_have_json = excluded.skills_must_have_json,
                     skills_good_to_have_json = excluded.skills_good_to_have_json,
@@ -261,6 +281,11 @@ def _sync_roles_from_json(conn: sqlite3.Connection):
                 float(mid.get("max", 18.0)),
                 float(senior.get("min", 18.0)),
                 float(senior.get("max", 40.0)),
+                sal.get("as_of"),
+                sal.get("market_median"),
+                sal.get("product_median"),
+                json.dumps(sal.get("sources", [])),
+                sal.get("anchor_note"),
                 json.dumps(r.get("top_companies", [])),
                 json.dumps(r.get("skills", {}).get("must_have", [])),
                 json.dumps(r.get("skills", {}).get("good_to_have", [])),

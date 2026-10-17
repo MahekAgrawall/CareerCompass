@@ -34,7 +34,14 @@ def _row_to_role_dict(row) -> Dict[str, Any]:
         "salary": {
             "fresher_0_1": {"min": row["salary_fresher_min"], "max": row["salary_fresher_max"], "label": "0–1 yr"},
             "mid_1_3": {"min": row["salary_mid_min"], "max": row["salary_mid_max"], "label": "1–3 yrs"},
-            "senior_3_plus": {"min": row["salary_senior_min"], "max": row["salary_senior_max"], "label": "3+ yrs"}
+            "senior_3_plus": {"min": row["salary_senior_min"], "max": row["salary_senior_max"], "label": "3+ yrs"},
+            # Provenance for the bands above: what each figure is measured
+            # against, where it came from, and when it was last reviewed.
+            "as_of": row["salary_as_of"] or "",
+            "market_median": row["salary_market_median"],
+            "product_median": row["salary_product_median"],
+            "sources": json.loads(row["salary_sources_json"] or "[]"),
+            "anchor_note": row["salary_anchor_note"] or ""
         },
         "top_companies": json.loads(row["top_companies_json"] or "[]"),
         "skills": {

@@ -5,9 +5,60 @@ import Badge from "@/components/Badge";
 import MetricCard from "@/components/MetricCard";
 import SectionCard from "@/components/SectionCard";
 import { QueryState } from "@/components/QueryState";
+import type { RoleSalary } from "@/api/types";
 import * as endpoints from "@/api/endpoints";
 import { useDocumentTitle } from "@/lib/hooks";
 import { useCompare } from "@/state/CompareContext";
+
+/** ₹LPA labels read better as "8.84" than "8.8400000001", but whole numbers stay whole. */
+function lpa(value: number): string {
+  return Number.isInteger(value) ? `₹${value}L` : `₹${value.toFixed(1)}L`;
+}
+
+/**
+ * Where a role's salary bands come from. Bands are an envelope, not a single
+ * measurement, so the reference points and their sources are shown together —
+ * a reader can check the arithmetic instead of trusting an unsourced range.
+ */
+function SalaryProvenance({ salary }: { salary: RoleSalary }) {
+  const anchors = [
+    salary.market_median !== null ? `market median ${lpa(salary.market_median)}` : null,
+    salary.product_median !== null ? `product-company median ${lpa(salary.product_median)}` : null,
+  ].filter((entry): entry is string => entry !== null);
+
+  return (
+    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+      <p>
+        <span className="font-semibold text-slate-700">Indicative CTC envelope, reviewed {salary.as_of}</span>{" "}
+        — the low end is a typical mid-market or services offer, the high end a strong product-company or GCC offer.
+      </p>
+      {anchors.length > 0 && (
+        <p className="mt-1">
+          Reference points: {anchors.join(" · ")} (₹ lakhs per annum).
+        </p>
+      )}
+      <ul className="mt-2 space-y-1">
+        {salary.sources.map((source) => (
+          <li key={source.url}>
+            <a
+              href={source.url}
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-brand-600 underline decoration-dotted hover:text-brand-700"
+            >
+              {source.name}
+            </a>
+            <span className="text-slate-400">
+              {" — "}
+              {source.as_of}, {source.sample}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {salary.anchor_note && <p className="mt-2 italic text-slate-400">{salary.anchor_note}</p>}
+    </div>
+  );
+}
 
 export default function RoleDetailPage() {
   const { roleId = "" } = useParams();
@@ -75,9 +126,7 @@ export default function RoleDetailPage() {
             <MetricCard label={`📈 ${role.salary.mid_1_3.label}`} value={`₹${role.salary.mid_1_3.min}–${role.salary.mid_1_3.max} LPA`} />
             <MetricCard label={`🚀 ${role.salary.senior_3_plus.label}`} value={`₹${role.salary.senior_3_plus.min}–${role.salary.senior_3_plus.max} LPA`} />
           </div>
-          <p className="mt-2 text-xs italic text-slate-400">
-            Source: Aggregated enterprise data from AmbitionBox, Glassdoor, and LinkedIn Indian Tech Index.
-          </p>
+          <SalaryProvenance salary={role.salary} />
 
           <hr className="my-6 border-slate-200" />
 

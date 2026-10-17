@@ -28,7 +28,16 @@
       "salary": {
         "fresher_0_1": {"min": 8, "max": 18, "label": "0–1 yr"},
         "mid_1_3": {"min": 18, "max": 35, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 35, "max": 75, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 35, "max": 75, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 8.84,
+        "product_median": 30.3,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Software Engineer", "url": "https://in.indeed.com/career/software-engineer/salaries", "as_of": "2026-10-12", "sample": "10,900 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Software Engineer, India", "url": "https://www.levels.fyi/t/software-engineer/locations/india", "as_of": "2026-10-16", "sample": "verified offer letters"},
+          {"kind": "report", "name": "TeamLease Digital — Skills & Salary Primer FY2025-26", "url": "https://business.teamleasedigital.com/digital-skills-and-salary-primer-fy2025-26/", "as_of": "2026-06-01", "sample": "industry report; AI/Cloud freshers ₹7–8.5 LPA"}
+        ],
+        "anchor_note": "Emerging title with no dedicated market page; positioned against the software-engineering family."
       },
       "top_companies": ["Palantir", "Databricks", "Snowflake", "Sprinklr", "Postman", "BrowserStack", "Persistent", "Fractal AI"],
       "skills": {
@@ -67,7 +76,16 @@
       "salary": {
         "fresher_0_1": {"min": 8, "max": 18, "label": "0–1 yr"},
         "mid_1_3": {"min": 18, "max": 42, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 42, "max": 90, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 42, "max": 80, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 11.34,
+        "product_median": 29.83,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Machine Learning Engineer", "url": "https://in.indeed.com/career/machine-learning-engineer/salaries", "as_of": "2026-09-28", "sample": "51 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Data Scientist, India", "url": "https://www.levels.fyi/t/data-scientist/locations/india", "as_of": "2026-10-16", "sample": "1,070 verified offers"},
+          {"kind": "report", "name": "TeamLease Digital — Skills & Salary Primer FY2025-26", "url": "https://business.teamleasedigital.com/digital-skills-and-salary-primer-fy2025-26/", "as_of": "2026-06-01", "sample": "industry report; AI/Cloud freshers ₹7–8.5 LPA"}
+        ],
+        "anchor_note": "No dedicated market page; anchored to the AI/ML family and the TeamLease AI/Cloud fresher premium (₹7–8.5 LPA)."
       },
       "top_companies": ["Google", "Microsoft", "Krutrim", "Sarvam AI", "Yellow.ai", "Haptik", "Cognition (Devin)", "AI Startups across BLR/SF"],
       "skills": {
@@ -106,7 +124,14 @@
       "salary": {
         "fresher_0_1": {"min": 4, "max": 10, "label": "0–1 yr"},
         "mid_1_3": {"min": 10, "max": 20, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 20, "max": 45, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 20, "max": 45, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 8.84,
+        "product_median": 30.3,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Software Engineer", "url": "https://in.indeed.com/career/software-engineer/salaries", "as_of": "2026-10-12", "sample": "10,900 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Software Engineer, India", "url": "https://www.levels.fyi/t/software-engineer/locations/india", "as_of": "2026-10-16", "sample": "verified offer letters"}
+        ]
       },
       "top_companies": ["Google", "Microsoft", "Amazon", "Flipkart", "Swiggy", "Razorpay", "Zomato", "PhonePe", "Infosys"],
       "skills": {
@@ -145,7 +170,15 @@
       "salary": {
         "fresher_0_1": {"min": 3.5, "max": 8, "label": "0–1 yr"},
         "mid_1_3": {"min": 8, "max": 18, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 18, "max": 38, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 18, "max": 38, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 5.61,
+        "product_median": 30.3,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Front End Developer", "url": "https://in.indeed.com/career/front-end-developer/salaries", "as_of": "2026-10-05", "sample": "78 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Software Engineer, India", "url": "https://www.levels.fyi/t/software-engineer/locations/india", "as_of": "2026-10-16", "sample": "verified offer letters"}
+        ],
+        "anchor_note": "The front-end market page is thin (78 salaries); the product tier is proxied by the software-engineering family."
       },
       "top_companies": ["Google", "Adobe", "Meesho", "Razorpay", "CRED", "Zomato", "Freshworks", "Zoho"],
       "skills": {
@@ -184,7 +217,16 @@
       "salary": {
         "fresher_0_1": {"min": 4.5, "max": 11, "label": "0–1 yr"},
         "mid_1_3": {"min": 11, "max": 24, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 24, "max": 50, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 24, "max": 50, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 8.84,
+        "product_median": 30.3,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Software Engineer", "url": "https://in.indeed.com/career/software-engineer/salaries", "as_of": "2026-10-12", "sample": "10,900 reported salaries"},
+          {"kind": "market", "name": "Indeed India — Full Stack Developer", "url": "https://in.indeed.com/career/full-stack-developer/salaries", "as_of": "2026-08-21", "sample": "290 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Software Engineer, India", "url": "https://www.levels.fyi/t/software-engineer/locations/india", "as_of": "2026-10-16", "sample": "verified offer letters"}
+        ],
+        "anchor_note": "Indeed's full-stack title sample is small and skews low (₹3.6L across 290 postings), so the software-engineering family figure sets the envelope."
       },
       "top_companies": ["CRED", "Razorpay", "Postman", "BrowserStack", "Freshworks", "Zerodha", "Fast-growing Startups"],
       "skills": {
@@ -223,7 +265,15 @@
       "salary": {
         "fresher_0_1": {"min": 6, "max": 14, "label": "0–1 yr"},
         "mid_1_3": {"min": 14, "max": 30, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 30, "max": 65, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 30, "max": 65, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 7.7,
+        "product_median": 30.3,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — DevOps Engineer", "url": "https://in.indeed.com/career/devops-engineer/salaries", "as_of": "2026-10-09", "sample": "262 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Software Engineer, India", "url": "https://www.levels.fyi/t/software-engineer/locations/india", "as_of": "2026-10-16", "sample": "verified offer letters"}
+        ],
+        "anchor_note": "No dedicated market page; anchored to the DevOps/infrastructure family."
       },
       "top_companies": ["Google", "Amazon", "Uber", "Razorpay", "Swiggy", "PhonePe", "Atlassian", "HashiCorp"],
       "skills": {
@@ -262,7 +312,15 @@
       "salary": {
         "fresher_0_1": {"min": 5, "max": 11, "label": "0–1 yr"},
         "mid_1_3": {"min": 11, "max": 25, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 25, "max": 55, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 25, "max": 55, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 9.55,
+        "product_median": 29.83,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Data Engineer", "url": "https://in.indeed.com/career/data-engineer/salaries", "as_of": "2026-10-11", "sample": "1,000+ reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Data Scientist, India", "url": "https://www.levels.fyi/t/data-scientist/locations/india", "as_of": "2026-10-16", "sample": "1,070 verified offers"}
+        ],
+        "anchor_note": "Product tier proxied by the data-science family — Levels.fyi publishes no India data-engineer page."
       },
       "top_companies": ["Amazon", "Flipkart", "Walmart Global Tech", "Swiggy", "Tiger Analytics", "Fractal", "Accenture", "Deloitte"],
       "skills": {
@@ -301,7 +359,15 @@
       "salary": {
         "fresher_0_1": {"min": 6, "max": 14, "label": "0–1 yr"},
         "mid_1_3": {"min": 14, "max": 30, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 30, "max": 65, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 30, "max": 65, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 11.34,
+        "product_median": 29.83,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Machine Learning Engineer", "url": "https://in.indeed.com/career/machine-learning-engineer/salaries", "as_of": "2026-09-28", "sample": "51 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Data Scientist, India", "url": "https://www.levels.fyi/t/data-scientist/locations/india", "as_of": "2026-10-16", "sample": "1,070 verified offers"},
+          {"kind": "report", "name": "TeamLease Digital — Skills & Salary Primer FY2025-26", "url": "https://business.teamleasedigital.com/digital-skills-and-salary-primer-fy2025-26/", "as_of": "2026-06-01", "sample": "industry report; AI/Cloud freshers ₹7–8.5 LPA"}
+        ]
       },
       "top_companies": ["Google", "Microsoft", "NVIDIA", "Flipkart", "Swiggy", "PhonePe", "Sarvam AI", "Zomato"],
       "skills": {
@@ -340,7 +406,14 @@
       "salary": {
         "fresher_0_1": {"min": 5.5, "max": 12, "label": "0–1 yr"},
         "mid_1_3": {"min": 12, "max": 24, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 24, "max": 52, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 24, "max": 52, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 12.24,
+        "product_median": 29.83,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Data Scientist", "url": "https://in.indeed.com/career/data-scientist/salaries", "as_of": "2026-10-08", "sample": "315 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Data Scientist, India", "url": "https://www.levels.fyi/t/data-scientist/locations/india", "as_of": "2026-10-16", "sample": "1,070 verified offers"}
+        ]
       },
       "top_companies": ["Amazon", "Swiggy", "Ola", "PhonePe", "Fractal Analytics", "Tiger Analytics", "Mu Sigma", "Paytm"],
       "skills": {
@@ -379,7 +452,14 @@
       "salary": {
         "fresher_0_1": {"min": 3.5, "max": 7.5, "label": "0–1 yr"},
         "mid_1_3": {"min": 7.5, "max": 16, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 16, "max": 32, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 16, "max": 32, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 6.31,
+        "product_median": 14.5,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Data Analyst", "url": "https://in.indeed.com/career/data-analyst/salaries", "as_of": "2026-10-09", "sample": "566 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Data Analyst, India", "url": "https://www.levels.fyi/t/data-analyst/locations/india", "as_of": "2026-10-16", "sample": "400 verified offers"}
+        ]
       },
       "top_companies": ["Amazon", "Flipkart", "Accenture", "Deloitte", "Myntra", "Swiggy", "EY", "KPMG", "MakeMyTrip"],
       "skills": {
@@ -418,7 +498,16 @@
       "salary": {
         "fresher_0_1": {"min": 4.5, "max": 10, "label": "0–1 yr"},
         "mid_1_3": {"min": 10, "max": 22, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 22, "max": 48, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 22, "max": 48, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 7.7,
+        "product_median": 30.3,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — DevOps Engineer", "url": "https://in.indeed.com/career/devops-engineer/salaries", "as_of": "2026-10-09", "sample": "262 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Software Engineer, India", "url": "https://www.levels.fyi/t/software-engineer/locations/india", "as_of": "2026-10-16", "sample": "verified offer letters"},
+          {"kind": "report", "name": "TeamLease Digital — Skills & Salary Primer FY2025-26", "url": "https://business.teamleasedigital.com/digital-skills-and-salary-primer-fy2025-26/", "as_of": "2026-06-01", "sample": "industry report; AI/Cloud freshers ₹7–8.5 LPA"}
+        ],
+        "anchor_note": "No dedicated market page; anchored to the DevOps/cloud family, with TeamLease reporting ₹7–8.5 LPA for cloud freshers."
       },
       "top_companies": ["Amazon (AWS)", "Google Cloud", "Microsoft Azure", "Accenture", "Wipro", "HCLTech", "Searce", "Cognizant"],
       "skills": {
@@ -457,7 +546,15 @@
       "salary": {
         "fresher_0_1": {"min": 4.5, "max": 9.5, "label": "0–1 yr"},
         "mid_1_3": {"min": 9.5, "max": 20, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 20, "max": 45, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 20, "max": 45, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 8.03,
+        "product_median": null,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Security Analyst", "url": "https://in.indeed.com/career/security-analyst/salaries", "as_of": "2026-10-06", "sample": "21 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Software Engineer, India", "url": "https://www.levels.fyi/t/software-engineer/locations/india", "as_of": "2026-10-16", "sample": "verified offer letters"}
+        ],
+        "anchor_note": "The only market page is Indeed's Security Analyst title (21 salaries); the product tier is proxied by the software-engineering family."
       },
       "top_companies": ["KPMG", "Deloitte", "PwC", "Palo Alto Networks", "CrowdStrike", "Tata Communications", "IBM Security", "Wipro"],
       "skills": {
@@ -496,7 +593,14 @@
       "salary": {
         "fresher_0_1": {"min": 8, "max": 18, "label": "0–1 yr (APM Tracks)"},
         "mid_1_3": {"min": 18, "max": 32, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 32, "max": 75, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 32, "max": 75, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 13.43,
+        "product_median": 44.7,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Product Manager", "url": "https://in.indeed.com/career/product-manager/salaries", "as_of": "2026-10-08", "sample": "151 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Product Manager, India", "url": "https://www.levels.fyi/t/product-manager/locations/india", "as_of": "2026-10-16", "sample": "1,544 verified offers"}
+        ]
       },
       "top_companies": ["Google APM", "Microsoft", "Flipkart", "CRED", "Razorpay", "Swiggy", "Meesho", "Zomato"],
       "skills": {
@@ -535,7 +639,15 @@
       "salary": {
         "fresher_0_1": {"min": 4, "max": 8.5, "label": "0–1 yr"},
         "mid_1_3": {"min": 8.5, "max": 18, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 18, "max": 40, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 18, "max": 40, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 8.91,
+        "product_median": null,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Business Analyst", "url": "https://in.indeed.com/career/business-analyst/salaries", "as_of": "2026-10-11", "sample": "655 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Data Analyst, India", "url": "https://www.levels.fyi/t/data-analyst/locations/india", "as_of": "2026-10-16", "sample": "400 verified offers"}
+        ],
+        "anchor_note": "No product-tier page for this title; proxied by the analytics family (Levels.fyi Data Analyst)."
       },
       "top_companies": ["McKinsey & Company", "Deloitte", "Accenture", "PwC", "EY", "KPMG", "Infosys Consulting", "Capgemini"],
       "skills": {
@@ -574,7 +686,15 @@
       "salary": {
         "fresher_0_1": {"min": 4.5, "max": 9, "label": "0–1 yr"},
         "mid_1_3": {"min": 9, "max": 19, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 19, "max": 40, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 19, "max": 40, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": null,
+        "product_median": null,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Software Engineer", "url": "https://in.indeed.com/career/software-engineer/salaries", "as_of": "2026-10-12", "sample": "10,900 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Software Engineer, India", "url": "https://www.levels.fyi/t/software-engineer/locations/india", "as_of": "2026-10-16", "sample": "verified offer letters"}
+        ],
+        "anchor_note": "No dedicated market page for this title; positioned within the software-engineering family."
       },
       "top_companies": ["Amazon", "Google", "Flipkart", "BrowserStack", "Postman", "Cisco", "Razorpay", "Wipro"],
       "skills": {
@@ -613,7 +733,16 @@
       "salary": {
         "fresher_0_1": {"min": 4, "max": 9, "label": "0–1 yr"},
         "mid_1_3": {"min": 9, "max": 20, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 20, "max": 42, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 20, "max": 42, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 8.84,
+        "product_median": 30.3,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Software Engineer", "url": "https://in.indeed.com/career/software-engineer/salaries", "as_of": "2026-10-12", "sample": "10,900 reported salaries"},
+          {"kind": "market", "name": "Indeed India — Android Developer", "url": "https://in.indeed.com/career/android-developer/salaries", "as_of": "2026-02-17", "sample": "27 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Software Engineer, India", "url": "https://www.levels.fyi/t/software-engineer/locations/india", "as_of": "2026-10-16", "sample": "verified offer letters"}
+        ],
+        "anchor_note": "Indeed's Android title sample is thin and monthly-reported (27 salaries); the software-engineering family figure is used instead."
       },
       "top_companies": ["Swiggy", "Zomato", "PhonePe", "Flipkart", "CRED", "Razorpay", "Zoho", "Samsung R&D"],
       "skills": {
@@ -652,7 +781,15 @@
       "salary": {
         "fresher_0_1": {"min": 3.5, "max": 8, "label": "0–1 yr"},
         "mid_1_3": {"min": 8, "max": 18, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 18, "max": 40, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 18, "max": 40, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": null,
+        "product_median": null,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Software Engineer", "url": "https://in.indeed.com/career/software-engineer/salaries", "as_of": "2026-10-12", "sample": "10,900 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Software Engineer, India", "url": "https://www.levels.fyi/t/software-engineer/locations/india", "as_of": "2026-10-16", "sample": "verified offer letters"}
+        ],
+        "anchor_note": "No dedicated market or product-tier page for this title; positioned within the software-engineering family."
       },
       "top_companies": ["Ubisoft India", "Rockstar India", "Zynga", "Games24x7", "Dream11", "Nazara Technologies", "Sumo Digital", "Technicolor Games"],
       "skills": {
@@ -691,7 +828,15 @@
       "salary": {
         "fresher_0_1": {"min": 4, "max": 9, "label": "0–1 yr"},
         "mid_1_3": {"min": 9, "max": 18, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 18, "max": 38, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 18, "max": 38, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 4.75,
+        "product_median": null,
+        "sources": [
+          {"kind": "market", "name": "PayScale — Embedded Systems Engineer, India", "url": "https://www.payscale.com/research/IN/Job=Embedded_Systems_Engineer/Salary", "as_of": "2026-07-05", "sample": "34 salary profiles; base pay only"},
+          {"kind": "product", "name": "Levels.fyi — Software Engineer, India", "url": "https://www.levels.fyi/t/software-engineer/locations/india", "as_of": "2026-10-16", "sample": "verified offer letters"}
+        ],
+        "anchor_note": "PayScale reports a ₹4.75L median base salary (34 profiles, base pay only, excludes most variable pay); the product tier is proxied by the software-engineering family."
       },
       "top_companies": ["Bosch", "Qualcomm", "Continental", "Tata Elxsi", "L&T Technology Services", "Ather Energy", "Ola Electric", "Samsung R&D"],
       "skills": {
@@ -730,7 +875,15 @@
       "salary": {
         "fresher_0_1": {"min": 5, "max": 11, "label": "0–1 yr"},
         "mid_1_3": {"min": 11, "max": 24, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 24, "max": 50, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 24, "max": 50, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 9.55,
+        "product_median": null,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Data Engineer", "url": "https://in.indeed.com/career/data-engineer/salaries", "as_of": "2026-10-11", "sample": "1,000+ reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Data Analyst, India", "url": "https://www.levels.fyi/t/data-analyst/locations/india", "as_of": "2026-10-16", "sample": "400 verified offers"}
+        ],
+        "anchor_note": "No dedicated market page; anchored to the data-engineering family."
       },
       "top_companies": ["Zomato", "Swiggy", "Flipkart", "PhonePe", "Atlassian", "ThoughtWorks", "Fractal Analytics", "Tiger Analytics"],
       "skills": {
@@ -769,7 +922,15 @@
       "salary": {
         "fresher_0_1": {"min": 5, "max": 12, "label": "0–1 yr"},
         "mid_1_3": {"min": 12, "max": 25, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 25, "max": 55, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 25, "max": 40, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 6.31,
+        "product_median": 14.5,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Data Analyst", "url": "https://in.indeed.com/career/data-analyst/salaries", "as_of": "2026-10-09", "sample": "566 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Data Analyst, India", "url": "https://www.levels.fyi/t/data-analyst/locations/india", "as_of": "2026-10-16", "sample": "400 verified offers"}
+        ],
+        "anchor_note": "No dedicated page for this title; anchored to the analytics family."
       },
       "top_companies": ["Flipkart", "Swiggy", "CRED", "Meesho", "Myntra", "Paytm", "Zoho", "PhonePe"],
       "skills": {
@@ -808,7 +969,15 @@
       "salary": {
         "fresher_0_1": {"min": 6, "max": 14, "label": "0–1 yr"},
         "mid_1_3": {"min": 14, "max": 30, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 30, "max": 65, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 30, "max": 65, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 11.34,
+        "product_median": 29.83,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Machine Learning Engineer", "url": "https://in.indeed.com/career/machine-learning-engineer/salaries", "as_of": "2026-09-28", "sample": "51 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Data Scientist, India", "url": "https://www.levels.fyi/t/data-scientist/locations/india", "as_of": "2026-10-16", "sample": "1,070 verified offers"}
+        ],
+        "anchor_note": "No dedicated market page; the band is positioned against the AI/ML family."
       },
       "top_companies": ["Google Research", "Microsoft", "Flipkart", "Sarvam AI", "Krutrim", "Observe.AI", "Haptik", "Fractal AI"],
       "skills": {
@@ -847,7 +1016,15 @@
       "salary": {
         "fresher_0_1": {"min": 6, "max": 14, "label": "0–1 yr"},
         "mid_1_3": {"min": 14, "max": 30, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 30, "max": 65, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 30, "max": 65, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 11.34,
+        "product_median": 29.83,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Machine Learning Engineer", "url": "https://in.indeed.com/career/machine-learning-engineer/salaries", "as_of": "2026-09-28", "sample": "51 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Data Scientist, India", "url": "https://www.levels.fyi/t/data-scientist/locations/india", "as_of": "2026-10-16", "sample": "1,070 verified offers"}
+        ],
+        "anchor_note": "No dedicated market page; the band is positioned against the AI/ML family."
       },
       "top_companies": ["Qualcomm", "NVIDIA", "Tata Elxsi", "Cropin", "SigTuple", "Bosch", "HCLTech", "Microsoft Research India"],
       "skills": {
@@ -886,7 +1063,15 @@
       "salary": {
         "fresher_0_1": {"min": 6, "max": 13, "label": "0–1 yr"},
         "mid_1_3": {"min": 13, "max": 28, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 28, "max": 60, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 28, "max": 60, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 11.34,
+        "product_median": 29.83,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Machine Learning Engineer", "url": "https://in.indeed.com/career/machine-learning-engineer/salaries", "as_of": "2026-09-28", "sample": "51 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Data Scientist, India", "url": "https://www.levels.fyi/t/data-scientist/locations/india", "as_of": "2026-10-16", "sample": "1,070 verified offers"}
+        ],
+        "anchor_note": "No dedicated market page; the band is positioned against the AI/ML family."
       },
       "top_companies": ["Swiggy", "Flipkart", "Razorpay", "Fractal AI", "Quantiphi", "Nutanix", "Databricks", "Amazon"],
       "skills": {
@@ -925,7 +1110,14 @@
       "salary": {
         "fresher_0_1": {"min": 4.5, "max": 10, "label": "0–1 yr"},
         "mid_1_3": {"min": 10, "max": 22, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 22, "max": 48, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 22, "max": 48, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 7.7,
+        "product_median": 30.3,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — DevOps Engineer", "url": "https://in.indeed.com/career/devops-engineer/salaries", "as_of": "2026-10-09", "sample": "262 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Software Engineer, India", "url": "https://www.levels.fyi/t/software-engineer/locations/india", "as_of": "2026-10-16", "sample": "verified offer letters"}
+        ]
       },
       "top_companies": ["Amazon", "Flipkart", "PhonePe", "Razorpay", "Zoho", "ThoughtWorks", "Infosys", "Red Hat"],
       "skills": {
@@ -964,7 +1156,15 @@
       "salary": {
         "fresher_0_1": {"min": 4.5, "max": 10, "label": "0–1 yr"},
         "mid_1_3": {"min": 10, "max": 21, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 21, "max": 45, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 21, "max": 45, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 9.55,
+        "product_median": null,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Data Engineer", "url": "https://in.indeed.com/career/data-engineer/salaries", "as_of": "2026-10-11", "sample": "1,000+ reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Software Engineer, India", "url": "https://www.levels.fyi/t/software-engineer/locations/india", "as_of": "2026-10-16", "sample": "verified offer letters"}
+        ],
+        "anchor_note": "No dedicated market page; anchored to the data-engineering family."
       },
       "top_companies": ["Oracle", "Microsoft", "Amazon RDS", "MongoDB", "Zoho", "TCS", "Paytm", "Swiggy"],
       "skills": {
@@ -1003,7 +1203,15 @@
       "salary": {
         "fresher_0_1": {"min": 3.5, "max": 8, "label": "0–1 yr"},
         "mid_1_3": {"min": 8, "max": 17, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 17, "max": 36, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 17, "max": 36, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 2.56,
+        "product_median": null,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Network Engineer", "url": "https://in.indeed.com/career/network-engineer/salaries", "as_of": "2026-10-03", "sample": "90 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Software Engineer, India", "url": "https://www.levels.fyi/t/software-engineer/locations/india", "as_of": "2026-10-16", "sample": "verified offer letters"}
+        ],
+        "anchor_note": "Indeed's network-engineering postings average ₹2.6L (₹1.4–4.6L, NOC-heavy); the band floor deliberately sits above that pure-support market because this role targets automation- and cloud-leaning network work."
       },
       "top_companies": ["Cisco", "Juniper Networks", "Tata Communications", "Airtel", "Reliance Jio", "HCLTech", "Nokia", "Palo Alto Networks"],
       "skills": {
@@ -1042,7 +1250,15 @@
       "salary": {
         "fresher_0_1": {"min": 5, "max": 11, "label": "0–1 yr"},
         "mid_1_3": {"min": 11, "max": 24, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 24, "max": 52, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 24, "max": 52, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 8.03,
+        "product_median": 30.3,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Security Analyst", "url": "https://in.indeed.com/career/security-analyst/salaries", "as_of": "2026-10-06", "sample": "21 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Software Engineer, India", "url": "https://www.levels.fyi/t/software-engineer/locations/india", "as_of": "2026-10-16", "sample": "verified offer letters"}
+        ],
+        "anchor_note": "Anchored to Indeed's Security Analyst title and the software-engineering product tier; no AppSec-specific public page exists."
       },
       "top_companies": ["Microsoft", "Atlassian", "Flipkart", "PhonePe", "Deloitte", "EY", "Intuit", "CRED"],
       "skills": {
@@ -1081,7 +1297,15 @@
       "salary": {
         "fresher_0_1": {"min": 5, "max": 12, "label": "0–1 yr"},
         "mid_1_3": {"min": 12, "max": 26, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 26, "max": 55, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 26, "max": 55, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 8.03,
+        "product_median": 30.3,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Security Analyst", "url": "https://in.indeed.com/career/security-analyst/salaries", "as_of": "2026-10-06", "sample": "21 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Software Engineer, India", "url": "https://www.levels.fyi/t/software-engineer/locations/india", "as_of": "2026-10-16", "sample": "verified offer letters"}
+        ],
+        "anchor_note": "Anchored to Indeed's Security Analyst title and the software-engineering product tier; no penetration-testing-specific public page exists."
       },
       "top_companies": ["Deloitte", "KPMG", "PwC", "EY", "NetSPI", "Payatu", "TAC Security", "Synack"],
       "skills": {
@@ -1118,9 +1342,17 @@
       ],
       "growth_path": ["UI Designer", "Product Designer", "Senior Product Designer", "Design Lead", "Head of Design"],
       "salary": {
-        "fresher_0_1": {"min": 4, "max": 10, "label": "0–1 yr"},
+        "fresher_0_1": {"min": 4.5, "max": 10, "label": "0–1 yr"},
         "mid_1_3": {"min": 10, "max": 22, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 22, "max": 48, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 22, "max": 48, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 10.49,
+        "product_median": 21.04,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — User Experience Designer", "url": "https://in.indeed.com/career/user-experience-designer/salaries", "as_of": "2026-10-08", "sample": "48 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Product Designer, India", "url": "https://www.levels.fyi/t/product-designer/locations/india", "as_of": "2026-10-16", "sample": "399 verified offers"}
+        ],
+        "anchor_note": "Indeed publishes this title as User Experience Designer; the band floor sits just below that market's lowest quartile (₹5.6L) because junior design salaries start lower outside product companies."
       },
       "top_companies": ["Zoho", "Freshworks", "Razorpay", "Swiggy", "CRED", "Zomato", "Postman", "Atlassian"],
       "skills": {
@@ -1159,7 +1391,15 @@
       "salary": {
         "fresher_0_1": {"min": 6, "max": 14, "label": "0–1 yr"},
         "mid_1_3": {"min": 14, "max": 30, "label": "1–3 yrs"},
-        "senior_3_plus": {"min": 30, "max": 65, "label": "3+ yrs"}
+        "senior_3_plus": {"min": 30, "max": 65, "label": "3+ yrs"},
+        "as_of": "2026-10",
+        "market_median": 7.94,
+        "product_median": 44.7,
+        "sources": [
+          {"kind": "market", "name": "Indeed India — Technical Program Manager", "url": "https://in.indeed.com/career/technical-program-manager/salaries", "as_of": "2026-07-30", "sample": "5 reported salaries"},
+          {"kind": "product", "name": "Levels.fyi — Product Manager, India", "url": "https://www.levels.fyi/t/product-manager/locations/india", "as_of": "2026-10-16", "sample": "1,544 verified offers"}
+        ],
+        "anchor_note": "Indeed's TPM page carries only 5 reported salaries; the product tier is proxied by the Levels.fyi Product Manager family."
       },
       "top_companies": ["Amazon", "Microsoft", "Google", "Flipkart", "Nutanix", "Salesforce", "Oracle", "ThoughtWorks"],
       "skills": {

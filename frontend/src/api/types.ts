@@ -40,10 +40,30 @@ export interface SalaryBand {
   label: string;
 }
 
+export interface SalarySource {
+  /** "market" = job-posting data, "product" = verified product-company offers, "report" = published industry report. */
+  kind: "market" | "product" | "report";
+  name: string;
+  url: string;
+  /** ISO month the source was published, e.g. "2026-10-12". */
+  as_of: string;
+  /** How much data the figure rests on, quoted for the reader. */
+  sample: string;
+}
+
 export interface RoleSalary {
   fresher_0_1: SalaryBand;
   mid_1_3: SalaryBand;
   senior_3_plus: SalaryBand;
+  /** Month the bands were last reviewed, e.g. "2026-10". */
+  as_of: string;
+  /** Median across India job postings (₹LPA); null when no page exists for the title. */
+  market_median: number | null;
+  /** Median across verified product-company offers (₹LPA); null when proxied by a family. */
+  product_median: number | null;
+  sources: SalarySource[];
+  /** Why a title with no dedicated market page was positioned where it is; "" when it has one. */
+  anchor_note: string;
 }
 
 export interface RoleSkills {
