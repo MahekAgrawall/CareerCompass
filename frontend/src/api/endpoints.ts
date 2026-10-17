@@ -77,14 +77,16 @@ export const matchRoles = (
 
 // ── Live jobs ─────────────────────────────────────────────────────────────────
 /**
- * `GET /jobs/search` takes exactly one free-text query and a bounded page size
- * (`q` 1–200 characters, `limit` 1–50), and returns `{query, available, count,
- * results}`. Location and experience are not separate server parameters, so the
- * Jobs page feeds them into `q` and refines the returned window — see
- * `lib/jobs.ts` for why.
+ * `GET /jobs/search` takes a ranking query plus the structured filters the page
+ * offers (`q` up to 200 characters, `location`, `experience`, `remote`), and
+ * returns `{query, available, count, matched, indexed, results}`. The filters are
+ * applied by the vector store, so `matched` counts the whole collection — see
+ * `lib/jobs.ts` for how the page's wording maps onto the endpoint's slugs.
  */
-export const searchJobs = (query: string, limit = 50) =>
-  api.get<JobSearchResponse>(`/jobs/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+export const searchJobs = (params: Record<string, string>, limit = 50) =>
+  api.get<JobSearchResponse>(
+    `/jobs/search?${new URLSearchParams({ ...params, limit: String(limit) })}`,
+  );
 
 /**
  * `POST /jobs/for-role` — the live postings nearest one catalogued role. The

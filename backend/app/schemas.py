@@ -140,12 +140,20 @@ class JobPosting(BaseModel):
 
 
 class JobSearchResponse(BaseModel):
+    #: The text the ranking actually ran on: the caller's query, or their filter
+    #: terms when they typed none.
     query: str
     # False when the `job_role` index has not been built (scripts.ingest_jobs).
     # The endpoint still answers 200 — it simply has nothing to search — so a
     # client can hide the section instead of showing an error.
     available: bool
+    # How many postings this page returned (never more than `limit`).
     count: int
+    # How many postings the filters leave in the whole collection. Counted in the
+    # vector store, so it is a real total rather than a property of this page.
+    matched: int
+    # How many postings the collection holds, filters or no filters.
+    indexed: int
     results: List[JobPosting]
 
 

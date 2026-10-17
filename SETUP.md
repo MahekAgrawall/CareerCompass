@@ -136,6 +136,9 @@ Drop `--reload` for a stable run.
 - Health check → <http://127.0.0.1:8000/health>  (expect `{"status":"ok",...}`)
 - Interactive API docs → <http://127.0.0.1:8000/docs>
 - Live job search (after §2.9) → <http://127.0.0.1:8000/jobs/search?q=kubernetes+platform+engineer>
+- Live job search with the filters, and no search text at all (after §2.9) →
+  <http://127.0.0.1:8000/jobs/search?location=berlin&remote=true&experience=senior>
+  (expect `count <= limit`, and `matched` / `indexed` describing the whole collection)
 - Per-role openings (after §2.9) — POST, because the profile travels in the body:
 
   ```powershell
@@ -201,8 +204,16 @@ collection never touches the catalog index, and vice versa.
 
 `GET /jobs/search?q=…` serves these postings (public, like `/roles`): semantic search over the
 collection, returning each listing with its salary text, publication date and the board's own URL.
-Until §2.9 has been run the endpoint still answers `200` with `available: false` and no rows, so a
-client can hide the section instead of surfacing an error — nothing else in the app depends on it.
+It also takes `location`, `remote` (`true`/`false`) and `experience` (`internship`/`entry`/`senior`),
+which the backend applies to the whole collection in the vector store — so the response reports
+`count` (this page), `matched` (what the filters leave collection-wide) and `indexed` (the collection
+size). `q` ranks the results and is optional when a filter is given; asking for nothing at all is a
+`400`. Until §2.9 has been run the endpoint still answers `200` with `available: false` and no rows, so
+a client can hide the section instead of surfacing an error — nothing else in the app depends on it.
+
+The same migration creates the payload indexes those filters read. The embedded store ignores payload
+indexes and works regardless, but a deployment pointing `QDRANT_URL` at a Qdrant server needs the text
+indexes before Qdrant will accept a full-text filter — so re-run §2.9 once after upgrading.
 
 The React **Jobs** page (§3.4) is the front end for this endpoint, and every match card deep-links
 into it with its role prefilled.
@@ -376,6 +387,7 @@ backend's `CORS_ORIGINS`.
 | `scripts.ingest_jobs` refuses: "was built in embedding space … but the active embeddings are …" | `job_role` already holds vectors from another space (usually you added a `GEMINI_API_KEY` after building offline). Re-run with `--rebuild` to replace the collection, or pin `EMBEDDING_PROVIDER` to the space it holds. |
 | `scripts.ingest_jobs` reports no postings / a board was skipped | A job board was unreachable or returned nothing; the other board was still used. Re-run later, or ingest the saved `data/job_postings.json` with `--from-file`. |
 | `GET /jobs/search` returns `available: false` and no rows | The `job_role` collection has not been built yet. Run §2.9 (or `--from-file data\job_postings.json` if you already collected once). The endpoint answers honestly rather than erroring — nothing else depends on it. |
+| `/jobs/search` with a filter returns nothing, and the log says "Text index required" | Only affects `QDRANT_URL` deployments: a Qdrant server refuses a full-text filter unless the field has a text index, and this collection was ingested before the filters existed. Re-run §2.9 — it creates the payload indexes. The embedded store ignores payload indexes, so a default setup is never affected. |
 | `FutureWarning` about `google.generativeai` | Harmless; the SDK is deprecated and migration is planned. |
 
 ---
@@ -399,7 +411,8 @@ The semantic-index tests are hermetic too: the harness forces the offline embedd
 calls Gemini or touches your real `backend/data/qdrant/` index. The live job-feed tests
 (`test_job_feed.py`) replace the single function that touches the network, so no test reaches a job
 board either; `test_job_api.py` covers the `/jobs/search` and `/jobs/for-role` read paths against a
-throwaway index. `test_prompts.py` checks the prompt library: every template the AI calls need exists
+throwaway index, including the payload filters and the honest counts (`count` vs `matched` vs
+`indexed`). `test_prompts.py` checks the prompt library: every template the AI calls need exists
 on disk, renders without a leftover placeholder, reaches the model as the same text the inline prompt
 used to, and survives a crafted answer that tries to open its own `Guidelines:` block
 (`google-generativeai` itself is mocked — no network). `test_rate_limit.py` covers the AI budget:

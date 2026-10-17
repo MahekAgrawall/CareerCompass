@@ -13,7 +13,11 @@ What it does:
 
 1. collects postings from the public job-board APIs (see `services.job_feed`);
 2. writes them to `data/job_postings.json`, so re-ingesting needs no network;
-3. embeds each posting and upserts it into the `job_role` collection.
+3. embeds each posting and upserts it into the `job_role` collection;
+4. creates the payload indexes the Jobs page's filters read (see
+   `services.job_service.FILTER_INDEXES`). Skipping this step breaks nothing in
+   the embedded store, which ignores payload indexes — but a `QDRANT_URL`
+   deployment needs the text indexes before Qdrant will run a full-text filter.
 
 Options:
     --limit N          how many postings to collect (default 1000)
@@ -39,7 +43,7 @@ import sys
 
 from app_logging import get_logger
 from database.db import DATA_DIR
-from services import embeddings, job_feed, vector_store
+from services import embeddings, job_feed, job_service, vector_store
 
 log = get_logger("careercompass.jobs.migration")
 
@@ -121,6 +125,7 @@ def ingest(
         raise SystemExit(_explain(error)) from error
 
     vector_store.record_space(collection, space)
+    payload_indexes = vector_store.ensure_payload_indexes(collection, job_service.FILTER_INDEXES)
     status = {
         "collection": collection,
         "space": space,
@@ -130,6 +135,7 @@ def ingest(
         "points": vector_store.count_points(collection),
         "previous_points": previous_points,
         "postings": len(postings),
+        "payload_indexes": payload_indexes,
     }
     log.info(
         "Indexed %s postings into %s (%s, %s points)",
@@ -184,6 +190,7 @@ def main(argv=None) -> int:
         print(f"space      : {status['space']}")
         print(f"location   : {status['location']}")
         print(f"points     : {status['points']} (wrote {result['written']})")
+        print(f"filters    : payload indexes on {', '.join(status['payload_indexes']) or 'none'}")
 
         if args.query:
             _print_hits(args.query)

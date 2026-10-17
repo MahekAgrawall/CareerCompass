@@ -335,16 +335,71 @@ def collection_exists(name: str) -> bool:
         return False
 
 
-def count_points(name: str) -> int:
-    """Number of points in a collection, 0 when it does not exist."""
+def count_points(name: str, query_filter: Any = None) -> int:
+    """Number of points in a collection — or satisfying a filter — 0 when absent.
+
+    Counting with a filter is what lets a client say how many postings match
+    *across the collection* rather than only within a ranked window.
+    """
     try:
         client = _client()
         if not client.collection_exists(name):
             return 0
-        return int(getattr(client.count(name), "count", 0))
+        if query_filter is None:
+            return int(getattr(client.count(name), "count", 0))
+        counted = client.count(collection_name=name, count_filter=query_filter, exact=True)
+        return int(getattr(counted, "count", 0))
     except Exception as exc:  # noqa: BLE001 - diagnostics must never raise
         log.warning("Could not count %s (%s)", name, exc)
         return 0
+
+
+def ensure_payload_indexes(name: str, fields: Dict[str, str]) -> List[str]:
+    """Creates the payload indexes `fields` asks for, given as `{field: kind}`.
+
+    `kind` is "text" (tokenised — what a `MatchText` condition needs), "keyword"
+    or "bool". Idempotent, and best-effort: failures are logged and the remaining
+    fields still run, because a payload index only ever makes an existing filter
+    faster — with one exception. A *server-backed* Qdrant refuses to run
+    `MatchText` at all without a text index, so a deployment with `QDRANT_URL`
+    set needs this step; the embedded store ignores indexes and always works, so
+    a developer running the default setup needs no migration here.
+
+    Returns the fields it created. Never raises.
+    """
+    from qdrant_client import models
+
+    schemas = {
+        "text": models.TextIndexParams(
+            type=models.TextIndexType.TEXT,
+            tokenizer=models.TokenizerType.WORD,
+            lowercase=True,
+        ),
+        "keyword": models.PayloadSchemaType.KEYWORD,
+        "bool": models.PayloadSchemaType.BOOL,
+    }
+    created: List[str] = []
+    try:
+        client = _client()
+        if not client.collection_exists(name):
+            return created
+    except Exception as exc:  # noqa: BLE001 - an index is an optimisation
+        log.warning("Could not open %s to index its payload (%s)", name, exc)
+        return created
+
+    for field, kind in fields.items():
+        schema = schemas.get(kind)
+        if schema is None:
+            log.warning("Unknown payload index kind %r asked for %s.%s", kind, name, field)
+            continue
+        try:
+            client.create_payload_index(
+                collection_name=name, field_name=field, field_schema=schema, wait=True
+            )
+            created.append(field)
+        except Exception as exc:  # noqa: BLE001 - an index is an optimisation
+            log.warning("Could not index %s.%s (%s)", name, field, exc)
+    return created
 
 
 def upsert_records(
@@ -380,8 +435,17 @@ def upsert_records(
     return written
 
 
-def search_records(name: str, text: str, limit: int = 10) -> List[Tuple[float, Dict[str, Any]]]:
+def search_records(
+    name: str,
+    text: str,
+    limit: int = 10,
+    query_filter: Any = None,
+) -> List[Tuple[float, Dict[str, Any]]]:
     """`[(score, payload), ...]` from a named collection, best first.
+
+    `query_filter`, when given, is a Qdrant filter every hit must satisfy — the
+    live-postings read path uses one so that structured filters sweep the whole
+    collection instead of the window one search happened to rank.
 
     Never raises: an absent collection or an unavailable embedder yields [].
     """
@@ -395,6 +459,7 @@ def search_records(name: str, text: str, limit: int = 10) -> List[Tuple[float, D
             collection_name=name,
             query=embeddings.embed_query(text),
             limit=limit,
+            query_filter=query_filter,
             with_payload=True,
             with_vectors=False,
         )

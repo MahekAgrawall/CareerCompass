@@ -23,7 +23,7 @@ from unittest import mock
 from tests.harness import IndexBackedTest, client  # noqa: F401  (isolation first)
 
 from scripts import ingest_jobs  # noqa: E402
-from services import embeddings, job_feed, vector_store  # noqa: E402
+from services import embeddings, job_feed, job_service, vector_store  # noqa: E402
 
 HIMALAYAS_RAW = {
     "title": "Senior Platform Engineer (Remote)",
@@ -307,6 +307,13 @@ class IngestJobsTests(IndexBackedTest):
     def test_the_embedding_space_is_recorded_next_to_the_collection(self):
         self._ingest([PLATFORM])
         self.assertEqual(vector_store.recorded_space("job_role"), embeddings.signature())
+
+    def test_the_ingest_creates_the_payload_indexes_the_filters_read(self):
+        """Embedded Qdrant ignores payload indexes; a server-backed one needs them."""
+        result = self._ingest([PLATFORM, DESIGNER])
+        self.assertEqual(
+            sorted(result["status"]["payload_indexes"]), sorted(job_service.FILTER_INDEXES)
+        )
 
     def test_reingesting_updates_instead_of_duplicating(self):
         self._ingest([PLATFORM, DESIGNER])

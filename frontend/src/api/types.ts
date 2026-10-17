@@ -230,11 +230,20 @@ export interface JobPosting {
 }
 
 export interface JobSearchResponse {
-  /** The query the server actually ran (echoed back). */
+  /**
+   * The text the ranking actually ran on (echoed back). It is the caller's own
+   * query, or their filter terms when they typed none — a filter-only browse
+   * still needs something to rank on.
+   */
   query: string;
   /** False when the `job_role` index has not been built on this server. */
   available: boolean;
+  /** How many postings this page returned (never more than the limit asked for). */
   count: number;
+  /** How many the filters leave in the whole collection, counted in the store. */
+  matched: number;
+  /** How many postings the collection holds in total. */
+  indexed: number;
   results: JobPosting[];
 }
 

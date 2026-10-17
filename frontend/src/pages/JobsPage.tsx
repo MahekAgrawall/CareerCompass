@@ -12,14 +12,17 @@ import * as endpoints from "@/api/endpoints";
 import type { JobFilters } from "@/lib/jobs";
 import {
   ANY_EXPERIENCE,
+  ARRANGEMENT_OPTIONS,
   EXPERIENCE_OPTIONS,
+  LOCATION_MAX_LENGTH,
   QUERY_MAX_LENGTH,
   SEARCH_LIMIT,
-  buildQuery,
-  hasNarrowingFilters,
+  arrangementFromParam,
+  hasAnyFilter,
   locationSuggestions,
+  postingParams,
   profileQuery,
-  refinePostings,
+  remoteParam,
 } from "@/lib/jobs";
 import { useDocumentTitle } from "@/lib/hooks";
 import { useProfile } from "@/state/ProfileContext";
@@ -27,6 +30,11 @@ import { useProfile } from "@/state/ProfileContext";
 /**
  * Live postings collected from the public job boards (see `backend/services/
  * job_feed.py`) and served by `GET /jobs/search`.
+ *
+ * Every field on the form is a real endpoint parameter: the backend applies the
+ * filters to the whole `job_role` collection and reports how many postings are
+ * left (`matched`), so the page no longer filters a ranked window down and then
+ * has to explain why its numbers only covered fifty postings.
  *
  * The URL is the committed search — `/jobs?role=…&location=…&experience=…` — so
  * the "Explore Jobs" action on a match card can prefill it, the page survives a
@@ -38,6 +46,7 @@ function filtersFromParams(params: URLSearchParams): JobFilters {
     role: params.get("role") ?? "",
     location: params.get("location") ?? "",
     experience: params.get("experience") || ANY_EXPERIENCE,
+    arrangement: arrangementFromParam(params.get("remote")),
   };
 }
 
@@ -47,26 +56,25 @@ export default function JobsPage() {
   const { profile } = useProfile();
   const [params, setParams] = useSearchParams();
   const committed = useMemo(() => filtersFromParams(params), [params]);
-  const { role, location, experience } = committed;
+  const { role, location, experience, arrangement } = committed;
 
   // The form mirrors the URL and follows it when it changes underneath us —
   // e.g. a second "Explore Jobs" click on an already-mounted page.
   const [draft, setDraft] = useState<JobFilters>(committed);
   useEffect(() => {
-    setDraft({ role, location, experience });
-  }, [role, location, experience]);
+    setDraft({ role, location, experience, arrangement });
+  }, [role, location, experience, arrangement]);
 
-  const query = buildQuery(committed);
+  const searchParams = useMemo(() => postingParams(committed), [committed]);
 
   const jobsQuery = useQuery({
-    queryKey: ["jobs", query],
-    queryFn: () => endpoints.searchJobs(query, SEARCH_LIMIT),
-    enabled: query.length > 0,
+    queryKey: ["jobs", searchParams],
+    queryFn: () => endpoints.searchJobs(searchParams, SEARCH_LIMIT),
+    enabled: hasAnyFilter(committed),
     staleTime: 5 * 60 * 1000,
   });
 
-  const ranked = useMemo(() => jobsQuery.data?.results ?? [], [jobsQuery.data]);
-  const visible = useMemo(() => refinePostings(ranked, committed), [ranked, committed]);
+  const ranked = jobsQuery.data?.results ?? [];
   const suggestions = useMemo(() => locationSuggestions(ranked), [ranked]);
 
   const update = (patch: Partial<JobFilters>) => setDraft({ ...draft, ...patch });
@@ -76,6 +84,8 @@ export default function JobsPage() {
     if (filters.role.trim()) next.set("role", filters.role.trim());
     if (filters.location.trim()) next.set("location", filters.location.trim());
     if (filters.experience !== ANY_EXPERIENCE) next.set("experience", filters.experience);
+    const remote = remoteParam(filters.arrangement);
+    if (remote) next.set("remote", remote);
     setParams(next);
   };
 
@@ -93,14 +103,14 @@ export default function JobsPage() {
     commit({ ...draft, role });
   };
 
-  const clearNarrowing = () => {
+  const clearFilters = () => {
     const next = new URLSearchParams();
     if (role.trim()) next.set("role", role.trim());
     setParams(next);
   };
 
   const data = jobsQuery.data;
-  const filteredAway = data ? data.results.length - visible.length : 0;
+  const searching = hasAnyFilter(committed);
 
   return (
     <div>
@@ -112,7 +122,7 @@ export default function JobsPage() {
 
       <form
         onSubmit={submit}
-        className="card mt-5 mb-3 grid gap-3 p-4 lg:grid-cols-[2fr_1.4fr_1.4fr_auto] lg:items-end"
+        className="card mt-5 mb-3 grid gap-3 p-4 lg:grid-cols-[2fr_1.2fr_1.2fr_1.2fr_auto] lg:items-end"
       >
         <label className="block">
           <span className="label">Role or keywords</span>
@@ -130,6 +140,7 @@ export default function JobsPage() {
           <input
             className="input"
             value={draft.location}
+            maxLength={LOCATION_MAX_LENGTH}
             list="job-location-suggestions"
             placeholder="e.g. Berlin, Remote"
             onChange={(event) => update({ location: event.target.value })}
@@ -148,8 +159,15 @@ export default function JobsPage() {
           onChange={(value) => update({ experience: value })}
         />
 
+        <SelectField
+          label="Work arrangement"
+          value={draft.arrangement}
+          options={ARRANGEMENT_OPTIONS}
+          onChange={(value) => update({ arrangement: value })}
+        />
+
         <div className="flex flex-col gap-2">
-          <button type="submit" className="btn btn-primary w-full" disabled={!buildQuery(draft)}>
+          <button type="submit" className="btn btn-primary w-full" disabled={!hasAnyFilter(draft)}>
             🔎 Search jobs
           </button>
           {canPersonalise && (
@@ -161,16 +179,17 @@ export default function JobsPage() {
       </form>
 
       <p className="caption mb-5">
-        The backend takes one search string, so all three fields steer the semantic ranking
-        together; location and experience then narrow the ranked postings shown below.
-        “Relevance” is the similarity to your search text (0–1), not a career-fit score.
+        Every field above is a real filter on the live board collection, applied by the
+        backend before anything is ranked — so the counts below cover every posting held,
+        not just the page you see. “Relevance” is the semantic similarity to your search
+        text (or, when the search box is empty, to the filters) — not a career-fit score.
       </p>
 
-      {!query ? (
+      {!searching ? (
         <EmptyState
           icon="💼"
           title="Search the live boards"
-          description="Type a role above, or open Jobs from any card in My Matches to start from a role you already matched."
+          description="Type a role above, or open Jobs from any card in My Matches to start from a role you already matched. A filter on its own is enough — you do not have to type a role."
           action={
             canPersonalise ? (
               <button type="button" className="btn btn-primary" onClick={searchWithProfile}>
@@ -198,53 +217,37 @@ export default function JobsPage() {
               </code>{" "}
               on the backend.
             </Alert>
-          ) : data && data.count === 0 ? (
+          ) : data && data.results.length === 0 ? (
             <EmptyState
               icon="🔍"
-              title="No postings matched that search"
-              description="The index ranks the whole collection by meaning, so try broader words or drop the filters."
+              title="No postings matched"
+              description={
+                data.matched === 0
+                  ? `These filters were applied to all ${data.indexed} indexed postings and none of them match. Try a broader location, or drop the experience and arrangement filters.`
+                  : `${data.matched} postings match your filters, but none of them ranked against that search text. Try broader words.`
+              }
+              action={
+                <button type="button" onClick={clearFilters} className="btn btn-primary">
+                  Clear filters
+                </button>
+              }
             />
           ) : (
             <>
-              <p className="mb-3 text-sm font-semibold text-slate-700">
-                Showing {visible.length} of {data?.count ?? 0} ranked postings for “
-                {data?.query}”
+              <p className="mb-1 text-sm font-semibold text-slate-700">
+                Showing {data?.count ?? 0} of {data?.matched ?? 0} postings matching your
+                filters · {data?.indexed ?? 0} postings indexed
+              </p>
+              <p className="caption mb-4">
+                Ranked by similarity to “{data?.query}”. Each card links straight to the
+                board that published it.
               </p>
 
-              {visible.length > 0 && filteredAway > 0 && hasNarrowingFilters(committed) && (
-                <div className="mb-4">
-                  <Alert tone="warning">
-                    Your location/experience filters removed {filteredAway} of these{" "}
-                    {data?.results.length} ranked postings.{" "}
-                    <button
-                      type="button"
-                      onClick={clearNarrowing}
-                      className="font-semibold underline"
-                    >
-                      Clear location &amp; experience
-                    </button>
-                  </Alert>
-                </div>
-              )}
-
-              {visible.length === 0 ? (
-                <EmptyState
-                  icon="🧭"
-                  title="Nothing left after filtering"
-                  description={`None of the ${data?.count ?? 0} postings the index ranked match your location and experience filters — those filters only see that ranked window. Clear them, or reword your search.`}
-                  action={
-                    <button type="button" onClick={clearNarrowing} className="btn btn-primary">
-                      Clear location &amp; experience
-                    </button>
-                  }
-                />
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {visible.map((posting) => (
-                    <JobCard key={posting.id} posting={posting} />
-                  ))}
-                </div>
-              )}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {ranked.map((posting) => (
+                  <JobCard key={posting.id} posting={posting} />
+                ))}
+              </div>
             </>
           )}
         </QueryState>
@@ -252,8 +255,7 @@ export default function JobsPage() {
 
       <div className="mt-8 border-t border-slate-200 pt-5">
         <p className="caption">
-          Each card links straight to the board that published it. CareerCompass stores the
-          postings locally and never applies on your behalf.
+          CareerCompass stores the postings locally and never applies on your behalf.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link to="/matches" className="btn btn-secondary">

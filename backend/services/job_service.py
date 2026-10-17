@@ -12,6 +12,12 @@ the index is the *only* copy of the live postings — so rather than invent a
 weaker search, the response says whether the index answered (`available`) and
 returns no rows when it did not. The endpoint therefore works in every
 deployment, and a client can hide the section instead of surfacing an error.
+
+Location, work arrangement and experience are *store* filters, not post-filters:
+they travel to Qdrant as a payload filter, so they narrow the whole collection
+and `matched` is an honest count of it. Running them in Python over the ranked
+window instead would make every number on the page a statement about the fifty
+postings the search happened to return.
 """
 
 from typing import Any, Dict, List, Optional
@@ -23,6 +29,47 @@ MAX_LIMIT = 50
 
 #: A role card shows a short list; the candidate opens more by searching.
 ROLE_DEFAULT_LIMIT = 5
+
+#: The experience buckets a client may ask for. Boards leave `seniority` blank
+#: for almost every posting (only one of the two boards publishes it at all), so
+#: a bucket also matches the title and the contract wording — which is why there
+#: are three meaningful levels rather than a list of seniority labels.
+EXPERIENCE_LEVELS = ("internship", "entry", "senior")
+
+#: Bucket -> the words that put a posting in it. Matching happens in Qdrant's
+#: full-text (`MatchText`) condition, so a needle is matched as a *token*: "intern"
+#: no longer catches "Internal Tools Engineer", and "entry-level" catches "Entry
+#: Level Analyst" — stricter and more accurate than the substring rules these
+#: replaced.
+_EXPERIENCE_RULES: Dict[str, Dict[str, tuple]] = {
+    "internship": {
+        "title": ("intern", "working student", "werkstudent", "praktik", "trainee"),
+        "seniority": (),
+        "employment_type": ("intern", "working student", "werkstudent", "praktik"),
+    },
+    "entry": {
+        "title": ("junior", "entry level", "graduate"),
+        "seniority": ("entry-level", "graduate"),
+        "employment_type": (),
+    },
+    "senior": {
+        "title": ("senior", "sr", "lead", "principal", "staff", "head of", "director"),
+        "seniority": ("senior", "director", "executive"),
+        "employment_type": (),
+    },
+}
+
+#: The payload fields the filters above read, and the index each needs. The
+#: ingest applies this (`scripts.ingest_jobs`); the embedded store ignores
+#: payload indexes, but a server-backed one needs the text indexes before it will
+#: run a `MatchText` condition at all.
+FILTER_INDEXES = {
+    "location": "text",
+    "title": "text",
+    "seniority": "text",
+    "employment_type": "text",
+    "remote": "bool",
+}
 
 
 def _result(score: float, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -50,14 +97,100 @@ def _result(score: float, payload: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def search_postings(query: str, limit: int = DEFAULT_LIMIT) -> Dict[str, Any]:
-    """The `job_role` postings nearest to `query`, best first."""
-    text = (query or "").strip()
+def ranking_text(
+    query: str = "",
+    location: str = "",
+    remote: Optional[bool] = None,
+    experience: str = "",
+) -> str:
+    """The text the ranking runs on: the caller's own words, or the filters.
+
+    A search box is not the only way in — a candidate may want "every senior
+    remote posting" and type nothing — so the filter terms stand in for the
+    query when there are none. That keeps one ranking path, and `search_postings`
+    echoes whichever text it used, so the response never claims a ranking the
+    caller did not ask for.
+    """
+    parts = [str(query or "").strip(), str(location or "").strip()]
+    if remote is not None:
+        parts.append("remote" if remote else "on-site")
+    if experience:
+        parts.append(str(experience).strip())
+    return " ".join(part for part in parts if part)
+
+
+def posting_filter(
+    location: str = "",
+    remote: Optional[bool] = None,
+    experience: str = "",
+):
+    """The Qdrant filter behind the Jobs page, or `None` when nothing narrows.
+
+    Each dimension is a nested `should`, so the conditions *within* one dimension
+    are alternatives ("Berlin" or a remote flag) while the dimensions themselves
+    are all required. An unrecognised experience bucket is ignored here rather
+    than raising: the endpoint types it as a literal, so a client cannot get this
+    far with one, and a store filter is the wrong place to answer 500s.
+    """
+    from qdrant_client import models
+
+    must: List[Any] = []
+    if remote is not None:
+        must.append(
+            models.FieldCondition(key="remote", match=models.MatchValue(value=bool(remote)))
+        )
+
+    place = str(location or "").strip()
+    if place:
+        alternatives = [
+            models.FieldCondition(key="location", match=models.MatchText(text=place))
+        ]
+        # "Remote" is a work arrangement, not a place name: the boards use it for
+        # the flag and for the literal string both, so either one counts.
+        if place.lower().startswith("remote"):
+            alternatives.append(
+                models.FieldCondition(key="remote", match=models.MatchValue(value=True))
+            )
+        must.append(models.Filter(should=alternatives))
+
+    rules = _EXPERIENCE_RULES.get(str(experience or "").strip().lower())
+    if rules:
+        must.append(
+            models.Filter(
+                should=[
+                    models.FieldCondition(key=field, match=models.MatchText(text=word))
+                    for field in ("title", "seniority", "employment_type")
+                    for word in rules[field]
+                ]
+            )
+        )
+
+    return models.Filter(must=must) if must else None
+
+
+def search_postings(
+    query: str = "",
+    limit: int = DEFAULT_LIMIT,
+    location: str = "",
+    remote: Optional[bool] = None,
+    experience: str = "",
+) -> Dict[str, Any]:
+    """The `job_role` postings nearest to the search text, narrowed by filters.
+
+    `matched` counts the postings the filters leave *in the whole collection*, as
+    opposed to `count`, which is how many of them came back in this page. Both
+    are reported so a client can show "12 of 87 matching, 951 indexed" without
+    implying it inspected more than it did.
+    """
+    text = ranking_text(query, location, remote, experience)
+    query_filter = posting_filter(location, remote, experience)
     available = vector_store.is_available() and vector_store.collection_exists(
         vector_store.JOBS_COLLECTION
     )
     hits: List = (
-        vector_store.search_records(vector_store.JOBS_COLLECTION, text, limit=limit)
+        vector_store.search_records(
+            vector_store.JOBS_COLLECTION, text, limit=limit, query_filter=query_filter
+        )
         if available
         else []
     )
@@ -65,6 +198,14 @@ def search_postings(query: str, limit: int = DEFAULT_LIMIT) -> Dict[str, Any]:
         "query": text,
         "available": available,
         "count": len(hits),
+        "matched": (
+            vector_store.count_points(vector_store.JOBS_COLLECTION, query_filter)
+            if available
+            else 0
+        ),
+        "indexed": (
+            vector_store.count_points(vector_store.JOBS_COLLECTION) if available else 0
+        ),
         "results": [_result(score, payload) for score, payload in hits],
     }
 

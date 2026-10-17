@@ -1,37 +1,39 @@
 /**
- * Filters, query building and matching for the Jobs page.
+ * The Jobs page's filters, and the vocabulary they translate into.
  *
- * `GET /jobs/search` exposes exactly one free-text query (`q`) and a page size —
- * no location or experience parameters — so the three filters work in two
- * stages, and the page says so out loud:
+ * `GET /jobs/search` takes a ranking query (`q`) plus the structured filters the
+ * backend applies as a Qdrant payload filter — so the filters narrow the whole
+ * `job_role` collection, and the response's `matched` is a count of that
+ * collection rather than of the window a search happened to rank. Nothing here
+ * filters postings any more: the page can only report what the server looked at,
+ * which is the point of moving the rules to `services/job_service.py`.
  *
- * 1. **Ranking.** Every filled field is folded into `q`. Location, seniority and
- *    contract wording are part of the text embedded for each posting, so this
- *    genuinely steers which postings come back.
- * 2. **Refinement.** Location and experience then filter the returned window
- *    using the structured fields the endpoint *does* return (`location`,
- *    `remote`, `seniority`, `employment_type`, `title`).
+ * Two vocabularies meet here, deliberately:
  *
- * Stage 2 can only ever inspect the postings the server ranked (the
- * `SEARCH_LIMIT` closest), which is why the page reports both numbers rather
- * than implying the filters swept the whole collection.
+ * * the page shows, and puts in the URL, *human* wording ("Senior / lead"), so a
+ *   link stays readable and an existing `/jobs?experience=…` bookmark keeps
+ *   working;
+ * * the endpoint takes stable slugs (`experience=senior`, `remote=true`), so its
+ *   contract does not move when a label is reworded.
  */
 import type { JobPosting, Profile } from "@/api/types";
 
-/** The endpoint accepts 1–50; ask for the widest window so refinement has material. */
+/** The endpoint accepts 1–50; ask for the widest page it will give. */
 export const SEARCH_LIMIT = 50;
 
-/** `q` is capped at 200 characters by the endpoint, so the composed query is too. */
+/** The endpoint caps both of these, so the fields do too. */
 export const QUERY_MAX_LENGTH = 200;
+export const LOCATION_MAX_LENGTH = 80;
 
 export const ANY_EXPERIENCE = "Any experience";
 
 /**
- * Experience buckets, chosen from what the boards actually publish. Their
- * `seniority` field is empty for most postings (only one of the two boards sends
- * one), so each bucket also matches the posting title and contract wording —
+ * Experience buckets, chosen from what the boards actually publish: their
+ * `seniority` field is blank for most postings (only one of the two boards sends
+ * one at all), so each bucket also matches the title and the contract wording —
  * which is why there are three meaningful levels rather than a flat list of
- * seniority labels.
+ * seniority labels. The rules themselves live beside the filter they build, in
+ * `backend/services/job_service.py`.
  */
 export const EXPERIENCE_OPTIONS = [
   ANY_EXPERIENCE,
@@ -42,92 +44,74 @@ export const EXPERIENCE_OPTIONS = [
 
 export type ExperienceOption = (typeof EXPERIENCE_OPTIONS)[number];
 
+/** Label shown in the page -> the slug the endpoint validates. */
+const EXPERIENCE_SLUGS: Record<string, string> = {
+  "Internship / student": "internship",
+  "Entry level / junior": "entry",
+  "Senior / lead": "senior",
+};
+
+export const ANY_ARRANGEMENT = "Any arrangement";
+
+/**
+ * "On-site / not stated" is deliberate: the boards only ever flag the *remote*
+ * postings, so a false flag means the listing said nothing, not that the job is
+ * office-based. Filtering on it is still useful — it is how a candidate hides
+ * the hundred remote rows they cannot take.
+ */
+export const ARRANGEMENT_OPTIONS = [
+  ANY_ARRANGEMENT,
+  "Remote only",
+  "On-site / not stated",
+] as const;
+
+export type ArrangementOption = (typeof ARRANGEMENT_OPTIONS)[number];
+
+/** The endpoint takes a boolean flag; the page shows wording. */
+const ARRANGEMENT_SLUGS: Record<string, string> = {
+  "Remote only": "true",
+  "On-site / not stated": "false",
+};
+
+/** An arrangement label as the endpoint takes it: "true", "false", or "". */
+export function remoteParam(arrangement: string): string {
+  return ARRANGEMENT_SLUGS[arrangement] ?? "";
+}
+
+/** The reverse, for reading the value back out of the URL. */
+export function arrangementFromParam(value: string | null): string {
+  for (const [label, slug] of Object.entries(ARRANGEMENT_SLUGS)) {
+    if (slug === value) return label;
+  }
+  return ANY_ARRANGEMENT;
+}
+
 export interface JobFilters {
   role: string;
   location: string;
   experience: string;
+  arrangement: string;
 }
 
-export const EMPTY_FILTERS: JobFilters = {
-  role: "",
-  location: "",
-  experience: ANY_EXPERIENCE,
-};
-
-interface ExperienceRule {
-  /** Substrings looked for in the posting title. */
-  title: string[];
-  /** Substrings looked for in the board's own seniority labels. */
-  seniority: string[];
-  /** Substrings looked for in the board's own contract wording. */
-  contract: string[];
+/** The endpoint's inputs, as the URL carries them. Empty fields are left out. */
+export function postingParams(filters: JobFilters): Record<string, string> {
+  const params: Record<string, string> = { q: filters.role.trim() };
+  if (filters.location.trim()) params.location = filters.location.trim();
+  const experience = EXPERIENCE_SLUGS[filters.experience];
+  if (experience) params.experience = experience;
+  const remote = remoteParam(filters.arrangement);
+  if (remote) params.remote = remote;
+  return params;
 }
 
-const EXPERIENCE_RULES: Record<string, ExperienceRule> = {
-  "Internship / student": {
-    title: ["intern", "working student", "werkstudent", "praktik", "trainee"],
-    seniority: [],
-    contract: ["intern", "working student", "werkstudent", "praktik"],
-  },
-  "Entry level / junior": {
-    title: ["junior", "entry level", "entry-level", "graduate"],
-    seniority: ["entry-level"],
-    contract: [],
-  },
-  "Senior / lead": {
-    title: ["senior", "sr.", "lead", "principal", "staff", "head of", "director"],
-    seniority: ["senior", "director", "executive"],
-    contract: [],
-  },
-};
-
-function includesAny(haystack: string, needles: string[]): boolean {
-  return needles.some((needle) => haystack.includes(needle));
-}
-
-/** The single query string sent to the endpoint; "" when nothing was asked for. */
-export function buildQuery(filters: JobFilters): string {
-  const experience = filters.experience === ANY_EXPERIENCE ? "" : filters.experience;
-  return [filters.role, filters.location, experience]
-    .map((value) => value.trim())
-    .filter(Boolean)
-    .join(" ")
-    .slice(0, QUERY_MAX_LENGTH);
-}
-
-/** True when the posting's own location text (or remote flag) satisfies the term. */
-export function matchesLocation(posting: JobPosting, term: string): boolean {
-  const needle = term.trim().toLowerCase();
-  if (!needle) return true;
-  // "Remote" is a work arrangement, not a place name, so it uses the flag too.
-  if (needle.startsWith("remote")) {
-    return posting.remote || posting.location.toLowerCase().includes("remote");
-  }
-  return posting.location.toLowerCase().includes(needle);
-}
-
-/** True when the posting satisfies the chosen experience bucket. */
-export function matchesExperience(posting: JobPosting, experience: string): boolean {
-  if (!experience || experience === ANY_EXPERIENCE) return true;
-  const rule = EXPERIENCE_RULES[experience];
-  if (!rule) return true;
-  return (
-    includesAny(posting.title.toLowerCase(), rule.title) ||
-    includesAny(posting.seniority.join(" ").toLowerCase(), rule.seniority) ||
-    includesAny(posting.employment_type.toLowerCase(), rule.contract)
+/** True when the page has something to ask the endpoint. */
+export function hasAnyFilter(filters: JobFilters): boolean {
+  return Boolean(
+    filters.role.trim() ||
+      filters.location.trim() ||
+      EXPERIENCE_SLUGS[filters.experience] ||
+      ARRANGEMENT_SLUGS[filters.arrangement],
   );
-}
-
-export function matchesFilters(posting: JobPosting, filters: JobFilters): boolean {
-  return (
-    matchesLocation(posting, filters.location) &&
-    matchesExperience(posting, filters.experience)
-  );
-}
-
-/** The postings that survive the structured filters. */
-export function refinePostings(postings: JobPosting[], filters: JobFilters): JobPosting[] {
-  return postings.filter((posting) => matchesFilters(posting, filters));
 }
 
 /** Locations actually present in the results, offered as datalist suggestions. */
@@ -151,19 +135,14 @@ export function sourceLabel(source: string): string {
   return SOURCE_LABELS[source] ?? source.charAt(0).toUpperCase() + source.slice(1);
 }
 
-/** True when location or experience would narrow the ranked window. */
-export function hasNarrowingFilters(filters: JobFilters): boolean {
-  return Boolean(filters.location.trim()) || filters.experience !== ANY_EXPERIENCE;
-}
-
 /**
  * A search string built from the questionnaire answers.
  *
- * `GET /jobs/search` takes free text, so the same answers the semantic role match
- * runs on — interests, current skills and the stated goal — are joined into one
- * query and pointed at the live boards. Duplicates are dropped and the result is
- * truncated to the endpoint's limit; location is deliberately left out because
- * the Jobs page has a field of its own for it.
+ * The same answers the semantic role match runs on — interests, current skills
+ * and the stated goal — are joined into one ranking query and pointed at the
+ * live boards. Duplicates are dropped and the result is truncated to the
+ * endpoint's limit; location is deliberately left out because the Jobs page has
+ * a field of its own for it.
  */
 export function profileQuery(profile: Partial<Profile>): string {
   const seen = new Set<string>();
