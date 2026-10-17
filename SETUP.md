@@ -87,6 +87,11 @@ Open `backend/.env` and set:
 ```env
 # Optional — leave blank to run without AI
 GEMINI_API_KEY=your_free_gemini_key
+# Optional — pin the model (default is the floating "latest" alias)
+# GEMINI_MODEL=gemini-flash-lite-latest
+# Optional — AI calls allowed per caller per rolling window
+# AI_RATE_LIMIT=15
+# AI_RATE_WINDOW_SECONDS=60
 
 # REQUIRED — the API refuses to start without it (min 32 chars)
 JWT_SECRET=
@@ -103,6 +108,11 @@ CORS_ORIGINS=http://localhost:5173
 - Get a free key at **<https://aistudio.google.com>** → *Get API Key*.
 - `GEMINI_API_KEY` is **optional** — without it everything works except AI roadmap
   generation and the copilot, which return a friendly "AI not configured" message.
+- The AI endpoints (roadmap, copilot, match explanation) are metered **per caller** —
+  by user id when signed in, otherwise by client address — because this app lets
+  guests use the AI without an account. Over budget is a **429** with a `Retry-After`;
+  `/match` never fails on it, it just drops its written assessment, because the ranked
+  matches need no AI. Raise `AI_RATE_LIMIT` if you are demoing heavily from one machine.
 
 ### 2.5 Run the API
 
@@ -265,6 +275,13 @@ Now check the per-role job links and the roadmap copilot:
 - On any role card press **🗺️ Generate AI Roadmap**. It lands on the role's roadmap page, which
   generates the plan and now hosts the **Roadmap Copilot** on the *same page*, below the plan: ask it a
   question and the answer streams in without leaving the roadmap.
+- The copilot thread is **remembered for the tab**: ask something, navigate to **All Roles** and back
+  (or open `/chat/<role>`), and the conversation is still there. *Clear Conversation* and closing the
+  tab both drop it.
+- Sign in and generate a plan, then **close the tab and open the role again** in a new session: the plan
+  is fetched from **🗺️ Roadmaps** (your saved library) instead of being generated — and your saved
+  library shows the model and prompt fingerprint that produced each one, e.g.
+  `gemini-flash-lite-latest · prompt edc3becb7cc3`.
 
 **Preferred Work Hub** also lists international hubs now (London, Berlin, Amsterdam, Zurich, Dubai,
 Singapore, Toronto, New York, the Bay Area, Sydney…), not just the Indian ones — the live boards skew
@@ -347,6 +364,7 @@ backend's `CORS_ORIGINS`.
 | Frontend loads but no roles appear | Backend isn't running, or `VITE_API_BASE_URL` is wrong. Check <http://127.0.0.1:8000/health>. |
 | Roadmap/Copilot: "AI is not configured" | Set `GEMINI_API_KEY` in `backend/.env` and restart the backend. |
 | Roadmap/Copilot: "took too long to respond" | The request to Gemini timed out (slow/offline connection). Check your network and try again. |
+| Roadmap/Copilot: "a lot of AI requests in a short time" (429) | The per-caller AI budget is spent (`AI_RATE_LIMIT` per `AI_RATE_WINDOW_SECONDS`). Wait for the `Retry-After`, or raise the limit in `backend/.env` and restart. Matches still load — only the AI half is gated. |
 | Want a clean database | Stop the backend, delete `backend/data/career_compass.db`, restart — it is recreated and the role catalog is loaded from `roles.json` again. |
 | Existing database after an upgrade | Nothing to do. On startup `init_db()` appends any columns added since your database was created, refreshes the role catalog from `roles.json` in place, and keeps every existing row — user profiles, roadmaps and tracker progress included. |
 | Roles are missing after editing `roles.json` | Restart the backend. The catalog is read at startup, and roles are never deleted from the database (so saved roadmaps can't be orphaned), which also means removing a role from the JSON leaves its old row in place. |
@@ -382,8 +400,11 @@ calls Gemini or touches your real `backend/data/qdrant/` index. The live job-fee
 (`test_job_feed.py`) replace the single function that touches the network, so no test reaches a job
 board either; `test_job_api.py` covers the `/jobs/search` and `/jobs/for-role` read paths against a
 throwaway index. `test_prompts.py` checks the prompt library: every template the AI calls need exists
-on disk, renders without a leftover placeholder, and reaches the model as the same text the inline
-prompt used to (`google-generativeai` itself is mocked — no network).
+on disk, renders without a leftover placeholder, reaches the model as the same text the inline prompt
+used to, and survives a crafted answer that tries to open its own `Guidelines:` block
+(`google-generativeai` itself is mocked — no network). `test_rate_limit.py` covers the AI budget:
+the sliding window in isolation, then the endpoint behaviour — a `429` with `Retry-After` from the
+copilot and roadmap, and a `/match` that still returns its ranked answer without the AI explanation.
 
 **Frontend** (TypeScript check + production build):
 ```powershell

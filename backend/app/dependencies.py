@@ -1,10 +1,17 @@
-"""Shared FastAPI dependencies (authentication)."""
+"""Shared FastAPI dependencies (authentication and the AI quota)."""
+import math
 from typing import Optional
 
-from fastapi import Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 
+from app.config import AI_RATE_LIMIT, AI_RATE_WINDOW_SECONDS
 from app.security import decode_access_token
 from services import auth_service
+from services.rate_limit import RateLimiter
+
+# One budget for the whole process: see services/rate_limit.py for why that is
+# enough here (and what would change it).
+ai_limiter = RateLimiter(AI_RATE_LIMIT, AI_RATE_WINDOW_SECONDS)
 
 
 def _resolve_user(authorization: Optional[str]) -> Optional[dict]:
@@ -37,3 +44,44 @@ def get_current_user(authorization: Optional[str] = Header(default=None)) -> dic
 def get_optional_user(authorization: Optional[str] = Header(default=None)) -> Optional[dict]:
     """Returns the authenticated user if present, otherwise None."""
     return _resolve_user(authorization)
+
+
+def _quota_key(request: Request, user: Optional[dict]) -> str:
+    """Meters a signed-in candidate by identity and everyone else by address."""
+    if user:
+        return f"user:{user['id']}"
+    host = request.client.host if request.client else "unknown"
+    return f"ip:{host}"
+
+
+def _consume_quota(request: Request, user: Optional[dict]) -> tuple[bool, float]:
+    """Records one AI call for this caller: (allowed, seconds if not)."""
+    return ai_limiter.check(_quota_key(request, user))
+
+
+def consume_ai_quota(request: Request, user: Optional[dict]) -> bool:
+    """Soft form, for endpoints where the AI is only part of the answer.
+
+    `/match` ranks roles deterministically; the written assessment is a bonus on
+    top. Returning False lets the caller skip that bonus instead of failing a
+    request whose real answer is already computed.
+    """
+    allowed, _ = _consume_quota(request, user)
+    return allowed
+
+
+def ai_quota(request: Request, user: Optional[dict] = Depends(get_optional_user)) -> None:
+    """Rejects with 429 once the caller's AI budget for the window is spent."""
+    allowed, retry_after = _consume_quota(request, user)
+    if allowed:
+        return
+
+    wait = max(1, math.ceil(retry_after))
+    raise HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail=(
+            "You have made a lot of AI requests in a short time. "
+            f"Please wait about {wait} seconds and try again."
+        ),
+        headers={"Retry-After": str(wait)},
+    )

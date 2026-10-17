@@ -190,15 +190,27 @@ def get_user_profile(user_id: int) -> Optional[Dict[str, Any]]:
         conn.close()
 
 
-def save_roadmap(user_id: int, role_id: str, role_title: str, roadmap: Dict[str, Any]):
-    """Saves generated roadmap to user's history."""
+def save_roadmap(
+    user_id: int,
+    role_id: str,
+    role_title: str,
+    roadmap: Dict[str, Any],
+    model: str = "",
+    prompt_version: str = "",
+):
+    """Saves generated roadmap to user's history.
+
+    `model` and `prompt_version` record what produced the plan (the Gemini model id
+    and a fingerprint of the prompt templates in force at the time), so a saved
+    roadmap can be traced back to its recipe rather than just its date.
+    """
     conn = get_connection()
     try:
         with conn:
             conn.execute("""
-                INSERT INTO roadmaps (user_id, role_id, role_title, roadmap_json)
-                VALUES (?, ?, ?, ?);
-            """, (user_id, role_id, role_title, json.dumps(roadmap)))
+                INSERT INTO roadmaps (user_id, role_id, role_title, roadmap_json, model, prompt_version)
+                VALUES (?, ?, ?, ?, ?, ?);
+            """, (user_id, role_id, role_title, json.dumps(roadmap), model, prompt_version))
     finally:
         conn.close()
 
@@ -209,7 +221,7 @@ def get_saved_roadmaps(user_id: int) -> List[Dict[str, Any]]:
     try:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT id, role_id, role_title, roadmap_json, created_at
+            SELECT id, role_id, role_title, roadmap_json, model, prompt_version, created_at
             FROM roadmaps WHERE user_id = ? ORDER BY created_at DESC;
         """, (user_id,))
         results = []
@@ -219,6 +231,9 @@ def get_saved_roadmaps(user_id: int) -> List[Dict[str, Any]]:
                 "role_id": r["role_id"],
                 "role_title": r["role_title"],
                 "roadmap": json.loads(r["roadmap_json"]),
+                # Rows written before provenance was recorded hold NULL.
+                "model": r["model"] or "",
+                "prompt_version": r["prompt_version"] or "",
                 "created_at": r["created_at"]
             })
         return results

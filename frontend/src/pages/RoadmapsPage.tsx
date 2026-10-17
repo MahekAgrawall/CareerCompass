@@ -64,6 +64,8 @@ export default function RoadmapsPage() {
                         <h2 className="text-base font-bold text-slate-900">💼 {item.role_title}</h2>
                         <p className="caption mt-0.5">
                           Generated {formatDate(item.created_at)} • {priority} priority skills • {projects} projects
+                          {item.model ? ` • ${item.model}` : ""}
+                          {item.prompt_version ? ` · prompt ${item.prompt_version}` : ""}
                         </p>
                         {item.roadmap?.summary && (
                           <p className="mt-2 text-sm leading-relaxed text-slate-600">{item.roadmap.summary}</p>

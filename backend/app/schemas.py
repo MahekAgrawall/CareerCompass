@@ -110,8 +110,10 @@ class TopicToggle(BaseModel):
 class ChatRequest(BaseModel):
     role_id: str
     roadmap: Dict[str, Any] = {}
-    new_message: str
-    history: List[Dict[str, str]] = []
+    # Bounded on the way in: the message and the replayed history both end up in a
+    # paid model call, so a client cannot push an unbounded payload at it.
+    new_message: str = Field(min_length=1, max_length=4000)
+    history: List[Dict[str, str]] = Field(default_factory=list, max_length=40)
     profile: Dict[str, Any] = {}
 
 

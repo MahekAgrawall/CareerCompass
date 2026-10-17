@@ -1,7 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
+import * as endpoints from "@/api/endpoints";
 import type { Roadmap } from "@/api/types";
+import { useAuth } from "./AuthContext";
 
 const ROADMAPS_KEY = "cc.roadmaps";
 
@@ -28,9 +30,16 @@ const RoadmapContext = createContext<RoadmapContextValue | null>(null);
 /**
  * Caches generated roadmaps per role for the browser session so the Roadmap,
  * Tracker and Copilot views don't re-trigger expensive AI generations.
+ *
+ * A signed-in candidate also has plans saved server-side, so the cache is seeded
+ * from `GET /roadmaps` on sign-in: revisiting a role they already generated shows
+ * the plan immediately instead of paying for a second generation. A plan generated
+ * in this session always wins over the saved one — it is by definition newer.
  */
 export function RoadmapProvider({ children }: { children: ReactNode }) {
+  const { status } = useAuth();
   const [cache, setCache] = useState<RoadmapCache>(() => readStored());
+  const hydrated = useRef(false);
 
   useEffect(() => {
     try {
@@ -39,6 +48,37 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
       // Ignore quota errors — the cache is a convenience, not a source of truth.
     }
   }, [cache]);
+
+  // Adopt the saved library once per session, when a token resolves.
+  //
+  // No cancellation here on purpose: StrictMode mounts effects twice in
+  // development, so the cleanup would abort the one request this guard allows and
+  // the cache would never be seeded. The provider lives for the whole app, and a
+  // functional update is safe to apply whenever the response lands.
+  useEffect(() => {
+    if (status !== "authenticated" || hydrated.current) return;
+    hydrated.current = true;
+
+    (async () => {
+      try {
+        const saved = await endpoints.listSavedRoadmaps();
+        setCache((current) => {
+          const next = { ...current };
+          let added = false;
+          // Newest first from the API, so the first plan seen for a role wins.
+          for (const item of saved) {
+            if (!next[item.role_id]) {
+              next[item.role_id] = item.roadmap;
+              added = true;
+            }
+          }
+          return added ? next : current;
+        });
+      } catch {
+        // Offline or an expired session — the in-session cache still works.
+      }
+    })();
+  }, [status]);
 
   const getRoadmap = useCallback((roleId: string) => cache[roleId] ?? null, [cache]);
 

@@ -1,10 +1,11 @@
 """Roadmap Copilot endpoints (standard + streaming)."""
 from typing import Dict
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 
 from app import schemas
+from app.dependencies import ai_quota
 from services import ai_service, career_service
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -18,7 +19,7 @@ def _require_role(role_id: str) -> dict:
 
 
 @router.post("", response_model=Dict[str, str])
-def chat(payload: schemas.ChatRequest):
+def chat(payload: schemas.ChatRequest, _: None = Depends(ai_quota)):
     role = _require_role(payload.role_id)
     try:
         reply = ai_service.send_chat_message(
@@ -32,7 +33,7 @@ def chat(payload: schemas.ChatRequest):
 
 
 @router.post("/stream")
-def chat_stream(payload: schemas.ChatRequest):
+def chat_stream(payload: schemas.ChatRequest, _: None = Depends(ai_quota)):
     role = _require_role(payload.role_id)
     # Fail fast (before the stream starts) if the AI key is missing.
     try:

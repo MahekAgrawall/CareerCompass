@@ -6,6 +6,7 @@ so none of them can read or mutate a developer's real `backend/data/career_compa
 import os
 import sys
 import unittest
+from unittest import mock
 
 # Supports both package discovery and `python tests/test_api.py`.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -228,6 +229,32 @@ class RoadmapAccessControlTests(unittest.TestCase):
         # ...while Alice can delete her own.
         self.assertEqual(client.delete(f"/roadmaps/{roadmap_id}", headers=alice).status_code, 204)
         self.assertEqual(client.get("/roadmaps", headers=alice).json(), [])
+
+
+class RoadmapProvenanceTests(unittest.TestCase):
+    """A saved plan records what produced it, not just when it was produced."""
+
+    def test_generating_records_the_model_and_the_prompt_wording(self):
+        headers = signup("Provenance")
+        roadmap = {
+            "summary": "", "immediate_focus": [], "next_level": [],
+            "good_to_explore": [], "projects": [],
+        }
+
+        # The generation itself needs a live model; the persistence path does not.
+        with mock.patch.object(ai_service, "generate_roadmap", return_value=roadmap):
+            generated = client.post(
+                "/roadmap",
+                json={"role_id": "backend_dev", "profile": {"name": "Provenance"}},
+                headers=headers,
+            )
+        self.assertEqual(generated.status_code, 200, generated.text)
+
+        saved = client.get("/roadmaps", headers=headers).json()
+        self.assertEqual(len(saved), 1)
+        self.assertEqual(saved[0]["role_id"], "backend_dev")
+        self.assertEqual(saved[0]["model"], ai_service.MODEL_NAME)
+        self.assertEqual(saved[0]["prompt_version"], ai_service.roadmap_prompt_version())
 
 
 class MetaTests(unittest.TestCase):

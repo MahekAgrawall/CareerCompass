@@ -10,7 +10,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 
 from app_logging import get_logger
-from services import prompts
+from services import prompts, sanitize
 
 load_dotenv()
 
@@ -21,7 +21,13 @@ api_key = os.getenv("GEMINI_API_KEY", "")
 if api_key:
     genai.configure(api_key=api_key, transport="rest")
 
-MODEL_NAME = "gemini-flash-lite-latest"
+# A floating alias by default: whatever "latest" means today. Pin it in the
+# environment (GEMINI_MODEL) when reproducibility matters more than freshness, and
+# note that every saved roadmap records the model it was generated with either way.
+MODEL_NAME = os.getenv("GEMINI_MODEL", "").strip() or "gemini-flash-lite-latest"
+
+#: The templates behind `generate_roadmap`, hashed onto every saved roadmap.
+ROADMAP_PROMPT_TEMPLATES = ("system/roadmap.md", "user/roadmap.md")
 
 
 class AIConfigurationError(RuntimeError):
@@ -48,6 +54,11 @@ def get_model(system_instruction: str = None) -> genai.GenerativeModel:
     if system_instruction:
         return genai.GenerativeModel(MODEL_NAME, system_instruction=system_instruction)
     return genai.GenerativeModel(MODEL_NAME)
+
+
+def roadmap_prompt_version() -> str:
+    """Fingerprint of the roadmap prompt pair, stored beside every saved plan."""
+    return prompts.fingerprint(*ROADMAP_PROMPT_TEMPLATES)
 
 
 _ROADMAP_LIST_FIELDS = ("immediate_focus", "next_level", "good_to_explore", "projects")
@@ -78,18 +89,19 @@ def generate_roadmap(user_profile: Dict[str, Any], role: Dict[str, Any]) -> Dict
     """Generates a personalized, structured 3-phase skill roadmap and portfolio projects."""
     # Wording lives in prompts/system/roadmap.md + prompts/user/roadmap.md. The two
     # halves are joined into one message here to keep the model call identical to
-    # the inline prompt this replaced.
+    # the inline prompt this replaced. The profile arrives from the browser, so it
+    # is scrubbed down to single-line values and plain labels first.
     prompt = "\n\n".join(
         (
             prompts.render("system/roadmap.md"),
             prompts.render(
                 "user/roadmap.md",
-                name=user_profile.get("name", "Candidate"),
-                grad_year=user_profile.get("grad_year", "Upcoming"),
-                experience=user_profile.get("experience", "Fresher"),
-                current_skills=", ".join(user_profile.get("current_skills", [])),
-                interests=", ".join(user_profile.get("interests", [])),
-                location=user_profile.get("location", "India"),
+                name=sanitize.single_line(user_profile.get("name"), 80) or "Candidate",
+                grad_year=sanitize.single_line(user_profile.get("grad_year"), 40) or "Upcoming",
+                experience=sanitize.single_line(user_profile.get("experience"), 60) or "Fresher",
+                current_skills=", ".join(sanitize.labels(user_profile.get("current_skills"))) or "None stated",
+                interests=", ".join(sanitize.labels(user_profile.get("interests"))) or "Still exploring",
+                location=sanitize.single_line(user_profile.get("location"), 60) or "India",
                 role_title=role["title"],
                 role_category=role["category"],
                 must_have=", ".join(role["skills"]["must_have"]),
@@ -128,8 +140,8 @@ def generate_role_match_explanation(user_profile: Dict[str, Any], matched_roles:
             prompts.render("system/match_explanation.md"),
             prompts.render(
                 "user/match_explanation.md",
-                skills=", ".join(user_profile.get("current_skills", [])),
-                interests=", ".join(user_profile.get("interests", [])),
+                skills=", ".join(sanitize.labels(user_profile.get("current_skills"))) or "none stated",
+                interests=", ".join(sanitize.labels(user_profile.get("interests"))) or "none stated",
                 role_titles=", ".join(role_titles),
             ),
         )
@@ -140,7 +152,7 @@ def generate_role_match_explanation(user_profile: Dict[str, Any], matched_roles:
         return response.text.strip()
     except Exception as e:
         log.warning("Role match explanation failed, falling back to template: %s", e)
-        skills = ", ".join(user_profile.get("current_skills", [])[:3])
+        skills = ", ".join(sanitize.labels(user_profile.get("current_skills"), limit=3)) or "your current skills"
         return f"Based on your foundation in {skills} and your indicated interests, these roles align strongly with high-growth engineering opportunities in the Indian market."
 
 
@@ -149,16 +161,32 @@ def _chat_system_context(
     role: Dict[str, Any],
     roadmap: Dict[str, Any],
 ) -> str:
-    """Builds the persona/context block injected into every copilot turn."""
-    priority_skills = ", ".join(i["skill"] for i in roadmap.get("immediate_focus", []))
+    """Builds the persona/context block injected into every copilot turn.
+
+    Everything here is echoed back from the caller's browser, and it lands in a
+    *system* instruction — the strongest position in the prompt. It is therefore
+    reduced to plain labels first: the roadmap is expected to be the shape the app
+    generated, but nothing about it is trusted, so a malformed or crafted roadmap
+    can neither break the call nor smuggle in instructions.
+    """
+    focus = roadmap.get("immediate_focus")
+    focus_items = focus if isinstance(focus, list) else []
+    priority_skills = ", ".join(
+        sanitize.labels([item.get("skill") for item in focus_items if isinstance(item, dict)])
+    )
     return prompts.render(
         "system/copilot.md",
-        name=user_profile.get("name", "a candidate"),
-        experience=user_profile.get("experience"),
-        current_skills=", ".join(user_profile.get("current_skills", [])),
+        name=sanitize.single_line(user_profile.get("name"), 80) or "a candidate",
+        experience=sanitize.single_line(user_profile.get("experience"), 60) or "not stated",
+        current_skills=", ".join(sanitize.labels(user_profile.get("current_skills"))) or "none stated",
         role_title=role["title"],
-        priority_skills=priority_skills,
+        priority_skills=priority_skills or "not stated",
     )
+
+
+def _chat_history(chat_history: List[Dict[str, str]]) -> List[Dict[str, Any]]:
+    """The history as the SDK wants it, with malformed or spoofed turns dropped."""
+    return [{"role": m["role"], "parts": [m["content"]]} for m in sanitize.chat_history(chat_history)]
 
 
 def send_chat_message(
@@ -169,10 +197,9 @@ def send_chat_message(
     chat_history: List[Dict[str, str]],
 ) -> str:
     """Multi-turn context-aware roadmap copilot conversation (non-streaming)."""
-    history = [{"role": m["role"], "parts": [m["content"]]} for m in chat_history]
     chat_model = get_model(system_instruction=_chat_system_context(user_profile, role, roadmap))
-    session = chat_model.start_chat(history=history)
-    response = session.send_message(new_message)
+    session = chat_model.start_chat(history=_chat_history(chat_history))
+    response = session.send_message(sanitize.message(new_message))
     return response.text.strip()
 
 
@@ -184,10 +211,9 @@ def stream_chat_message(
     chat_history: List[Dict[str, str]],
 ):
     """Yields the copilot reply incrementally for a live-typing experience."""
-    history = [{"role": m["role"], "parts": [m["content"]]} for m in chat_history]
     chat_model = get_model(system_instruction=_chat_system_context(user_profile, role, roadmap))
-    session = chat_model.start_chat(history=history)
-    for chunk in session.send_message(new_message, stream=True):
+    session = chat_model.start_chat(history=_chat_history(chat_history))
+    for chunk in session.send_message(sanitize.message(new_message), stream=True):
         text = getattr(chunk, "text", None)
         if text:
             yield text

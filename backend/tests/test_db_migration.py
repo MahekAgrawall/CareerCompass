@@ -102,5 +102,57 @@ class ProfileMigrationTests(unittest.TestCase):
             self.assertEqual(profile[field], "", f"{field} should be an empty string")
 
 
+class RoadmapProvenanceMigrationTests(unittest.TestCase):
+    """Saved plans gained a recipe (model + prompt wording) after the first ones existed."""
+
+    def setUp(self):
+        self._original_path = db.DB_PATH
+        self._tmp = tempfile.TemporaryDirectory()
+        db.DB_PATH = os.path.join(self._tmp.name, "legacy_roadmaps.db")
+        self.addCleanup(self._restore)
+
+    def _restore(self):
+        db.DB_PATH = self._original_path
+        self._tmp.cleanup()
+
+    def test_an_existing_plan_survives_and_reports_empty_provenance(self):
+        conn = sqlite3.connect(db.DB_PATH)
+        conn.execute("""
+            CREATE TABLE roadmaps (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                role_id TEXT NOT NULL,
+                role_title TEXT NOT NULL,
+                roadmap_json TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        conn.execute(
+            "INSERT INTO roadmaps (user_id, role_id, role_title, roadmap_json) VALUES (?, ?, ?, ?);",
+            (7, "backend_dev", "Backend Developer", '{"summary": "legacy"}'),
+        )
+        conn.commit()
+        conn.close()
+
+        db.init_db()
+
+        conn = sqlite3.connect(db.DB_PATH)
+        conn.row_factory = sqlite3.Row
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(roadmaps);")}
+        self.assertTrue({"model", "prompt_version"} <= columns, f"missing: {columns}")
+        row = conn.execute("SELECT * FROM roadmaps WHERE user_id = 7;").fetchone()
+        conn.close()
+
+        self.assertIsNotNone(row, "the upgrade must not drop existing plans")
+        self.assertEqual(row["role_title"], "Backend Developer")
+        self.assertIsNone(row["model"], "a plan written before provenance has no recipe")
+
+        saved = auth_service.get_saved_roadmaps(7)
+        self.assertEqual(len(saved), 1)
+        self.assertEqual(saved[0]["roadmap"], {"summary": "legacy"})
+        self.assertEqual(saved[0]["model"], "", "an unknown recipe reads back as empty, not null")
+        self.assertEqual(saved[0]["prompt_version"], "")
+
+
 if __name__ == "__main__":
     unittest.main()

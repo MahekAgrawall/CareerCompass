@@ -108,6 +108,8 @@ def init_db():
                 role_id TEXT NOT NULL,
                 role_title TEXT NOT NULL,
                 roadmap_json TEXT NOT NULL,
+                model TEXT,
+                prompt_version TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
                 FOREIGN KEY (role_id) REFERENCES roles (id) ON DELETE CASCADE
@@ -150,9 +152,9 @@ def init_db():
             );
         """)
 
-        # 7. Upgrade databases created before the questionnaire or the salary
-        # provenance grew: existing rows are kept and the new columns are
-        # appended in place.
+        # 7. Upgrade databases created before the questionnaire, the salary
+        # provenance or the roadmap provenance grew: existing rows are kept and the
+        # new columns are appended in place.
         _add_missing_columns(conn, "profiles", {
             "work_mode": "TEXT",
             "open_to_relocate": "TEXT",
@@ -164,6 +166,12 @@ def init_db():
             "salary_product_median": "REAL",
             "salary_sources_json": "TEXT",
             "salary_anchor_note": "TEXT",
+        })
+        # Saved roadmaps gained provenance (which model, which prompt wording) after
+        # the first plans were already stored.
+        _add_missing_columns(conn, "roadmaps", {
+            "model": "TEXT",
+            "prompt_version": "TEXT",
         })
 
     # Load / refresh the role catalog from data/roles.json

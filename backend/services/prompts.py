@@ -14,6 +14,7 @@ Templates use ``$name`` placeholders (``string.Template``), which keeps the JSON
 schema braces in ``system/roadmap.md`` literal instead of doubled.
 """
 
+import hashlib
 from pathlib import Path
 from string import Template
 from typing import Any
@@ -53,3 +54,19 @@ def render(relative_path: str, **values: Any) -> str:
     ``$`` inside a substituted value is never treated as a placeholder.
     """
     return Template(load_text(relative_path)).substitute(**values)
+
+
+def fingerprint(*relative_paths: str) -> str:
+    """A short, stable hash of one or more templates.
+
+    Prompts are edited as files, so a diff alone cannot tell you which wording was
+    live when an artifact was produced. Saved AI output records this fingerprint
+    instead, which makes "same model, same prompt, same plan" checkable after the
+    fact.
+    """
+    digest = hashlib.sha256()
+    for relative_path in sorted(relative_paths):
+        digest.update(relative_path.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(load_text(relative_path).encode("utf-8"))
+    return digest.hexdigest()[:12]

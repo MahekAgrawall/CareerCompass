@@ -147,6 +147,10 @@ export interface SavedRoadmap {
   role_id: string;
   role_title: string;
   roadmap: Roadmap;
+  /** The model that generated the plan; "" for plans saved before provenance. */
+  model: string;
+  /** Fingerprint of the prompt templates in force when it was generated; "" if unknown. */
+  prompt_version: string;
   created_at: string;
 }
 

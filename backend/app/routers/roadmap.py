@@ -4,14 +4,18 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app import schemas
-from app.dependencies import get_current_user, get_optional_user
+from app.dependencies import ai_quota, get_current_user, get_optional_user
 from services import ai_service, auth_service, career_service
 
 router = APIRouter(tags=["roadmap"])
 
 
 @router.post("/roadmap", response_model=Dict[str, Any])
-def generate(payload: schemas.RoadmapRequest, user: dict | None = Depends(get_optional_user)):
+def generate(
+    payload: schemas.RoadmapRequest,
+    user: dict | None = Depends(get_optional_user),
+    _: None = Depends(ai_quota),
+):
     role = career_service.get_role_by_id(payload.role_id)
     if not role:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
@@ -24,7 +28,16 @@ def generate(payload: schemas.RoadmapRequest, user: dict | None = Depends(get_op
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Roadmap generation failed: {e}")
 
     if user:
-        auth_service.save_roadmap(user["id"], role["id"], role["title"], roadmap)
+        # Record which model and which prompt wording produced this plan, so a saved
+        # roadmap stays traceable after either changes.
+        auth_service.save_roadmap(
+            user["id"],
+            role["id"],
+            role["title"],
+            roadmap,
+            model=ai_service.MODEL_NAME,
+            prompt_version=ai_service.roadmap_prompt_version(),
+        )
 
     return roadmap
 

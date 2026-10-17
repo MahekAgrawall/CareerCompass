@@ -3,8 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import Alert from "@/components/Alert";
 import * as endpoints from "@/api/endpoints";
 import { ApiError, isAbortError } from "@/api/client";
-import type { ChatMessage, Roadmap, Role } from "@/api/types";
+import type { Roadmap, Role } from "@/api/types";
 import { useProfile } from "@/state/ProfileContext";
+import { useCopilotThread } from "@/state/useCopilotThread";
 
 function suggestions(roleTitle: string): string[] {
   return [
@@ -16,22 +17,34 @@ function suggestions(roleTitle: string): string[] {
 }
 
 /**
+ * How much of the conversation is replayed to the model. The server keeps the last
+ * 20 turns anyway (`services/sanitize.py`), so a longer thread would just resend
+ * tokens it is going to discard.
+ */
+const MAX_HISTORY_TURNS = 20;
+
+/**
  * The roadmap copilot thread: a streaming chat pre-loaded with the candidate's
  * background, target role and generated roadmap.
  *
  * Kept as a panel, not a page, so the roadmap and the copilot can share one
  * screen — the roadmap page embeds it, and `/chat/:roleId` still renders it on
- * its own for existing links.
+ * its own for existing links. The conversation is persisted per role for the
+ * browser session (`state/useCopilotThread`), so moving between the two views
+ * keeps the thread.
  */
 export default function CopilotPanel({ role, roadmap }: { role: Role; roadmap: Roadmap }) {
   const { profile } = useProfile();
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  // The conversation outlives this component, but is only written when a reply
+  // has finished (see `paused`).
+  const { messages, setMessages, clear } = useCopilotThread(role.id, { paused: streaming });
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -43,7 +56,9 @@ export default function CopilotPanel({ role, roadmap }: { role: Role; roadmap: R
     const trimmed = text.trim();
     if (!role || !roadmap || !trimmed || streaming) return;
 
-    const history = messages;
+    // Only the recent turns are replayed: the server keeps the last 20 either way,
+    // so a long thread would otherwise resend the whole conversation every message.
+    const history = messages.slice(-MAX_HISTORY_TURNS);
     setError(null);
     setInput("");
     setStreaming(true);
@@ -173,7 +188,7 @@ export default function CopilotPanel({ role, roadmap }: { role: Role; roadmap: R
         <button
           type="button"
           className="btn btn-danger"
-          onClick={() => setMessages([])}
+          onClick={clear}
           disabled={messages.length === 0 || streaming}
         >
           🗑️ Clear Conversation

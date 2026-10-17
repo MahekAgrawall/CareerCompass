@@ -38,5 +38,12 @@ CORS_ORIGINS = [
     if origin.strip()
 ]
 
+# The AI endpoints (roadmap, copilot, match explanation) spend a paid quota and
+# are open to guests, so each caller gets its own budget per rolling window. Keyed
+# by user id when a bearer token resolves, otherwise by client address. Sized well
+# above human use: generating plans and chatting rarely exceeds a handful a minute.
+AI_RATE_LIMIT = int(os.getenv("AI_RATE_LIMIT", "15"))
+AI_RATE_WINDOW_SECONDS = float(os.getenv("AI_RATE_WINDOW_SECONDS", "60"))
+
 API_TITLE = "CareerCompass API"
 API_VERSION = "1.0.0"

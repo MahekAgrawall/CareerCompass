@@ -35,3 +35,19 @@ rather than shipping a prompt containing a literal `$role_title`.
 | Roadmap copilot | `system/copilot.md` | the candidate's live message |
 
 Loading and rendering live in `services/prompts.py`.
+
+## Versioning
+
+`prompts.fingerprint(*paths)` returns a short, stable hash of one or more templates, and a
+generated roadmap is saved with the fingerprint of `system/roadmap.md` +
+`user/roadmap.md` beside the model id. Prompts are edited as files, so a diff alone
+cannot tell you which wording was live when a given plan was produced; the stored
+fingerprint can.
+
+## Untrusted values
+
+Values substituted into a prompt are scrubbed first (`services/sanitize.py`): the
+candidate's answers arrive back from the browser, and the copilot's land in a *system*
+instruction. Free text is flattened to one length-capped line; skills and interests are
+reduced to plain labels. Add a new placeholder with a value that came from a client and
+it should go through the same scrubbing.

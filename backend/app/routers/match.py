@@ -1,14 +1,19 @@
 """Role-matching endpoint."""
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Request
 
 from app import schemas
+from app.dependencies import consume_ai_quota, get_optional_user
 from services import ai_service, career_service
 
 router = APIRouter(tags=["matching"])
 
 
 @router.post("/match", response_model=schemas.MatchResponse)
-def match(payload: schemas.MatchRequest):
+def match(
+    payload: schemas.MatchRequest,
+    request: Request,
+    user: dict | None = Depends(get_optional_user),
+):
     profile = {
         "interests": payload.interests,
         "current_skills": payload.current_skills,
@@ -21,7 +26,9 @@ def match(payload: schemas.MatchRequest):
     results = career_service.match_roles_smart(profile)
 
     explanation = ""
-    if payload.explain and results:
+    # The ranked matches never call Gemini; only the written assessment does. When
+    # the caller's AI budget is spent we drop the assessment rather than the answer.
+    if payload.explain and results and consume_ai_quota(request, user):
         explanation = ai_service.generate_role_match_explanation(
             profile, [item["role"] for item in results]
         )
