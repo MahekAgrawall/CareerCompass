@@ -74,10 +74,10 @@ def _fall_back_to_local(roles, error: Exception) -> int:
     print(f"! Gemini embeddings unavailable: {error}")
     print("  Falling back to the deterministic local embedder.")
     os.environ["EMBEDDING_PROVIDER"] = "local"
-    vector_store.reset_clients()
-    if vector_store.qdrant_url():
-        vector_store.drop_collection(abandoned)
-    return vector_store.rebuild(roles)  # rebuild clears anything half-written
+    # Drop whatever the failed provider managed to write: a partly-written space
+    # left in place is worse than no index, because it still answers queries.
+    vector_store.drop_collection(abandoned)
+    return vector_store.rebuild(roles)
 
 
 def ingest(rebuild: bool = False, query: str = "") -> dict:

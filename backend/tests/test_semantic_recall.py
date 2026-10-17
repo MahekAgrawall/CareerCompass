@@ -23,7 +23,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from tests.harness import client  # noqa: F401  (isolation must load first)
+from tests.harness import IndexBackedTest, client  # noqa: F401  (isolation must load first)
 
 from scripts import ingest_roles  # noqa: E402
 from services import career_service, embeddings, vector_store  # noqa: E402
@@ -81,31 +81,6 @@ EMBEDDED_FIXTURE = fixture_role(
     ["C", "C++", "Linux"],
     "Writes bare-metal C firmware and RTOS drivers for microcontroller boards.",
 )
-
-
-class _IndexBackedTest(unittest.TestCase):
-    """Runs the test against a throwaway vector index, then puts the env back."""
-
-    def setUp(self):
-        self._previous = {
-            key: os.environ.get(key)
-            for key in ("QDRANT_PATH", "QDRANT_URL", "EMBEDDING_PROVIDER", "GEMINI_API_KEY")
-        }
-        self._tmp = tempfile.mkdtemp(prefix="careercompass_qdrant_")
-        os.environ["EMBEDDING_PROVIDER"] = "local"
-        os.environ["QDRANT_PATH"] = os.path.join(self._tmp, "index")
-        os.environ.pop("QDRANT_URL", None)
-        vector_store.reset_clients()
-        self.addCleanup(self._restore)
-
-    def _restore(self):
-        vector_store.reset_clients()
-        for key, value in self._previous.items():
-            if value is None:
-                os.environ.pop(key, None)
-            else:
-                os.environ[key] = value
-        shutil.rmtree(self._tmp, ignore_errors=True)
 
 
 class EmbeddingTests(unittest.TestCase):
@@ -230,7 +205,7 @@ class DocumentTests(unittest.TestCase):
         self.assertIn("self-driving", query)
 
 
-class SemanticIndexTests(_IndexBackedTest):
+class SemanticIndexTests(IndexBackedTest):
     def test_search_returns_nothing_without_an_index(self):
         self.assertFalse(vector_store.is_available())
         self.assertEqual(vector_store.semantic_search("cloud infrastructure"), [])
@@ -262,7 +237,7 @@ class SemanticIndexTests(_IndexBackedTest):
         self.assertIn(embeddings.signature(), status["collection"])
 
 
-class SemanticRecallTests(_IndexBackedTest):
+class SemanticRecallTests(IndexBackedTest):
     """Recall may add candidates; it must never change a score.
 
     These run against real catalog roles (indexed into a throwaway index), so
@@ -344,7 +319,7 @@ class SemanticRecallTests(_IndexBackedTest):
                 self.assertEqual(match["score"], max(0, min(100, expected)))
 
 
-class IngestMigrationTests(_IndexBackedTest):
+class IngestMigrationTests(IndexBackedTest):
     def test_the_migration_indexes_the_whole_catalog(self):
         with contextlib.redirect_stdout(io.StringIO()):
             exit_code = ingest_roles.main([])
@@ -380,7 +355,7 @@ class IngestMigrationTests(_IndexBackedTest):
         )
 
 
-class SemanticApiTests(_IndexBackedTest):
+class SemanticApiTests(IndexBackedTest):
     """The API has to publish how each role was recalled, honestly."""
 
     def test_match_publishes_the_recall_stage(self):

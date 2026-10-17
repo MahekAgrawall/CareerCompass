@@ -10,18 +10,26 @@ Storage defaults to qdrant-client's *embedded local mode* (a directory under
 `backend/data/qdrant`), so the app needs no server or Docker. Set `QDRANT_URL`
 (plus optional `QDRANT_API_KEY`) to point at a real Qdrant instead.
 
-Ingestion is explicit — `python -m scripts.ingest_roles` — never on startup, so
-boot time does not depend on embeddings or on the network. When the index is
-missing, empty or unreachable, `semantic_search` returns nothing and the matcher
-silently stays keyword-only.
+Ingestion is explicit — `python -m scripts.ingest_roles` for the curated catalog,
+`python -m scripts.ingest_jobs` for the live job feed — never on startup, so boot
+time does not depend on embeddings or on the network. When the index is missing,
+empty or unreachable, `semantic_search` returns nothing and the matcher silently
+stays keyword-only.
 
-Vectors are compared only within a collection named after the embedding
-signature (provider + dimension), so two different embedding providers never
-contaminate one another.
+Two kinds of collection live here:
+
+* `careercompass_roles_<signature>` — the curated role catalog, named after its
+  embedding space (provider + model + width) so two spaces never contaminate one
+  another;
+* `job_role` — live job postings (see `services.job_feed`). That name is a plain,
+  human-chosen one, so the space it holds is recorded in a sidecar file
+  (`<index>/job_role.space`) and checked before ingestion instead.
 """
 
+import gc
 import hashlib
 import os
+import shutil
 from typing import Any, Dict, List, Optional, Tuple
 
 from app_logging import get_logger
@@ -32,6 +40,9 @@ log = get_logger("careercompass.rag")
 
 DEFAULT_QDRANT_PATH = os.path.join(DATA_DIR, "qdrant")
 COLLECTION_PREFIX = "careercompass_roles"
+# Live job postings get their own deliberately plain collection name, so the
+# data is easy to find from any Qdrant client (`scripts.ingest_jobs` fills it).
+JOBS_COLLECTION = "job_role"
 
 # Cache key -> QdrantClient. Embedded local mode locks its directory, so holding
 # one client per location matters.
@@ -212,14 +223,50 @@ def upsert_roles(roles: List[Dict[str, Any]], batch_size: int = 32) -> int:
     return written
 
 
-def drop_collection(name: str) -> bool:
-    """Deletes one named collection on a Qdrant server. No-op in embedded mode.
+def _purge_embedded(name: str) -> bool:
+    """Removes one embedded collection completely: metadata *and* files.
 
-    Embedded mode has no per-collection cleanup that survives a reopen on Windows
-    (see `rebuild`), so callers there clear the whole directory instead.
+    `delete_collection` alone is not enough here. In embedded mode a collection
+    is just a directory: deleting it drops the name from `meta.json` but leaves
+    `collection/<name>/storage.sqlite` behind, and creating that name again
+    re-attaches the old file — so "deleted" points reappear. Clearing the
+    directory is the only thing that actually clears the data, and it has to
+    happen with every client closed and after a `gc.collect()`, because the
+    delete itself leaves a SQLite handle open.
+
+    Returns whether the collection existed. Raises when the files could not be
+    removed: a half-purged collection is worse than a failed rebuild.
     """
-    if not qdrant_url() or not name:
+    client = _client()
+    existed = client.collection_exists(name)
+    if existed:
+        client.delete_collection(name)
+
+    target = os.path.join(index_path(), "collection", name)
+    reset_clients()
+    gc.collect()
+    shutil.rmtree(target, ignore_errors=True)
+    if os.path.isdir(target):
+        raise RuntimeError(
+            f"could not clear the embedded collection {name!r} at {target} — another "
+            "process (the API server?) is probably holding it open. Stop it and re-run."
+        )
+    return existed
+
+
+def drop_collection(name: str) -> bool:
+    """Deletes a collection by name, whichever storage mode is configured.
+
+    Returns whether it existed. In embedded mode this really clears the stored
+    vectors (see `_purge_embedded`); on a Qdrant server it is a plain server-side
+    delete. Raises if an embedded collection could not be cleared, because
+    leaving stale vectors behind under the same name would silently poison the
+    next ingest.
+    """
+    if not name:
         return False
+    if not qdrant_url():
+        return _purge_embedded(name)
     try:
         client = _client()
         if client.collection_exists(name):
@@ -231,29 +278,128 @@ def drop_collection(name: str) -> bool:
 
 
 def rebuild(roles: List[Dict[str, Any]]) -> int:
-    """Drops this embedding space's collection and re-ingests everything.
+    """Drops this embedding space's collection and re-ingests every role.
 
-    In embedded local mode this clears the whole local index directory (every
-    embedding space), because on Windows a collection's storage file can survive
-    `delete_collection` and get re-read on the next open. Requires the API server
-    to be stopped, exactly like the first ingest.
+    Scoped to its own collection on purpose: other collections in the same store
+    (`job_role`, or a previous embedding space) are left alone, so rebuilding the
+    catalog cannot destroy them. The API server must still be stopped — embedded
+    mode holds the index directory for the whole process.
+    """
+    drop_collection(collection_name())
+    return upsert_roles(roles)
+
+
+# ── Named collections (live job postings) ─────────────────────────────────────
+def _space_manifest(collection: str) -> str:
+    return os.path.join(index_path(), f"{collection}.space")
+
+
+def recorded_space(collection: str) -> str:
+    """The embedding space a named collection was built in, or '' if unknown.
+
+    Always '' on a Qdrant server: there the space is whatever was ingested, and
+    the sidecar file would live on the wrong machine.
     """
     if qdrant_url():
-        client = _client()
-        if client.collection_exists(collection_name()):
-            client.delete_collection(collection_name())
-    else:
-        import shutil
+        return ""
+    try:
+        with open(_space_manifest(collection), encoding="utf-8") as handle:
+            return handle.read().strip()
+    except OSError:
+        return ""
 
-        path = index_path()
-        reset_clients()
-        shutil.rmtree(path, ignore_errors=True)
-        if os.path.isdir(path):
-            raise RuntimeError(
-                f"could not clear the embedded index at {path} — another process "
-                "(the API server?) is probably holding it open."
+
+def record_space(collection: str, space: str) -> None:
+    """Remembers which embedding space a fixed-name collection holds.
+
+    `job_role` is a human-chosen name, so unlike the role collections it cannot
+    carry its provider and model in the name. This sidecar is what keeps two
+    spaces from ever being compared inside one collection.
+    """
+    if qdrant_url():
+        return
+    try:
+        os.makedirs(index_path(), exist_ok=True)
+        with open(_space_manifest(collection), "w", encoding="utf-8") as handle:
+            handle.write(f"{space}\n")
+    except OSError as exc:  # pragma: no cover - best effort
+        log.warning("Could not record the embedding space for %s (%s)", collection, exc)
+
+
+def count_points(name: str) -> int:
+    """Number of points in a collection, 0 when it does not exist."""
+    try:
+        client = _client()
+        if not client.collection_exists(name):
+            return 0
+        return int(getattr(client.count(name), "count", 0))
+    except Exception as exc:  # noqa: BLE001 - diagnostics must never raise
+        log.warning("Could not count %s (%s)", name, exc)
+        return 0
+
+
+def upsert_records(
+    name: str,
+    rows: List[Tuple[str, str, Dict[str, Any]]],
+    batch_size: int = 64,
+) -> int:
+    """Embeds and stores `(record_id, document, payload)` rows in a collection.
+
+    Returns the number of points written. Re-ingesting the same ids updates them
+    instead of duplicating, exactly like `upsert_roles`.
+    """
+    from qdrant_client import models
+
+    if not rows:
+        return 0
+    client = _client()
+    _ensure_collection(client, name)
+    written = 0
+    for start in range(0, len(rows), batch_size):
+        batch = rows[start:start + batch_size]
+        vectors = embeddings.embed_documents([document for _, document, _ in batch])
+        points = [
+            models.PointStruct(
+                id=_point_id(record_id),
+                vector=vector,
+                payload=payload,
             )
-    return upsert_roles(roles)
+            for (record_id, _, payload), vector in zip(batch, vectors)
+        ]
+        client.upsert(collection_name=name, points=points, wait=True)
+        written += len(points)
+    return written
+
+
+def search_records(name: str, text: str, limit: int = 10) -> List[Tuple[float, Dict[str, Any]]]:
+    """`[(score, payload), ...]` from a named collection, best first.
+
+    Never raises: an absent collection or an unavailable embedder yields [].
+    """
+    if not (text or "").strip() or not is_available():
+        return []
+    try:
+        client = _client()
+        if not client.collection_exists(name):
+            return []
+        response = client.query_points(
+            collection_name=name,
+            query=embeddings.embed_query(text),
+            limit=limit,
+            with_payload=True,
+            with_vectors=False,
+        )
+        hits = getattr(response, "points", response) or []
+        return [
+            (
+                float(getattr(hit, "score", 0.0)),
+                dict(getattr(hit, "payload", None) or {}),
+            )
+            for hit in hits
+        ]
+    except Exception as exc:
+        log.warning("Search on %s failed (%s)", name, exc)
+        return []
 
 
 # ── Retrieval ─────────────────────────────────────────────────────────────────

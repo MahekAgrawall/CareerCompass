@@ -25,6 +25,10 @@ legacy/data/session.json
 # `python -m scripts.ingest_roles --rebuild`.
 backend/data/qdrant/
 
+# Postings collected from the public job-board APIs (derived data, re-fetched
+# with `python -m scripts.ingest_jobs`).
+backend/data/job_postings.json
+
 # ── Streamlit ─────────────────────────────────────────────────────────────────
 .streamlit/secrets.toml
 

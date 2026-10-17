@@ -154,6 +154,35 @@ says so and builds the offline index instead. Either way the provider that built
 the index is recorded beside it, so the API always queries the right collection.
 See §8 for what to do if you change keys or models later.
 
+### 2.9 Collect live job postings into `job_role` (optional)
+
+A second collection holds real, currently-open postings rather than curated roles.
+It is collected from free public job-board APIs (Himalayas and Arbeitnow) — no key
+and no sign-up — normalised, de-duplicated by title and company, and embedded with
+the same embedder as the catalog:
+
+```powershell
+# With the API stopped, exactly like 2.8
+.\.venv\Scripts\python.exe -m scripts.ingest_jobs --limit 1000 --query "kubernetes platform engineer"
+```
+
+It fetches politely (descriptive `User-Agent`, a pause between pages, a page
+ceiling per board) and writes what it collected to `data/job_postings.json`
+(git-ignored). Re-ingest from that file with no network at all:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.ingest_jobs --from-file data\job_postings.json
+```
+
+`job_role` is a plain, human-chosen name, so the embedding space it holds is
+recorded in `<index>/job_role.space`. Ingesting from a *different* space (say you
+add a Gemini key after building offline) is refused instead of mixing
+incomparable vectors — re-run with `--rebuild` to replace it. Rebuilding this
+collection never touches the catalog index, and vice versa.
+
+This step is data plumbing: nothing in the API reads `job_role` yet, so skipping it
+changes nothing about how the app behaves.
+
 ---
 
 ## 3. Frontend — React (Vite)
@@ -279,6 +308,8 @@ backend's `CORS_ORIGINS`.
 | `/health` shows `semantic_index.points: 0`, or `other_collections` is listed | You are querying a different embedding space than the one that was ingested — usually because a `GEMINI_API_KEY` was added/removed, or `GEMINI_EMBEDDING_MODEL` changed, after the migration. Re-run §2.8 (with `--rebuild`), or pin `EMBEDDING_PROVIDER` to the space you want. |
 | Migration prints "Gemini embeddings unavailable … falling back" | Gemini is configured but unreachable (quota, retired model, offline). The offline index is built instead and recorded, so matching still works. Fix the key/quota and re-run §2.8 with `--rebuild` to switch to Gemini vectors. |
 | Matches look keyword-only after an upgrade | Expected until §2.8 runs. Without an index the matcher behaves exactly as before; `recalled_by` on every result says how it was found. |
+| `scripts.ingest_jobs` refuses: "was built in embedding space … but the active embeddings are …" | `job_role` already holds vectors from another space (usually you added a `GEMINI_API_KEY` after building offline). Re-run with `--rebuild` to replace the collection, or pin `EMBEDDING_PROVIDER` to the space it holds. |
+| `scripts.ingest_jobs` reports no postings / a board was skipped | A job board was unreachable or returned nothing; the other board was still used. Re-run later, or ingest the saved `data/job_postings.json` with `--from-file`. |
 | `FutureWarning` about `google.generativeai` | Harmless; the SDK is deprecated and migration is planned. |
 
 ---
@@ -299,7 +330,9 @@ candidate journey end to end. An individual file also runs directly, e.g.
 
 The semantic-index tests are hermetic too: the harness forces the offline embedder
 (`EMBEDDING_PROVIDER=local`) and points `QDRANT_PATH` at a temporary directory, so no test ever
-calls Gemini or touches your real `backend/data/qdrant/` index.
+calls Gemini or touches your real `backend/data/qdrant/` index. The live job-feed tests
+(`test_job_feed.py`) replace the single function that touches the network, so no test reaches a job
+board either.
 
 **Frontend** (TypeScript check + production build):
 ```powershell

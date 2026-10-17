@@ -72,7 +72,8 @@ A monorepo with a clean client/server split and a layered backend:
 ├────────────────────────────────────────────────────────────┤
 │  retrieval       services/vector_store.py  →  Qdrant       │
 │                  services/embeddings.py    (Gemini/local)  │
-│                  scripts/ingest_roles.py   (migration)     │
+│                  services/job_feed.py      (public boards) │
+│                  scripts/ingest_roles.py · ingest_jobs.py  │
 ├────────────────────────────────────────────────────────────┤
 │  data layer      database/db.py  →  SQLite                 │
 │                  data/roles.json · data/stacks.json        │
@@ -102,6 +103,29 @@ and no model download — which is also what the test suite and CI run on. The p
 the index is recorded next to it, so the API always queries the collection that actually holds the
 vectors.
 
+### 📥 Live job postings (`job_role`)
+
+Alongside the curated catalog there is a second, independent collection holding **real, currently
+open postings**, collected from free public job-board APIs (Himalayas and Arbeitnow) by
+`services/job_feed.py`. Each posting is normalised into one shape — title, company, location,
+remote flag, employment type, seniority, categories, salary, publication date, its own URL — with
+the HTML stripped so the text can be embedded, and de-duplicated by title and company so the same
+opening advertised on two boards counts once. Both boards' terms are respected: a descriptive
+`User-Agent`, a pause between pages, a hard page ceiling per source, and every record keeps its
+board name and original link.
+
+A harvest of 1,000 fetched postings de-duplicates by title and company — roughly 5% of what the
+boards return is the same opening advertised twice — and the surviving records are embedded into
+`job_role` with the same embedder as the catalog. The two collections share one store but not one
+fate:
+rebuilding either one leaves the other untouched. Because `job_role` is a plain, human-chosen
+name, which embedding space it holds is recorded in a sidecar file (`<index>/job_role.space`) and
+a later ingest in a different space is refused rather than silently mixing incomparable vectors —
+`--rebuild` is the explicit opt-in to switch.
+
+The collection is data infrastructure today: nothing in the API reads it yet, and skipping the
+migration breaks nothing.
+
 ---
 
 ## 🧰 Tech Stack
@@ -120,6 +144,7 @@ vectors.
 | Routing / data | React Router 6 · TanStack Query 5 |
 | Persistence | SQLite (embedded, zero-config) |
 | Retrieval | Qdrant (`qdrant-client`, embedded local mode or a server) + Gemini / offline embeddings |
+| External data | Himalayas · Arbeitnow public job-board APIs (no key required) |
 | Config | `python-dotenv` (backend) · Vite env vars (frontend) |
 | CI | GitHub Actions |
 
@@ -138,10 +163,10 @@ career-compass/
 │   │   ├── security.py        ← JWT create/decode
 │   │   ├── dependencies.py    ← get_current_user / get_optional_user
 │   │   └── routers/           ← auth · roles · profile · match · roadmap · tracker · chat
-│   ├── services/              ← ai · career · tracker · auth · embeddings · vector_store
-│   ├── scripts/               ← ingest_roles.py (semantic index migration)
+│   ├── services/              ← ai · career · tracker · auth · embeddings · vector_store · job_feed
+│   ├── scripts/               ← ingest_roles.py · ingest_jobs.py (index migrations)
 │   ├── database/db.py         ← connection, schema, role-catalog sync
-│   ├── data/                  ← roles.json · stacks.json · qdrant/ (derived, git-ignored)
+│   ├── data/                  ← roles.json · stacks.json · qdrant/ · job_postings.json (last two derived)
 │   ├── tests/                 ← unittest: API integration + end-to-end journey
 │   ├── requirements.txt
 │   └── .env.example
@@ -215,6 +240,19 @@ first). It embeds with Gemini when `GEMINI_API_KEY` is set, and with the determi
 embedder otherwise; if Gemini is configured but unusable (quota, retired model, offline) it says
 so and builds the offline index instead. Skip the migration entirely and matching stays
 keyword-only — nothing else changes.
+
+A second, independent collection holds **live job postings** rather than curated roles:
+
+```bash
+python -m scripts.ingest_jobs --limit 1000 --query "kubernetes platform engineer"
+```
+
+It collects postings from free, public job-board APIs (Himalayas, Arbeitnow), normalises and
+de-duplicates them, writes them to `backend/data/job_postings.json`, and embeds them into the
+`job_role` collection — so the catalog index and the live feed share one store but not one fate.
+Because `job_role` is a plain human-chosen name, the embedding space it holds is recorded in
+`<index>/job_role.space` and a second ingest in a different space is refused rather than mixed;
+pass `--rebuild` to switch. `--from-file` re-ingests the saved JSON with no network at all.
 
 `JWT_SECRET` is required — generate one with
 `python -c "import secrets; print(secrets.token_urlsafe(48))"`. The API refuses to start without it.
@@ -327,7 +365,12 @@ index directory, so no test ever calls Gemini or touches the developer's index. 
 local embeddings are byte-identical across processes, that an absent index leaves matching
 keyword-only, that recall can add candidates but never change a score, that meaning-only roles
 still need real skills to score, and that the migration records the provider it actually used —
-including when Gemini fails mid-run and the offline index is built instead.
+including when Gemini fails mid-run and the offline index is built instead. `tests/test_job_feed.py`
+guards the live feed: every board's shape normalises into one record with its HTML stripped,
+de-duplication collapses the same opening advertised twice, a board being down degrades the
+harvest instead of failing it, and — the part worth pinning — the `job_role` collection refuses an
+incompatible embedding space rather than mixing vectors, and rebuilding it leaves the curated role
+index intact. Its network layer is replaced, so no test reaches a job board.
 
 The frontend is checked with the TypeScript compiler and a production build:
 
@@ -348,6 +391,9 @@ GitHub Actions runs both on every push and pull request (see `.github/workflows/
   words and character 4-grams. It shortlists sensibly and keeps the app (and CI) hermetic, but
   Gemini embeddings are markedly better at pure paraphrase; configure a key and re-run the
   migration to use them.
+- **The live feed reflects its sources** — the public boards it harvests skew towards remote and
+  European/North-American postings, and the two collections must be re-ingested separately when
+  the embedding space changes. `job_role` is data infrastructure: nothing in the API serves it yet.
 - **Refresh tokens** — access tokens are long-lived for a demo; refresh-token rotation is future work.
 - **Theming** — a single polished light theme.
 

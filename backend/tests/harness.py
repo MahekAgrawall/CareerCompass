@@ -17,6 +17,7 @@ import os
 import shutil
 import sys
 import tempfile
+import unittest
 import uuid
 import warnings
 
@@ -46,8 +47,40 @@ db.init_db()
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.main import app  # noqa: E402
+from services import vector_store  # noqa: E402
 
 client = TestClient(app)
+
+
+class IndexBackedTest(unittest.TestCase):
+    """Runs a test against a throwaway vector index, then puts the env back.
+
+    Isolation is the whole point: a test that builds an index must never touch
+    the developer's real ``backend/data/qdrant``, and the provider is forced to
+    the offline embedder so no test can reach Gemini.
+    """
+
+    def setUp(self):
+        self._previous = {
+            key: os.environ.get(key)
+            for key in ("QDRANT_PATH", "QDRANT_URL", "EMBEDDING_PROVIDER", "GEMINI_API_KEY")
+        }
+        self._tmp = tempfile.mkdtemp(prefix="careercompass_qdrant_")
+        os.environ["EMBEDDING_PROVIDER"] = "local"
+        os.environ["QDRANT_PATH"] = os.path.join(self._tmp, "index")
+        os.environ.pop("QDRANT_URL", None)
+        vector_store.reset_clients()
+        self.addCleanup(self._restore)
+
+    def _restore(self):
+        vector_store.reset_clients()
+        for key, value in self._previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+        shutil.rmtree(self._tmp, ignore_errors=True)
+
 
 
 def unique_email() -> str:
