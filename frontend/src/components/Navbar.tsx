@@ -5,7 +5,7 @@ import { useAuth } from "@/state/AuthContext";
 import { useCompare } from "@/state/CompareContext";
 import { useProfile } from "@/state/ProfileContext";
 
-const linkBase = "rounded-lg px-3 py-2 text-sm font-semibold transition whitespace-nowrap";
+const linkBase = "rounded-lg px-2 py-2 text-sm font-semibold transition whitespace-nowrap";
 const linkIdle = "text-slate-600 hover:bg-slate-100 hover:text-slate-900";
 const linkActive = "bg-brand-50 text-brand-700";
 
@@ -31,7 +31,19 @@ export default function Navbar() {
           <BrandLogo />
         </NavLink>
 
-        <nav className="order-3 flex w-full items-center gap-1 overflow-x-auto md:order-2 md:w-auto md:flex-1 md:justify-center">
+        {/*
+          A centred row that overflows is clipped at *both* ends, and its first
+          link cannot be scrolled back into view — which is what was happening to
+          "Home". The links need ~712px and the inline slot between the brand and
+          the sign-in button offers ~753px at its widest (the shell is capped at
+          max-w-6xl), so they sit inline from `xl` up; below that the slot shrinks
+          fast (about 618px at 1024px wide), so the links take a row of their own
+          and are centred there instead. `md:flex-wrap` is the safety net: a
+          future label that does not fit wraps rather than disappearing, and
+          `overflow-x-auto` stays on small screens, where a one-line scroll strip
+          is the right answer.
+        */}
+        <nav className="order-3 flex w-full items-center gap-1 overflow-x-auto md:flex-wrap md:justify-center md:overflow-x-visible xl:order-2 xl:w-auto xl:flex-1">
           <NavLink to="/" end className={navClass}>
             Home
           </NavLink>
