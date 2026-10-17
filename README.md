@@ -18,13 +18,13 @@ and the original **Streamlit** app preserved in `legacy/` for reference.
 | 🎯 **Interest-first, transparent role matching** | Ranks roles by how well they align with your *stated* interests (65% weight) and your existing skills (35% weight), and filters out roles with zero interest synergy. Every card shows the arithmetic: the two component scores, the interests and skills that counted, and the profile chips that would raise the match. |
 | 🧠 **Semantic recall** | A two-stage matcher: candidates are first *recalled* from a Qdrant vector index (so a role can surface on the meaning of your profile and free-text goal, not only on identical chips), then *scored and explained* by the same transparent formula as ever. Each result says whether it was found by keywords, by meaning, or both. The index is optional and built by an explicit migration — without it, matching is keyword-only. |
 | 📚 **Role catalog** | 100 curated corporate and modern engineering roles across 8 categories — including AI/ML, data, cloud, security, hardware and product tracks — each with responsibilities, qualifications, growth paths, and hiring companies. |
-| 💼 **Live jobs, filtered** | A dedicated **Jobs** page searches the postings collected from the public boards and filters them by role, location and experience. Every match card carries an **Explore Jobs** action that deep-links to the page with that role already filled in and searched. Cards show the posting's title, company, location, work arrangement, salary when the board states one, posting date, source and the original application link. |
+| 💼 **Live jobs, filtered** | A dedicated **Jobs** page searches the postings collected from the public boards and filters them by role, location and experience — and a **✨ Use my profile** action runs the search straight off your questionnaire answers. Every match card carries an **Explore Jobs** action that deep-links to the page with that role already filled in and searched, and each role card and role page also lists its own **live openings** inline, ranked with your profile folded in (`POST /jobs/for-role`). Cards show the posting's title, company, location, work arrangement, salary when the board states one, posting date, source and the original application link. |
 | 💰 **India salary benchmarks** | Fresher (0–1 yr), mid (1–3 yrs) and senior (3+ yrs) CTC bands for every role, each stated as an *envelope* — low end a typical mid-market/services offer, high end a strong product-company or GCC offer — with the market and product-company medians and every source (and its sample size) linked on the role page. |
-| 🤖 **AI skill roadmap** | Google Gemini generates a structured 3-phase plan (Immediate → Level Up → Explore) with one curated free resource per skill. |
+| 🤖 **AI skill roadmap** | Google Gemini generates a structured 3-phase plan (Immediate → Level Up → Explore) with one curated free resource per skill. Every role card has a one-click **Generate AI Roadmap** button that lands on the rendered plan. |
 | 🛠️ **Portfolio projects** | Each roadmap includes 3 hands-on project ideas with difficulty ratings and validated skills. |
 | 📅 **Study tracker** | Configure weekday vs weekend study hours and a role-specific tech stack. Every one of the 100 roles ships a tailored three-dimension stack (mobile, games, embedded, design, offensive security and more), and each choice maps onto syllabus topics with subtopics. Progress, remaining hours, and projected weeks are computed live. |
 | ⚖️ **Side-by-side comparison** | Compare up to 3 roles on demand, competition, AI-future relevance, salary, and must-have skills. |
-| 💬 **Roadmap Copilot** | A multi-turn Gemini chat pre-loaded with your profile, target role, and roadmap — replies stream in live. |
+| 💬 **Roadmap Copilot** | A multi-turn Gemini chat pre-loaded with your profile, target role, and roadmap — replies stream in live. It sits **on the roadmap page itself**, beside the plan it is answering questions about. |
 | ⬇️ **Export & share** | Download any roadmap as a portable Markdown file. |
 | 🔗 **Deep links** | Every view is its own URL (`/roles/backend_dev`, `/tracker/backend_dev`), so refreshing or sharing a link returns you to the same page. |
 | 🔑 **Accounts & persistence** | Sign up / sign in (JWT bearer, SQLite-backed), saved profiles, and a **My Roadmaps** library of every plan you generate. |
@@ -131,10 +131,21 @@ this data: when the index has not been built the endpoint still answers `200`, w
 `available: false` and no rows, so a client hides the section instead of surfacing an error. The
 endpoint is public, like `/roles` — these are public listings carrying no user data.
 
+`POST /jobs/for-role` is the other read over the same collection. Given a catalogued role id and the
+candidate's questionnaire answers, it ranks the postings against that role's own index document *plus*
+those answers (`vector_store.profile_query`), so the same role can come back in a different order for
+two people — and an empty profile degrades to a plain search for the role rather than failing. It is
+POST rather than GET because the profile travels with the request, it is what fills the **live
+openings** list on each role card and on the role page, and it keeps `/jobs/search`'s honesty contract:
+no index means `available: false` and no rows.
+
 The React **Jobs** page is that endpoint's front end. It opens from the navbar, and every match card
 carries an **Explore Jobs** action that deep-links to it with the role prefilled (`/jobs?role=…`), so
 going from a match to that role's live openings is one click; the URL stays the committed search, so
-the page is shareable and survives a refresh. Because the endpoint takes a *single* search string,
+the page is shareable and survives a refresh. When a profile exists, **✨ Use my profile** fills the
+query from the same answers the semantic role match runs on — interests, current skills and the stated
+goal — and searches immediately, so the boards are queried with the questionnaire rather than a typed
+guess. Because the endpoint takes a *single* search string,
 the page's three filters work in two stages and say so: all of them steer the semantic ranking, and
 location and experience then narrow the returned window against the fields a posting actually
 carries (`location`, `remote`, `seniority`, `employment_type`, `title`). The page reports both
@@ -180,7 +191,8 @@ career-compass/
 │   │   ├── security.py        ← JWT create/decode
 │   │   ├── dependencies.py    ← get_current_user / get_optional_user
 │   │   └── routers/           ← auth · roles · jobs · profile · match · roadmap · tracker · chat
-│   ├── services/              ← ai · career · tracker · auth · embeddings · vector_store · job_feed
+│   ├── prompts/               ← system/ + user/ prompt templates, one pair per AI call (see its README)
+│   ├── services/              ← ai · career · tracker · auth · embeddings · vector_store · job_feed · prompts
 │   ├── scripts/               ← ingest_roles.py · ingest_jobs.py (index migrations)
 │   ├── database/db.py         ← connection, schema, role-catalog sync
 │   ├── data/                  ← roles.json · stacks.json · qdrant/ · job_postings.json (last two derived)
@@ -191,7 +203,7 @@ career-compass/
 ├── frontend/
 │   ├── src/
 │   │   ├── api/               ← fetch client, typed endpoints, mirrored types
-│   │   ├── components/        ← navbar, role & job cards, badges, alerts, layout…
+│   │   ├── components/        ← navbar, role & job cards, copilot panel, badges, alerts, layout…
 │   │   ├── pages/             ← home · auth · profile · matches · directory · jobs
 │   │   │                        role detail · compare · roadmap · roadmaps
 │   │   │                        tracker · chat
@@ -310,6 +322,7 @@ streamlit run app.py        # http://localhost:8501
 | `GET` | `/roles/categories` | — | Distinct categories |
 | `GET` | `/roles/{role_id}` | — | Single role, including its salary provenance |
 | `GET` | `/jobs/search?q=…&limit=…` | — | Live job postings nearest to a query (`available: false` until the `job_role` index is built) |
+| `POST` | `/jobs/for-role` | — | Live job postings nearest to one catalogued role, ranked with the candidate's questionnaire answers (`available: false` until the index is built) |
 | `GET` | `/profile` | ✅ | Saved profile |
 | `PUT` | `/profile` | ✅ | Save profile |
 | `POST` | `/match` | — | Ranked role matches with a score breakdown (+ optional AI explanation) |
@@ -343,7 +356,11 @@ Full OpenAPI schema is available at `/docs` and `/openapi.json`.
   computed deterministically and needs no API key; Gemini adds a natural-language assessment on top.
 - **Personalized roadmap** — a 3-phase plan tailored to skills you *don't* already have.
 - **Structured output** — `response_mime_type="application/json"` with JSON extract + validate + retry.
-- **Roadmap Copilot** — a context-aware multi-turn chat, streamed chunk-by-chunk.
+- **Roadmap Copilot** — a context-aware multi-turn chat, streamed chunk-by-chunk, rendered on the
+  roadmap page next to the plan it is discussing.
+- **Prompt library** — every prompt lives in `backend/prompts/` as a `system/` + `user/` pair per call
+  (`services/prompts.py` loads them, `string.Template` substitutes the values); wording changes are
+  reviewed and diffed as text, not edited inside Python strings. See `backend/prompts/README.md`.
 - **Graceful degradation** — a missing key surfaces a friendly `503`; the frontend shows setup
   guidance, and the match grid still renders because the AI assessment loads independently.
 
@@ -422,7 +439,11 @@ GitHub Actions runs both on every push and pull request (see `.github/workflows/
   experience parameters, so the Jobs page's location and experience filters narrow the postings the
   index ranked (the 50 closest), not the whole collection, and most boards leave `seniority` empty.
   The page states the ranked and surviving counts for exactly that reason; teaching the endpoint
-  real payload filters is the natural next step.
+  real payload filters is the natural next step. The per-role **live openings** list has the same
+  shape: it is the handful of postings closest to one role, not that role's total market.
+- **Per-role openings are ranked, not curated** — `POST /jobs/for-role` orders postings by cosine
+  similarity to the role document plus the questionnaire; a posting ranking first is a similarity
+  result, not a claim that the candidate is qualified for it.
 - **Refresh tokens** — access tokens are long-lived for a demo; refresh-token rotation is future work.
 - **Theming** — a single polished light theme.
 

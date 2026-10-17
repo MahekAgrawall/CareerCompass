@@ -18,7 +18,7 @@ import unittest
 from tests.harness import IndexBackedTest, client  # noqa: F401  (isolation first)
 from tests.test_job_feed import DESIGNER, PLATFORM, posting_fixture, role_fixture  # noqa: E402
 
-from services import job_feed, vector_store  # noqa: E402
+from services import career_service, job_feed, job_service, vector_store  # noqa: E402
 
 QUERY = "kubernetes platform engineer"
 PAID = posting_fixture(
@@ -110,6 +110,101 @@ class JobSearchApiTests(IndexBackedTest):
     def test_the_endpoint_needs_no_account(self):
         """Nothing in this file sends an Authorization header."""
         self.assertEqual(self._search().status_code, 200)
+
+
+def catalog_role(title: str) -> dict:
+    """A real catalogued role, straight from the database the endpoint reads."""
+    for role in career_service.get_all_roles():
+        if role["title"].lower() == title.lower():
+            return role
+    raise AssertionError(f"no catalogued role titled {title!r}")
+
+
+class RoleJobsApiTests(IndexBackedTest):
+    """`POST /jobs/for-role` — the read behind "live openings" on a role card.
+
+    What this pins down:
+
+    * a role that does not exist is a 404, not an empty list;
+    * the postings returned are the ones nearest *that role*, from the job
+      collection only;
+    * the questionnaire joins the role in the query, and is optional;
+    * no index still answers honestly (`available: false`), and no account is
+      needed.
+    """
+
+    def _index_postings(self, postings):
+        rows = [
+            (row["record_id"], row["document"], row["payload"])
+            for row in job_feed.rows(postings)
+        ]
+        return vector_store.upsert_records(vector_store.JOBS_COLLECTION, rows)
+
+    def _for_role(self, role_id, **payload):
+        return client.post("/jobs/for-role", json={"role_id": role_id, **payload})
+
+    def test_without_an_index_the_endpoint_says_so_instead_of_erroring(self):
+        role = catalog_role("Platform Engineer")
+        response = self._for_role(role["id"])
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["role_id"], role["id"])
+        self.assertEqual(body["role_title"], role["title"])
+        self.assertFalse(body["available"])
+        self.assertEqual(body["count"], 0)
+        self.assertEqual(body["results"], [])
+
+    def test_an_unknown_role_is_a_404(self):
+        self.assertEqual(self._for_role("not_a_role").status_code, 404)
+
+    def test_the_postings_nearest_the_role_win(self):
+        role = catalog_role("Platform Engineer")
+        self._index_postings([DESIGNER, PLATFORM])
+        body = self._for_role(role["id"]).json()
+        self.assertTrue(body["available"])
+        self.assertEqual(body["results"][0]["id"], PLATFORM["id"])
+
+    def test_a_posting_carries_everything_a_link_needs(self):
+        role = catalog_role("Platform Engineer")
+        self._index_postings([PLATFORM])
+        item = self._for_role(role["id"], limit=1).json()["results"][0]
+        self.assertEqual(item["url"], PLATFORM["url"])
+        self.assertEqual(item["source"], PLATFORM["source"])
+        self.assertTrue(item["company"])
+
+    def test_the_questionnaire_joins_the_role_in_the_query(self):
+        role = catalog_role("Platform Engineer")
+        text = job_service.role_query(
+            role,
+            {
+                "interests": ["Data visualisation"],
+                "current_skills": ["Figma"],
+                "career_goal": "design systems",
+                "location": "Pune",
+            },
+        )
+        self.assertIn(role["title"], text)
+        for value in ("Data visualisation", "Figma", "design systems", "Pune"):
+            self.assertIn(value, text)
+
+    def test_without_a_questionnaire_the_query_is_just_the_role(self):
+        role = catalog_role("Platform Engineer")
+        text = job_service.role_query(role)
+        self.assertIn(role["title"], text)
+        self.assertNotIn("Figma", text)
+
+    def test_the_profile_is_optional_and_the_limit_is_bounded(self):
+        role = catalog_role("Platform Engineer")
+        self._index_postings([PLATFORM, DESIGNER])
+        self.assertEqual(self._for_role(role["id"], limit=1).json()["count"], 1)
+        self.assertEqual(self._for_role(role["id"], limit=2).json()["count"], 2)
+        self.assertEqual(self._for_role(role["id"], limit=0).status_code, 422)
+        self.assertEqual(self._for_role(role["id"], limit=1000).status_code, 422)
+        self.assertEqual(self._for_role("").status_code, 422)
+
+    def test_the_endpoint_needs_no_account(self):
+        role = catalog_role("Platform Engineer")
+        self.assertEqual(self._for_role(role["id"]).status_code, 200)
 
 
 if __name__ == "__main__":

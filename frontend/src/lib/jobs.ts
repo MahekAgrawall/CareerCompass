@@ -16,7 +16,7 @@
  * `SEARCH_LIMIT` closest), which is why the page reports both numbers rather
  * than implying the filters swept the whole collection.
  */
-import type { JobPosting } from "@/api/types";
+import type { JobPosting, Profile } from "@/api/types";
 
 /** The endpoint accepts 1–50; ask for the widest window so refinement has material. */
 export const SEARCH_LIMIT = 50;
@@ -154,4 +154,30 @@ export function sourceLabel(source: string): string {
 /** True when location or experience would narrow the ranked window. */
 export function hasNarrowingFilters(filters: JobFilters): boolean {
   return Boolean(filters.location.trim()) || filters.experience !== ANY_EXPERIENCE;
+}
+
+/**
+ * A search string built from the questionnaire answers.
+ *
+ * `GET /jobs/search` takes free text, so the same answers the semantic role match
+ * runs on — interests, current skills and the stated goal — are joined into one
+ * query and pointed at the live boards. Duplicates are dropped and the result is
+ * truncated to the endpoint's limit; location is deliberately left out because
+ * the Jobs page has a field of its own for it.
+ */
+export function profileQuery(profile: Partial<Profile>): string {
+  const seen = new Set<string>();
+  const parts: string[] = [];
+  for (const raw of [
+    ...(profile.interests ?? []),
+    ...(profile.current_skills ?? []),
+    profile.career_goal ?? "",
+  ]) {
+    const value = raw.trim();
+    if (value && !seen.has(value.toLowerCase())) {
+      seen.add(value.toLowerCase());
+      parts.push(value);
+    }
+  }
+  return parts.join(", ").slice(0, QUERY_MAX_LENGTH);
 }

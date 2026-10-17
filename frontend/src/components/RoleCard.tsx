@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import Badge from "./Badge";
+import RoleJobs from "./RoleJobs";
 import type { MatchResult, Role } from "@/api/types";
 import { truncate } from "@/lib/format";
 import { useCompare } from "@/state/CompareContext";
@@ -28,6 +30,8 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
 export default function RoleCard({ role, match, onCompareFull }: RoleCardProps) {
   const { isSelected, add, toggle, count, max } = useCompare();
   const selected = isSelected(role.id);
+  // The live-openings fetch is deferred until the section is actually opened.
+  const [jobsOpen, setJobsOpen] = useState(false);
 
   const handleCompare = () => {
     if (selected) {
@@ -132,15 +136,36 @@ export default function RoleCard({ role, match, onCompareFull }: RoleCardProps) 
             {selected ? "✓ Added" : "⚖️ Compare"}
           </button>
         </div>
-        {/* Match cards only: the role you matched is the search you want next. */}
-        {match && (
+
+        <div className="mt-2 flex gap-2">
           <Link
-            to={`/jobs?role=${encodeURIComponent(role.title)}`}
-            className="btn btn-secondary mt-2 w-full"
+            to={`/roadmap/${role.id}`}
+            className="btn btn-secondary flex-1"
+            title="Generate an AI skill roadmap for this role"
           >
-            💼 Explore Jobs
+            🗺️ {match ? "AI Roadmap" : "Generate AI Roadmap"}
           </Link>
-        )}
+          {/* Match cards only: the role you matched is the search you want next. */}
+          {match && (
+            <Link
+              to={`/jobs?role=${encodeURIComponent(role.title)}`}
+              className="btn btn-secondary flex-1"
+            >
+              💼 Explore Jobs
+            </Link>
+          )}
+        </div>
+
+        {/* Live postings for this role; fetched only once the section is opened. */}
+        <details
+          className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+          onToggle={(event) => setJobsOpen(event.currentTarget.open)}
+        >
+          <summary className="cursor-pointer text-xs font-semibold text-slate-600">
+            💼 Live openings from the job boards
+          </summary>
+          <div className="mt-2">{jobsOpen && <RoleJobs roleId={role.id} />}</div>
+        </details>
       </div>
     </div>
   );

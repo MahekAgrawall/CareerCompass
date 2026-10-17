@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import Alert from "@/components/Alert";
+import CopilotPanel from "@/components/CopilotPanel";
 import SectionCard from "@/components/SectionCard";
 import Spinner from "@/components/Spinner";
 import { QueryState } from "@/components/QueryState";
@@ -267,14 +268,20 @@ export default function RoadmapPage() {
                 <SectionCard className="flex flex-col p-5" hover>
                   <h3 className="text-lg font-bold text-slate-900">💬 Have Questions on the Roadmap?</h3>
                   <p className="mt-2 text-sm text-slate-500">
-                    Chat with your Roadmap Copilot to break down daily tasks, ask interview tips, or get
-                    project guidance.
+                    Your Roadmap Copilot is on this page: break down daily tasks, ask interview tips, or get
+                    project guidance without leaving the roadmap.
                   </p>
-                  <Link to={`/chat/${role.id}`} className="btn btn-secondary mt-4 w-full">
-                    Launch Roadmap Copilot
-                  </Link>
+                  <a href="#copilot" className="btn btn-secondary mt-4 w-full">
+                    Jump to the Copilot ↓
+                  </a>
                 </SectionCard>
               </div>
+
+              <hr className="my-6 border-slate-200" />
+
+              <section id="copilot" className="scroll-mt-24">
+                <CopilotPanel role={role} roadmap={roadmap} />
+              </section>
 
               <hr className="my-6 border-slate-200" />
               <div className="flex flex-wrap gap-3">

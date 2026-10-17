@@ -142,3 +142,23 @@ class JobSearchResponse(BaseModel):
     available: bool
     count: int
     results: List[JobPosting]
+
+
+class RoleJobsRequest(BaseModel):
+    """Postings for one catalogued role, personalised by the questionnaire."""
+
+    role_id: str = Field(min_length=1)
+    # A handful per role card is plenty; the endpoint is called once per role the
+    # candidate opens, not once for the whole page.
+    limit: int = Field(5, ge=1, le=50)
+    # The candidate's answers (interests, skills, goal, location, …). Optional:
+    # without them this degrades to a plain search for the role itself.
+    profile: Dict[str, Any] = {}
+
+
+class RoleJobsResponse(BaseModel):
+    role_id: str
+    role_title: str
+    available: bool
+    count: int
+    results: List[JobPosting]

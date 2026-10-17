@@ -14,12 +14,15 @@ returns no rows when it did not. The endpoint therefore works in every
 deployment, and a client can hide the section instead of surfacing an error.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from services import vector_store
 
 DEFAULT_LIMIT = 10
 MAX_LIMIT = 50
+
+#: A role card shows a short list; the candidate opens more by searching.
+ROLE_DEFAULT_LIMIT = 5
 
 
 def _result(score: float, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -60,6 +63,50 @@ def search_postings(query: str, limit: int = DEFAULT_LIMIT) -> Dict[str, Any]:
     )
     return {
         "query": text,
+        "available": available,
+        "count": len(hits),
+        "results": [_result(score, payload) for score, payload in hits],
+    }
+
+
+def role_query(role: Dict[str, Any], profile: Optional[Dict[str, Any]] = None) -> str:
+    """The text a role's postings are searched with.
+
+    The role's own index document says *what* the posting should be; the
+    candidate's questionnaire answers say what should come first for them. Both
+    go into one query, so an empty profile degrades to a plain role search rather
+    than failing.
+    """
+    parts = [vector_store.role_document(role)]
+    personal = vector_store.profile_query(profile or {})
+    if personal:
+        parts.append(personal)
+    return "\n\n".join(part for part in parts if part.strip())
+
+
+def search_for_role(
+    role: Dict[str, Any],
+    profile: Optional[Dict[str, Any]] = None,
+    limit: int = ROLE_DEFAULT_LIMIT,
+) -> Dict[str, Any]:
+    """The `job_role` postings nearest to one catalogued role, best first.
+
+    Same honesty contract as `search_postings`: no index means no rows and
+    `available: false`, never an invented fallback.
+    """
+    available = vector_store.is_available() and vector_store.collection_exists(
+        vector_store.JOBS_COLLECTION
+    )
+    hits: List = (
+        vector_store.search_records(
+            vector_store.JOBS_COLLECTION, role_query(role, profile), limit=limit
+        )
+        if available
+        else []
+    )
+    return {
+        "role_id": str(role.get("id") or ""),
+        "role_title": str(role.get("title") or ""),
         "available": available,
         "count": len(hits),
         "results": [_result(score, payload) for score, payload in hits],

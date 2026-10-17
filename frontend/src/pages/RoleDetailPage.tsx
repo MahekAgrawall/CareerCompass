@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import Badge from "@/components/Badge";
 import MetricCard from "@/components/MetricCard";
+import RoleJobs from "@/components/RoleJobs";
 import SectionCard from "@/components/SectionCard";
 import { QueryState } from "@/components/QueryState";
 import type { RoleSalary } from "@/api/types";
@@ -199,6 +200,17 @@ export default function RoleDetailPage() {
               <Badge variant="niche">🎯 Niche Specialist role</Badge>
             </div>
           )}
+
+          <hr className="my-6 border-slate-200" />
+
+          <h2 className="text-lg font-bold text-slate-900">💼 Live Openings from the Job Boards</h2>
+          <p className="caption mt-0.5">
+            Currently-open postings ranked for this role, with your questionnaire answers taken
+            into account. Each link opens the original listing on the board that published it.
+          </p>
+          <div className="mt-3">
+            <RoleJobs roleId={role.id} limit={5} />
+          </div>
 
           <hr className="my-6 border-slate-200" />
 

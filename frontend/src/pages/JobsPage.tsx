@@ -18,9 +18,11 @@ import {
   buildQuery,
   hasNarrowingFilters,
   locationSuggestions,
+  profileQuery,
   refinePostings,
 } from "@/lib/jobs";
 import { useDocumentTitle } from "@/lib/hooks";
+import { useProfile } from "@/state/ProfileContext";
 
 /**
  * Live postings collected from the public job boards (see `backend/services/
@@ -42,6 +44,7 @@ function filtersFromParams(params: URLSearchParams): JobFilters {
 export default function JobsPage() {
   useDocumentTitle("Live jobs");
 
+  const { profile } = useProfile();
   const [params, setParams] = useSearchParams();
   const committed = useMemo(() => filtersFromParams(params), [params]);
   const { role, location, experience } = committed;
@@ -68,13 +71,26 @@ export default function JobsPage() {
 
   const update = (patch: Partial<JobFilters>) => setDraft({ ...draft, ...patch });
 
+  const commit = (filters: JobFilters) => {
+    const next = new URLSearchParams();
+    if (filters.role.trim()) next.set("role", filters.role.trim());
+    if (filters.location.trim()) next.set("location", filters.location.trim());
+    if (filters.experience !== ANY_EXPERIENCE) next.set("experience", filters.experience);
+    setParams(next);
+  };
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    const next = new URLSearchParams();
-    if (draft.role.trim()) next.set("role", draft.role.trim());
-    if (draft.location.trim()) next.set("location", draft.location.trim());
-    if (draft.experience !== ANY_EXPERIENCE) next.set("experience", draft.experience);
-    setParams(next);
+    commit(draft);
+  };
+
+  // The questionnaire answers the semantic role match already runs on, pointed at
+  // the live boards: one click searches with them instead of typing a role.
+  const canPersonalise = Boolean(profile?.interests?.length);
+  const searchWithProfile = () => {
+    const role = profileQuery(profile ?? {});
+    setDraft((current) => ({ ...current, role }));
+    commit({ ...draft, role });
   };
 
   const clearNarrowing = () => {
@@ -132,10 +148,15 @@ export default function JobsPage() {
           onChange={(value) => update({ experience: value })}
         />
 
-        <div>
+        <div className="flex flex-col gap-2">
           <button type="submit" className="btn btn-primary w-full" disabled={!buildQuery(draft)}>
             🔎 Search jobs
           </button>
+          {canPersonalise && (
+            <button type="button" className="btn btn-secondary w-full" onClick={searchWithProfile}>
+              ✨ Use my profile
+            </button>
+          )}
         </div>
       </form>
 
@@ -151,9 +172,15 @@ export default function JobsPage() {
           title="Search the live boards"
           description="Type a role above, or open Jobs from any card in My Matches to start from a role you already matched."
           action={
-            <Link to="/matches" className="btn btn-primary">
-              Go to My Matches
-            </Link>
+            canPersonalise ? (
+              <button type="button" className="btn btn-primary" onClick={searchWithProfile}>
+                ✨ Search with my profile
+              </button>
+            ) : (
+              <Link to="/matches" className="btn btn-primary">
+                Go to My Matches
+              </Link>
+            )
           }
         />
       ) : (

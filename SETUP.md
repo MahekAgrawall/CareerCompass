@@ -126,6 +126,13 @@ Drop `--reload` for a stable run.
 - Health check → <http://127.0.0.1:8000/health>  (expect `{"status":"ok",...}`)
 - Interactive API docs → <http://127.0.0.1:8000/docs>
 - Live job search (after §2.9) → <http://127.0.0.1:8000/jobs/search?q=kubernetes+platform+engineer>
+- Per-role openings (after §2.9) — POST, because the profile travels in the body:
+
+  ```powershell
+  Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/jobs/for-role `
+    -ContentType application/json `
+    -Body '{"role_id":"platform_engineer","limit":3,"profile":{}}'
+  ```
 
 Leave this terminal running.
 
@@ -189,6 +196,11 @@ client can hide the section instead of surfacing an error — nothing else in th
 The React **Jobs** page (§3.4) is the front end for this endpoint, and every match card deep-links
 into it with its role prefilled.
 
+`POST /jobs/for-role` is the same collection read for one catalogued role: it ranks the postings
+against that role's index document plus the candidate's questionnaire answers, so the ranking is
+personalised. It fills the **live openings** list on each role card and on the role page. An empty
+`profile` is fine — the search then degrades to the role itself.
+
 ---
 
 ## 3. Frontend — React (Vite)
@@ -238,6 +250,20 @@ run, the page shows a note telling you to run the migration instead of an error 
 
 The same page is reachable from any match card: open **My Matches** and press **💼 Explore Jobs** on
 a card. The role is filled into the search box and the results load immediately.
+
+With a profile saved, press **✨ Use my profile** on the Jobs page (or the button on the empty state):
+the search runs off your questionnaire answers — interests, current skills and the stated goal — instead
+of a typed role.
+
+Now check the per-role job links and the roadmap copilot:
+
+- On **All Roles** (or **My Matches**), open a card's **💼 Live openings from the job boards** section.
+  It fetches on open (the section is collapsed by default, so the directory does not fire one request
+  per card) and lists a handful of real postings, each linking out to the board that published it.
+- Open the same role's page — the **💼 Live Openings from the Job Boards** section is there in full.
+- On any role card press **🗺️ Generate AI Roadmap**. It lands on the role's roadmap page, which
+  generates the plan and now hosts the **Roadmap Copilot** on the *same page*, below the plan: ask it a
+  question and the answer streams in without leaving the roadmap.
 
 Leave this terminal running.
 
@@ -347,7 +373,10 @@ The semantic-index tests are hermetic too: the harness forces the offline embedd
 (`EMBEDDING_PROVIDER=local`) and points `QDRANT_PATH` at a temporary directory, so no test ever
 calls Gemini or touches your real `backend/data/qdrant/` index. The live job-feed tests
 (`test_job_feed.py`) replace the single function that touches the network, so no test reaches a job
-board either; `test_job_api.py` covers the `/jobs/search` read path against a throwaway index.
+board either; `test_job_api.py` covers the `/jobs/search` and `/jobs/for-role` read paths against a
+throwaway index. `test_prompts.py` checks the prompt library: every template the AI calls need exists
+on disk, renders without a leftover placeholder, and reaches the model as the same text the inline
+prompt used to (`google-generativeai` itself is mocked — no network).
 
 **Frontend** (TypeScript check + production build):
 ```powershell

@@ -8,6 +8,7 @@ import type {
   Profile,
   Roadmap,
   Role,
+  RoleJobsResponse,
   SavedRoadmap,
   Schedule,
   StackSchema,
@@ -81,6 +82,14 @@ export const matchRoles = (
  */
 export const searchJobs = (query: string, limit = 50) =>
   api.get<JobSearchResponse>(`/jobs/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+
+/**
+ * `POST /jobs/for-role` — the live postings nearest one catalogued role. The
+ * questionnaire travels in the body (interests, skills, goal, location), so the
+ * ranking is personalised rather than a plain text search for the role title.
+ */
+export const jobsForRole = (roleId: string, profile: Partial<Profile>, limit = 5) =>
+  api.post<RoleJobsResponse>("/jobs/for-role", { role_id: roleId, limit, profile });
 
 // ── Roadmap ───────────────────────────────────────────────────────────────────
 export const generateRoadmap = (roleId: string, profile: Partial<Profile>, signal?: AbortSignal) =>

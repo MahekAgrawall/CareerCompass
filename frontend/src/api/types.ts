@@ -234,6 +234,20 @@ export interface JobSearchResponse {
   results: JobPosting[];
 }
 
+/**
+ * `POST /jobs/for-role` — the postings nearest one catalogued role, best first.
+ * The candidate's questionnaire answers are folded into the ranking server-side,
+ * so the same role can come back in a different order for two people.
+ */
+export interface RoleJobsResponse {
+  role_id: string;
+  role_title: string;
+  /** False when the `job_role` index has not been built on this server. */
+  available: boolean;
+  count: number;
+  results: JobPosting[];
+}
+
 // ── Chat ──────────────────────────────────────────────────────────────────────
 export type ChatRole = "user" | "model";
 
