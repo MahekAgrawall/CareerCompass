@@ -318,7 +318,7 @@ career-compass/
 ├── frontend/
 │   ├── src/
 │   │   ├── api/               ← fetch client, typed endpoints, mirrored types
-│   │   ├── components/        ← navbar, role & job cards, copilot panel, badges, alerts, layout…
+│   │   ├── components/        ← navbar, account menu, role & job cards, copilot panel, badges, alerts, layout…
 │   │   ├── pages/             ← home · auth · profile · matches · directory · jobs
 │   │   │                        role detail · compare · roadmap · roadmaps
 │   │   │                        tracker · applications · chat
