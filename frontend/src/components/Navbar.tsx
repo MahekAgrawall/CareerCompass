@@ -4,9 +4,8 @@ import BrandLogo from "./BrandLogo";
 import UserMenu from "./UserMenu";
 import { useAuth } from "@/state/AuthContext";
 import { useCompare } from "@/state/CompareContext";
-import { useProfile } from "@/state/ProfileContext";
 
-const linkBase = "rounded-lg px-2.5 py-2 text-sm font-semibold transition whitespace-nowrap";
+const linkBase = "rounded-lg px-1.5 py-2 text-[13px] font-semibold transition whitespace-nowrap";
 const linkIdle = "text-slate-600 hover:bg-slate-100 hover:text-slate-900";
 const linkActive = "bg-brand-50 text-brand-700";
 
@@ -17,10 +16,12 @@ function navClass({ isActive }: { isActive: boolean }) {
 /**
  * Three zones, in the order people expect: brand, navigation, account.
  *
- * The links need roughly 640px. Between the brand (~200px) and the account
- * control (~120px) that leaves the middle zone comfortable from `xl` up, so
- * there the links sit inline and centred, and the bar is one row. Below `xl`
- * the middle zone would be too narrow for them, so the links take a row of
+ * The row is budgeted to fit one line, and the links are set tight to keep it
+ * there: nine of them measure ~620px at 13px with 6px of side padding, so brand
+ * (~236px) + links + account (~112px) + the two 12px gaps come to ~993px — that
+ * fits the 1120px the `max-w-6xl` container allows from a 1184px window up, and
+ * fits from a 1040px window up. From `lg` the links sit inline and centred;
+ * below `lg` the middle zone would be too narrow for them, so the links take a row of
  * their own instead of being squeezed against the brand. `md:flex-wrap` is the
  * safety net: a future label that does not fit wraps rather than disappearing,
  * and `overflow-x-auto` stays on phones, where a one-line scroll strip is the
@@ -32,21 +33,23 @@ function navClass({ isActive }: { isActive: boolean }) {
  */
 export default function Navbar() {
   const { user, status } = useAuth();
-  const { hasProfile } = useProfile();
   const { count } = useCompare();
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/85 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
         <NavLink to="/" className="shrink-0" aria-label="CareerCompass home">
           <BrandLogo />
         </NavLink>
 
-        <nav className="order-3 flex w-full items-center gap-1 overflow-x-auto md:flex-wrap md:justify-center md:overflow-x-visible xl:order-2 xl:w-auto xl:flex-1">
+        <nav className="order-3 flex w-full items-center gap-0.5 overflow-x-auto md:flex-wrap md:justify-center md:overflow-x-visible lg:order-2 lg:w-auto lg:flex-1">
           <NavLink to="/" end className={navClass}>
             Home
           </NavLink>
-          <NavLink to={hasProfile ? "/matches" : "/profile"} className={navClass}>
+          <NavLink to="/profile" className={navClass}>
+            My Profile
+          </NavLink>
+          <NavLink to="/matches" className={navClass}>
             My Matches
           </NavLink>
           <NavLink to="/roles" className={navClass}>
@@ -64,7 +67,7 @@ export default function Navbar() {
           <NavLink to="/applications" className={navClass}>
             Applications
           </NavLink>
-          <NavLink to={count > 0 ? "/compare" : "/roles"} className={navClass}>
+          <NavLink to="/compare" className={navClass}>
             Compare{count > 0 ? ` (${count})` : ""}
           </NavLink>
         </nav>

@@ -54,6 +54,10 @@ export default function ComparePage() {
             </p>
 
             <hr className="my-3 border-slate-100" />
+            <p className="text-sm font-semibold text-slate-800">📋 Role Responsibility</p>
+            <p className="mt-1 text-sm leading-relaxed text-slate-600">{role.description}</p>
+
+            <hr className="my-3 border-slate-100" />
             <p className="text-sm font-semibold text-slate-800">💰 CTC (India)</p>
             <ul className="mt-1 space-y-0.5 text-sm text-slate-600">
               <li>• Fresher: ₹{role.salary.fresher_0_1.min}–{role.salary.fresher_0_1.max} LPA</li>

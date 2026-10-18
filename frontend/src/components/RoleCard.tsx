@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import Badge from "./Badge";
 import RoleJobs from "./RoleJobs";
 import type { MatchResult, Role } from "@/api/types";
-import { truncate } from "@/lib/format";
 import { useCompare } from "@/state/CompareContext";
 
 interface RoleCardProps {
@@ -72,12 +71,12 @@ export default function RoleCard({ role, match, onCompareFull }: RoleCardProps) 
       </div>
 
       <div className="mt-3">
-        <Badge variant="demand">{role.market_demand}</Badge>
-        <Badge variant="comp">{role.competition_level}</Badge>
+        <Badge variant="demand">Market demand: {role.market_demand}</Badge>
+        <Badge variant="comp">Competition level: {role.competition_level}</Badge>
         <Badge variant="future">AI Future: {role.future_relevance.split("(")[0].trim()}</Badge>
       </div>
 
-      <p className="mt-2 text-sm leading-relaxed text-slate-600">{truncate(role.description, 125)}</p>
+      <p className="mt-2 text-xs leading-relaxed text-slate-600">{role.description}</p>
 
       {match && (
         <details className="mt-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
