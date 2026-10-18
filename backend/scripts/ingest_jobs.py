@@ -62,7 +62,7 @@ process has it open, so stop the API server before running this.
 import argparse
 import os
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from app_logging import get_logger
 from database.db import DATA_DIR
