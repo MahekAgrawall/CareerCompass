@@ -543,7 +543,10 @@ class JobLocationApiTests(IndexBackedTest):
     Suggestions used to come from the page's own last results, so a fresh search
     offered nothing and a later one offered only cities it had already returned.
     They are read from the collection now, and every count is the filter's own —
-    which is the whole reason the number beside an option is worth trusting.
+    which is the whole reason the number beside an option is worth trusting. The
+    Indian hubs ride along as `preferred`: counted by that same filter, but listed
+    even when it counts nothing, because the boards are thin on India and a page
+    that answered that with silence would be the least honest part of this.
     """
 
     def _index_postings(self, postings):
@@ -559,10 +562,15 @@ class JobLocationApiTests(IndexBackedTest):
     def _values(self):
         return [option["value"] for option in self._locations().json()["locations"]]
 
+    def _preferred(self):
+        return self._locations().json()["preferred"]
+
     def test_without_an_index_there_are_no_options_rather_than_an_error(self):
         response = self._locations()
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"available": False, "locations": []})
+        self.assertEqual(
+            response.json(), {"available": False, "locations": [], "preferred": []}
+        )
 
     def test_the_endpoint_needs_no_account(self):
         self._index_postings([BERLIN])
@@ -602,6 +610,40 @@ class JobLocationApiTests(IndexBackedTest):
         options = self._locations().json()["locations"]
         self.assertTrue(options)
         for option in options:
+            with self.subTest(place=option["value"]):
+                matched = client.get(
+                    "/jobs/search", params={"location": option["value"]}
+                ).json()["matched"]
+                self.assertEqual(option["count"], matched)
+
+    def test_the_indian_hubs_are_offered_as_preferences_though_no_posting_names_them(self):
+        """The feed is European and American; the app is for India.
+
+        Both boards publish into the Indian market thinly, so a hub a candidate
+        wants can be missing from the collection entirely. It is listed with its
+        real count — zero — rather than dropped, so the page can tell the reader
+        what the feed holds at home instead of saying nothing about it.
+        """
+        self._index_postings([BERLIN])
+        preferred = {option["value"]: option["count"] for option in self._preferred()}
+        self.assertEqual(list(preferred), list(job_service.PREFERRED_JOB_LOCATIONS))
+        self.assertEqual(preferred["India"], 0)
+        self.assertEqual(preferred["Bangalore"], 0)
+        # And a preference is not smuggled into the live vocabulary: the two lists
+        # answer different questions ("what exists" / "what we offer to look for").
+        self.assertNotIn("Bangalore", self._values())
+
+    def test_a_preference_the_collection_carries_keeps_its_real_count(self):
+        self._index_postings(FILTERED)  # …whose JUNIOR sits at "Pune, India"
+        preferred = {option["value"]: option["count"] for option in self._preferred()}
+        self.assertEqual(preferred["India"], 1)
+        self.assertEqual(preferred["Pune"], 1)
+        self.assertEqual(preferred["Hyderabad"], 0)
+
+    def test_every_preference_count_is_what_searching_it_matches(self):
+        """A preference makes the same promise as any other option on the page."""
+        self._index_postings(FILTERED + [PLATFORM, DESIGNER, PAID])
+        for option in self._preferred():
             with self.subTest(place=option["value"]):
                 matched = client.get(
                     "/jobs/search", params={"location": option["value"]}
@@ -718,6 +760,22 @@ class JobFilterUnitTests(unittest.TestCase):
         text = job_service.ranking_text("data analyst", "Berlin", True, "senior")
         self.assertTrue(text.startswith("data analyst"))
         self.assertIn("Berlin", text)
+
+    def test_a_preferred_place_is_a_place_not_a_hub_name(self):
+        """`posting_filter` requires *every* word it is handed.
+
+        The questionnaire offers hub names — "Mumbai / Pune", "Delhi / NCR /
+        Gurgaon" — and handing one to the store would ask the feed for a single
+        posting naming both cities and answer nothing. A preference has to be a
+        place the boards could actually have written, so the app's Indian hubs are
+        spelled out here one city at a time.
+        """
+        self.assertTrue(job_service.PREFERRED_JOB_LOCATIONS)
+        for value in job_service.PREFERRED_JOB_LOCATIONS:
+            with self.subTest(place=value):
+                self.assertEqual(value.strip(), value, "trimmed")
+                self.assertTrue(value, "no empty place")
+                self.assertNotRegex(value, r"[/,;|]", "a hub label, not a place")
 
 
 class JobTitleMatchTests(unittest.TestCase):

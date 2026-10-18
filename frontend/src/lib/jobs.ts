@@ -127,6 +127,18 @@ export function locationOptionLabel(count: number): string {
   return count === 1 ? "1 posting" : `${count} postings`;
 }
 
+/**
+ * The label beside one of the Indian hubs offered as a *preference*.
+ *
+ * A preference is listed whether or not the boards carry it, so its count can be
+ * zero — and "0 postings" beside a place the page invited the reader to look at
+ * reads like a bug rather than a fact about the data. The zero case is worded as
+ * what it is; the row's own note explains why the Indian market is thin here.
+ */
+export function preferredLocationLabel(count: number): string {
+  return count === 0 ? "no live postings" : locationOptionLabel(count);
+}
+
 const SOURCE_LABELS: Record<string, string> = {
   himalayas: "Himalayas",
   arbeitnow: "Arbeitnow",

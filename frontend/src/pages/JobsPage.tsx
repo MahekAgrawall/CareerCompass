@@ -22,6 +22,7 @@ import {
   hasAnyFilter,
   locationOptionLabel,
   postingParams,
+  preferredLocationLabel,
   profileQuery,
   relaxedNote,
   remoteParam,
@@ -39,7 +40,10 @@ import { useProfile } from "@/state/ProfileContext";
  * postings are left (`matched`), so the page no longer filters a ranked window
  * down and then has to explain why its numbers only covered fifty postings. The
  * location field's suggestions are the collection's own place vocabulary
- * (`GET /jobs/locations`), not the places the last search happened to return.
+ * (`GET /jobs/locations`), not the places the last search happened to return — and
+ * that same read carries the Indian hubs, offered as preferences whether or not
+ * the boards publish into them, because this app's market is India and the boards
+ * serve it thinly.
  *
  * The URL is the committed search — `/jobs?role=…&location=…&experience=…` — so
  * the "Explore Jobs" action on a match card can prefill it, the page survives a
@@ -90,6 +94,9 @@ export default function JobsPage() {
     staleTime: 30 * 60 * 1000,
   });
   const places = locationsQuery.data?.locations ?? [];
+  // The Indian hubs, offered whether or not the boards carry them — see the note
+  // under the row. A preference with a count of 0 is stated, not clickable.
+  const preferred = locationsQuery.data?.preferred ?? [];
 
   const update = (patch: Partial<JobFilters>) => setDraft({ ...draft, ...patch });
 
@@ -106,6 +113,15 @@ export default function JobsPage() {
   const submit = (event: FormEvent) => {
     event.preventDefault();
     commit(draft);
+  };
+
+  // A preference is a one-click search, like "Use my profile": picking one fills
+  // the location field and commits it, so the reader does not also have to press
+  // Search. Only the places the feed actually holds are pickable — a hub with no
+  // postings says so rather than leading to an empty page.
+  const pickLocation = (value: string) => {
+    setDraft((current) => ({ ...current, location: value }));
+    commit({ ...draft, location: value });
   };
 
   // The questionnaire answers the semantic role match already runs on, pointed at
@@ -206,6 +222,39 @@ export default function JobsPage() {
           )}
         </div>
       </form>
+
+      {preferred.length > 0 && (
+        <div className="mb-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="label">Indian market</span>
+            {preferred.map((place) => {
+              const live = place.count > 0;
+              return (
+                <button
+                  key={place.value}
+                  type="button"
+                  className={`chip chip-off ${live ? "" : "cursor-not-allowed opacity-60"}`}
+                  disabled={!live}
+                  onClick={() => pickLocation(place.value)}
+                >
+                  {place.value}
+                  <span className="ml-1.5 text-xs font-normal text-slate-500">
+                    {preferredLocationLabel(place.count)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="caption mt-2">
+            The Indian hubs this app is built around, next to the boards' own places
+            above. Both boards publish into India thinly, so most of them say{" "}
+            <em>no live postings</em> — that is the feed, not a missing filter, and
+            the location field stays free text if you want to try a city anyway.
+            What the Indian market <em>does</em> pay is what the role catalog and its
+            salary bands describe.
+          </p>
+        </div>
+      )}
 
       <p className="caption mb-5">
         Every field above is a filter the backend applies to the whole live collection

@@ -125,6 +125,31 @@ LOCATION_SCAN_LIMIT = 5000
 #: Segments the boards put in `location` that name no place at all.
 _NOT_A_PLACE = {"n/a", "na", "none", "unknown", "tbd", "various", "not specified"}
 
+#: The places the Jobs page offers as *preferences*, whatever the boards happen to
+#: have published: the Indian market this app is built for, which the two boards
+#: serve thinly — Himalayas publishes a few hundred India-open roles a month, and
+#: Arbeitnow is a German board that carries almost none. Every one is counted by
+#: the same store filter as any other option, but a preference is listed even at
+#: zero, because a candidate looking for work at home deserves to be told what the
+#: feed holds instead of finding the place silently missing from the page.
+#:
+#: Search-ready, unlike the questionnaire's `LOCATION_OPTIONS`: those entries are
+#: hub *names* ("Mumbai / Pune", "Delhi / NCR / Gurgaon"), and the store's location
+#: filter requires *every* word it is handed, so a hub name would ask the feed for
+#: a single posting naming both cities and answer nothing. Each place here is one
+#: word the boards write. The Indian market leads, in the order this app already
+#: lists its hubs.
+PREFERRED_JOB_LOCATIONS = (
+    "India",
+    "Bangalore",
+    "Hyderabad",
+    "Pune",
+    "Mumbai",
+    "Delhi",
+    "Gurgaon",
+    "Chennai",
+)
+
 #: One entry: the place vocabulary, keyed by the index state it was read from.
 #: Thirty filtered counts are not free, and the vocabulary only changes when the
 #: postings do, so the last answer is kept rather than recomputed per page view.
@@ -336,7 +361,7 @@ def _location_cache_key() -> str:
 
 
 def locations(limit: int = LOCATION_OPTION_LIMIT) -> Dict[str, Any]:
-    """The places the live postings actually name, commonest first, with counts.
+    """The places the Jobs page offers: the collection's own places, and India's.
 
     The location field is free text over the boards' wording, which is not a
     vocabulary — and the page used to fill its suggestions from the fifty postings
@@ -349,15 +374,25 @@ def locations(limit: int = LOCATION_OPTION_LIMIT) -> Dict[str, Any]:
     the filter cannot match — a hyphenated district the tokenizer splits, say —
     counts zero and is dropped rather than offered as a dead end.
 
-    Without an index this answers `available: false` and no options, like every
-    other read here. Reads up to `LOCATION_SCAN_LIMIT` postings, and keeps the
-    answer until the index's recorded state changes.
+    Two lists come back, and the difference between them is the point:
+
+    * `locations` — the vocabulary the collection itself names, as it always was;
+    * `preferred` — the Indian market this app is built for (see
+      `PREFERRED_JOB_LOCATIONS`), counted by that same filter but listed even when
+      it counts nothing, because both boards publish into India thinly and a page
+      that answered that with silence would be the least honest part of this.
+      "India" is usually the live one; the cities say zero until a harvest finds
+      them.
+
+    Without an index this answers `available: false` and no options of either
+    kind, like every other read here. Reads up to `LOCATION_SCAN_LIMIT` postings,
+    and keeps the answer until the index's recorded state changes.
     """
     if not (
         vector_store.is_available()
         and vector_store.collection_exists(vector_store.JOBS_COLLECTION)
     ):
-        return {"available": False, "locations": []}
+        return {"available": False, "locations": [], "preferred": []}
 
     key = _location_cache_key()
     cached = _LOCATION_CACHE.get(key)
@@ -378,7 +413,26 @@ def locations(limit: int = LOCATION_OPTION_LIMIT) -> Dict[str, Any]:
             options.append({"value": value, "count": count})
 
     options.sort(key=lambda option: (-option["count"], option["value"].casefold()))
-    answer = {"available": True, "locations": options[:limit]}
+
+    # The preferences keep the order they are declared in rather than being ranked
+    # by count: this list is a judgement about what the app offers, not a reading
+    # of the boards, so a city the feed does not carry yet should not also be
+    # buried at the bottom of it.
+    preferred = [
+        {
+            "value": value,
+            "count": vector_store.count_points(
+                vector_store.JOBS_COLLECTION, posting_filter(location=value)
+            ),
+        }
+        for value in PREFERRED_JOB_LOCATIONS
+    ]
+
+    answer = {
+        "available": True,
+        "locations": options[:limit],
+        "preferred": preferred,
+    }
     _LOCATION_CACHE.clear()
     _LOCATION_CACHE[key] = answer
     return answer

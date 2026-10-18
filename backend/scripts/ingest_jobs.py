@@ -2,7 +2,7 @@
 Migration: collect live job postings and load them into the `job_role` collection.
 
     cd backend
-    .\\.venv\\Scripts\\python.exe -m scripts.ingest_jobs --limit 1000
+    .\\.venv\\Scripts\\python.exe -m scripts.ingest_jobs --limit 2000
 
 Why a script and not startup work? The API must never depend on a third-party job
 board being up, on an embedding key, or on a network call at boot. This is data
@@ -118,7 +118,7 @@ def _skip_reason(max_age_days: int) -> str:
 
 
 def ingest(
-    limit: int = 1000,
+    limit: int = 2000,
     sources=None,
     rebuild: bool = False,
     query: str = "",
@@ -204,8 +204,8 @@ def main(argv=None) -> int:
         sys.stdout.reconfigure(encoding="utf-8")
 
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
-    parser.add_argument("--limit", type=int, default=1000,
-                        help="how many postings to collect (default 1000)")
+    parser.add_argument("--limit", type=int, default=2000,
+                        help="how many postings to collect (default 2000)")
     parser.add_argument("--source", action="append", dest="sources", default=None,
                         choices=list(job_feed.SOURCES),
                         help="restrict to one board (repeatable)")

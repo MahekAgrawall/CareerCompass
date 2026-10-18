@@ -15,6 +15,11 @@ Both asks are respected: a descriptive `User-Agent`, a short pause between pages
 a hard cap on pages per source, and every posting keeps its board name and its own
 URL so the original listing stays one click away.
 
+Neither board takes a country, a city or even a keyword — asking Himalayas for
+`country=India`, `location=India`, `search=` or `q=` returns its ordinary
+newest-first feed, unchanged. The only lever on *what* a harvest contains is
+therefore how deep into that feed it reads, which is what `MAX_PAGES` buys.
+
 What is collected is written to an artifact that records **when it was pulled**
 (`save`/`load_artifact`), because postings age: a board goes on serving a listing
 after the job is filled, and nothing in the posting itself says when we looked.
@@ -52,7 +57,14 @@ USER_AGENT = "CareerCompass/1.0 (educational career-guidance project)"
 REQUEST_TIMEOUT = 25.0
 PAUSE_SECONDS = 0.4
 PAGE_SIZE = {SOURCE_HIMALAYAS: 20, SOURCE_ARBEITNOW: 300}
-MAX_PAGES = {SOURCE_HIMALAYAS: 5, SOURCE_ARBEITNOW: 4}
+# Himalayas serves 20 postings a page, which is why its ceiling is the high one:
+# fifty pages is a thousand of its newest listings — roughly six hours of a board
+# that publishes a few thousand a day — and it is depth, not a filter, that buys
+# the places it lists thinly. It is remote-first and global and about one listing
+# in thirty names India, so the five pages this used to read found almost none of
+# them. Arbeitnow pages 300 at a time and is a German board, so four pages already
+# cover the market it publishes into.
+MAX_PAGES = {SOURCE_HIMALAYAS: 50, SOURCE_ARBEITNOW: 4}
 
 # How much listing text a card displays, and how much is embedded. The embedded
 # text is also kept in the payload, because the API answers its keyword condition
@@ -331,11 +343,17 @@ def fetch_source(source: str, limit: int) -> List[Dict[str, Any]]:
 
 
 def collect(
-    limit: int = 1000,
+    limit: int = 2000,
     sources: Sequence[str] = SOURCES,
     on_progress: Optional[Any] = None,
 ) -> List[Dict[str, Any]]:
-    """Postings from every requested board, de-duplicated, capped at `limit`."""
+    """Postings from every requested board, de-duplicated, capped at `limit`.
+
+    The cap has to clear what the two boards' page ceilings produce between them —
+    a thousand postings from each — or the first source fills the harvest and the
+    second is left with nothing, which is how a deeper read of one board would
+    quietly delete the other's half of the feed.
+    """
     collected: List[Dict[str, Any]] = []
     for source in sources:
         if len(collected) >= limit:

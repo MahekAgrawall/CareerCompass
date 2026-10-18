@@ -211,16 +211,24 @@ class JobLocationOption(BaseModel):
 
 
 class JobLocationsResponse(BaseModel):
-    """The place vocabulary of the live postings, most common first.
+    """The places the Jobs page offers: the collection's own, and India's.
 
-    Read from the collection rather than curated, because the boards publish
-    free-text locations: this is what is indexed, not what someone put in a config
-    file. `available: false` means the `job_role` index has not been built, and a
-    client should offer no options rather than an empty-looking place field.
+    `locations` is read from the collection rather than curated, because the boards
+    publish free-text locations: it is what is indexed, not what someone put in a
+    config file. `preferred` *is* curated — the Indian market this app is built for
+    — and is listed even where it counts nothing, because both boards publish into
+    India thinly and the page should say so rather than quietly omit the place.
+    Every `count` in either list is the `matched` a search for that value reports.
+
+    `available: false` means the `job_role` index has not been built, and a client
+    should offer no options of either kind rather than an empty-looking place field.
     """
 
     available: bool
     locations: List[JobLocationOption]
+    #: The Indian hubs offered as preferences, in the order this app lists them.
+    #: `count` may be 0 — that is the honest answer for a board that carries none.
+    preferred: List[JobLocationOption] = []
 
 
 class RoleJobsRequest(BaseModel):

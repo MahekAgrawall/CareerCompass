@@ -285,6 +285,33 @@ class CollectTests(unittest.TestCase):
         self.assertEqual(postings, [])
         self.assertEqual(len(calls), 1)
 
+    def test_himalayas_is_read_deep_enough_for_the_places_it_lists_thinly(self):
+        """Roughly one Himalayas listing in thirty names India, so a shallow read of
+        the newest rows finds almost none of it — the depth is what buys the market.
+        A posting buried at the last offset the budget covers still comes back.
+        """
+        page_size = job_feed.PAGE_SIZE[job_feed.SOURCE_HIMALAYAS]
+        pages = job_feed.MAX_PAGES[job_feed.SOURCE_HIMALAYAS]
+        deepest = (pages - 1) * page_size
+        himalayas = {
+            offset: [
+                dict(HIMALAYAS_RAW, title=f"Role {offset + index}", guid=f"g{offset + index}")
+                for index in range(page_size)
+            ]
+            for offset in range(0, deepest + 1, page_size)
+        }
+        himalayas[deepest] = [dict(HIMALAYAS_RAW, title="Deep Role", guid="deep")] + (
+            himalayas[deepest][1:]
+        )
+
+        calls = []
+        with mock.patch.object(job_feed, "_get_json", self._paged_get({"himalayas": himalayas}, calls)), \
+                mock.patch.object(job_feed, "_pause", lambda *_: None):
+            postings = job_feed.collect(limit=2000, sources=[job_feed.SOURCE_HIMALAYAS])
+
+        self.assertIn("Deep Role", [posting["title"] for posting in postings])
+        self.assertEqual(len(calls), pages)
+
     def test_saving_and_loading_round_trips(self):
         directory = tempfile.mkdtemp(prefix="careercompass_jobs_")
         self.addCleanup(lambda: __import__("shutil").rmtree(directory, ignore_errors=True))

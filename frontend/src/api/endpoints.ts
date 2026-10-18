@@ -96,8 +96,9 @@ export const searchJobs = (params: Record<string, string>, limit = 50) =>
 
 /**
  * `GET /jobs/locations` — the places the indexed postings name, with the count a
- * search for each one matches. Normally called once per session: the vocabulary
- * only moves when the postings are re-harvested.
+ * search for each one matches, plus the Indian hubs offered as preferences.
+ * Normally called once per session: the vocabulary only moves when the postings
+ * are re-harvested.
  */
 export const jobLocations = () => api.get<JobLocationsResponse>("/jobs/locations");
 

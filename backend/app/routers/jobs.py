@@ -51,12 +51,14 @@ def search_jobs(
 
 @router.get("/locations", response_model=schemas.JobLocationsResponse)
 def job_locations():
-    """The places the indexed postings name, most common first.
+    """The places the indexed postings name, plus the Indian market's preferences.
 
     Public like `/search`, and equally honest without an index: no postings means
     no options, not an error. The Jobs page fills its location suggestions from
     here — the collection's own vocabulary — rather than from the fifty postings
-    a previous search happened to return.
+    a previous search happened to return, and offers the Indian hubs beside them
+    (`preferred`) even where the boards carry nothing, so a candidate can see what
+    the feed actually holds at home instead of assuming the field forgot them.
     """
     return job_service.locations()
 

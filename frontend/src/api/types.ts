@@ -296,15 +296,15 @@ export interface JobSearchResponse {
 
 /**
  * `GET /jobs/locations` — the place vocabulary of the live postings, commonest
- * first. The Jobs page's location field suggests from this rather than from the
- * results it happens to be showing, so a fresh page still offers real places.
+ * first, plus the Indian hubs the app offers as preferences.
  */
 export interface JobLocationOption {
   value: string;
   /**
    * How many postings a search for this place matches — counted by the backend
    * with the very filter that search applies, so it is the `matched` a click on
-   * the option will report.
+   * the option will report. A *preferred* place may count 0, which is the honest
+   * answer for a board that carries none.
    */
   count: number;
 }
@@ -312,7 +312,14 @@ export interface JobLocationOption {
 export interface JobLocationsResponse {
   /** False when the `job_role` index has not been built on this server. */
   available: boolean;
+  /** Places the collection itself names, ranked by how many postings use them. */
   locations: JobLocationOption[];
+  /**
+   * The Indian market this app is built for, listed even where the boards carry
+   * nothing: both boards publish into India thinly, so the page says so instead
+   * of leaving the place out. In the order the app declares them, not by count.
+   */
+  preferred: JobLocationOption[];
 }
 
 /**

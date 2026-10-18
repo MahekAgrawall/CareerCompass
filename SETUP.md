@@ -188,7 +188,7 @@ the same embedder as the catalog:
 
 ```powershell
 # With the API stopped, exactly like 2.8
-.\.venv\Scripts\python.exe -m scripts.ingest_jobs --limit 1000 --query "kubernetes platform engineer"
+.\.venv\Scripts\python.exe -m scripts.ingest_jobs --limit 2000 --query "kubernetes platform engineer"
 ```
 
 It fetches politely (descriptive `User-Agent`, a pause between pages, a page
@@ -198,6 +198,15 @@ ceiling per board) and writes what it collected to `data/job_postings.json`
 ```powershell
 .\.venv\Scripts\python.exe -m scripts.ingest_jobs --from-file data\job_postings.json
 ```
+
+Depth is the only lever there is on *what* a harvest holds: neither board accepts a
+country, a city or a keyword (Himalayas answers its ordinary newest-first feed to
+`country=India` and `search=` alike). Himalayas serves 20 postings a page, so its
+ceiling is fifty — a thousand of its newest, about six hours of it — and that is
+what reaches the places it lists thinly, India included at roughly one listing in
+thirty. Arbeitnow, a German board paging 300 at a time, needs four. `--limit` has
+to clear both ceilings together (2,000 does), or the first board fills the run and
+the second contributes nothing.
 
 `job_role` is a plain, human-chosen name, so the embedding space it holds is
 recorded in `<index>/job_role.space`. Ingesting from a *different* space (say you
@@ -237,8 +246,12 @@ answers, and a re-ingest fills it in to widen what a keyword can be matched agai
 
 `GET /jobs/locations` is where the location field's suggestions come from: the places the postings name,
 ranked by how often they appear, each count asked of the same store filter a search applies — so the
-number beside an option is the `matched` that search reports. Nothing to do to enable it; it reads the
-same collection and answers `available: false` until §2.9 has run.
+number beside an option is the `matched` that search reports. The same read returns `preferred`: the
+Indian hubs this app is built around, counted by that same filter but listed even when they count
+zero, because both boards publish into India thinly and the page should say so rather than leave the
+places out. They are spelled one city at a time, not as the questionnaire's labels ("Mumbai / Pune"),
+because the filter requires *every* word it is handed. Nothing to do to enable it; it reads the same
+collection and answers `available: false` until §2.9 has run.
 
 The same migration creates the payload indexes those filters read. The embedded store ignores payload
 indexes and works regardless, but a deployment pointing `QDRANT_URL` at a Qdrant server needs the text

@@ -183,7 +183,16 @@ opening advertised on two boards counts once. Both boards' terms are respected: 
 `User-Agent`, a pause between pages, a hard page ceiling per source, and every record keeps its
 board name and original link.
 
-A harvest of 1,000 fetched postings de-duplicates by title and company — roughly 5% of what the
+Neither board takes a country, a city or a keyword — Himalayas answers its ordinary newest-first
+feed to `country=India`, `location=India`, `search=` and `q=` alike — so the only lever on *what* a
+harvest contains is how deep into that feed it reads. Himalayas serves 20 postings a page, so its
+ceiling is set high: fifty pages is a thousand of its newest listings, about six hours of a board
+that publishes a few thousand a day. That depth is what buys the places it lists thinly — roughly
+one listing in thirty names India, where five pages used to find almost none — and Arbeitnow, a
+German board that pages 300 at a time, needs only four to cover its market. The harvest cap has to
+clear both ceilings together, or the first source fills the run and the second is left with nothing.
+
+A harvest of 2,000 fetched postings de-duplicates by title and company — roughly 5% of what the
 boards return is the same opening advertised twice — and the surviving records are embedded into
 `job_role` with the same embedder as the catalog. Each payload keeps the text it embedded
 (`search_text`) beside the 320-character `excerpt` a card displays, because the API answers its
@@ -242,6 +251,15 @@ suggestions from this instead of from the fifty postings the last search happene
 on a fresh page was nothing at all. Candidates the store cannot match are dropped rather than
 offered as dead ends: postcodes, numbered districts, and any "remote…" place, which the filter
 widens to the boards' own remote flag and so would advertise the whole remote feed.
+
+The same read carries a second list, `preferred`: the **Indian hubs this app is built around**
+(`job_service.PREFERRED_JOB_LOCATIONS`), counted by that same filter but listed even when they
+count nothing. Both boards publish into India thinly, and a page that answered that with silence
+would be the least honest part of the feature — so "India" shows its real count, the cities show
+zero, and the page says which is which instead of leaving them out. The hubs are spelled out one
+city at a time rather than as the questionnaire's labels ("Mumbai / Pune"), because the store's
+location filter requires *every* word it is handed: a hub name would ask the feed for a posting
+naming both cities and return nothing.
 
 Live postings age, so the feed also carries its own **provenance**. The harvest is stamped when it is
 pulled: `services/job_feed.save` writes `{"harvested_at", "postings"}` rather than a bare list (an
@@ -431,7 +449,7 @@ keyword-only — nothing else changes.
 A second, independent collection holds **live job postings** rather than curated roles:
 
 ```bash
-python -m scripts.ingest_jobs --limit 1000 --query "kubernetes platform engineer"
+python -m scripts.ingest_jobs --limit 2000 --query "kubernetes platform engineer"
 ```
 
 It collects postings from free, public job-board APIs (Himalayas, Arbeitnow), normalises and
@@ -480,7 +498,7 @@ streamlit run app.py        # http://localhost:8501
 | `GET` | `/roles/categories` | — | Distinct categories |
 | `GET` | `/roles/{role_id}` | — | Single role, including its salary provenance |
 | `GET` | `/jobs/search?q=…&location=…&remote=…&experience=…&limit=…` | — | Live job postings: `q` is a condition (a posting must say every word, matched as whole words with plurals and compounds — the ones its title carries come back as `matched_terms`), `relaxed: true` when nothing said all of them and the search fell back to any of them, the other filters are applied by the store, the response reports `count`/`matched`/`indexed` and how old the data is (`freshness`), and it says `available: false` until the `job_role` index is built |
-| `GET` | `/jobs/locations` | — | The places the postings actually name, commonest first, each with the count a search for it returns — the Jobs page's location suggestions (`available: false` until the index is built) |
+| `GET` | `/jobs/locations` | — | The places the postings actually name, commonest first, each with the count a search for it returns, plus the Indian hubs offered as preferences (`preferred`, count may be 0) — the Jobs page's location suggestions (`available: false` until the index is built) |
 | `POST` | `/jobs/for-role` | — | Live job postings nearest to one catalogued role, ranked with the candidate's questionnaire answers (`available: false` until the index is built) |
 | `GET` | `/applications` | ✅ | The candidate's saved postings and their stages, most recently touched first |
 | `POST` | `/applications` | ✅ | Save a posting (the snapshot travels in the body). Idempotent by posting id: `201` when the row is new, `200` with the row already stored |
