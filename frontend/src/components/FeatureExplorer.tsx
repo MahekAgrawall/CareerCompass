@@ -89,7 +89,7 @@ const FEATURES: Feature[] = [
     points: [
       "Filters run in the vector store, so the counts cover the whole collection",
       "Each card links straight out to the original listing, so you apply at the source",
-      "Public boards mean remote and international postings sit beside Indian ones",
+      "These two boards skew European and US, so expect international and remote roles",
     ],
     to: "/jobs",
     cta: "Search live jobs",

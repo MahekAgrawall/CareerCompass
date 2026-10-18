@@ -47,6 +47,10 @@ COLLECTION_PREFIX = "careercompass_roles"
 # data is easy to find from any Qdrant client (`scripts.ingest_jobs` fills it).
 JOBS_COLLECTION = "job_role"
 
+#: How many points one `payload_values` scroll asks for. Larger pages mean fewer
+#: round trips; small enough that a bounded scan still stops close to its limit.
+SCROLL_PAGE = 256
+
 # Cache key -> QdrantClient. Embedded local mode locks its directory, so holding
 # one client per location matters.
 _CLIENTS: Dict[str, Any] = {}
@@ -395,6 +399,41 @@ def count_points(name: str, query_filter: Any = None) -> int:
     except Exception as exc:  # noqa: BLE001 - diagnostics must never raise
         log.warning("Could not count %s (%s)", name, exc)
         return 0
+
+
+def payload_values(name: str, key: str, limit: int) -> List[str]:
+    """The values one payload key holds, over up to `limit` points.
+
+    A bounded scroll, not a search: the caller wants to know what is *in* the
+    collection — the places its job postings name, say — rather than the points
+    nearest some query. Values come back exactly as stored, because what a key
+    holds is the caller's business, not this layer's, and an unreachable or empty
+    store yields nothing rather than raising, like every other read here.
+    """
+    values: List[str] = []
+    try:
+        client = _client()
+        if not client.collection_exists(name):
+            return []
+        offset = None
+        while len(values) < limit:
+            points, offset = client.scroll(
+                collection_name=name,
+                limit=min(SCROLL_PAGE, limit - len(values)),
+                offset=offset,
+                with_payload=[key],
+                with_vectors=False,
+            )
+            for point in points:
+                value = str((point.payload or {}).get(key) or "").strip()
+                if value:
+                    values.append(value)
+            if offset is None or not points:
+                break
+    except Exception as exc:  # noqa: BLE001 - diagnostics must never raise
+        log.warning("Could not read %s.%s (%s)", name, key, exc)
+        return []
+    return values
 
 
 def ensure_payload_indexes(name: str, fields: Dict[str, str]) -> List[str]:

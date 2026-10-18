@@ -2,9 +2,11 @@
 Live job postings, as the API sees them.
 
 The postings are collected, normalised and embedded by `scripts.ingest_jobs`
-(see `services.job_feed`); this module is the read path: a semantic search over
-the `job_role` collection with the stored payload shaped into something a client
-can render.
+(see `services.job_feed`); this module is the read path: a search over the
+`job_role` collection with the stored payload shaped into something a client can
+render. The store ranks by meaning, and `_rank` lifts a posting whose *title*
+carries the query above one the store merely placed near it — a search box has to
+answer "python" with the job called Python.
 
 There is deliberately no fallback source here. Role matching degrades to
 keyword-only because the curated catalog exists in full outside the index, but
@@ -19,12 +21,19 @@ and `matched` is an honest count of it. Running them in Python over the ranked
 window instead would make every number on the page a statement about the fifty
 postings the search happened to return.
 
+The places the search box suggests come from the collection too, and each count is
+asked of that same filter (`locations`), because the boards publish free-text
+locations — "Berlin" and "Berlin, Germany" are two strings for one city — and a
+list built from the postings a previous search returned offered whatever ran last.
+
 Every response also carries `freshness` (see the function): the date the postings
 were harvested, and whether that is old enough to warn about. Live postings age —
 a board keeps serving a listing after it is filled — so "12 of 87 matching" is
 only half a sentence without "harvested 20 days ago".
 """
 
+import re
+from collections import Counter
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -83,8 +92,49 @@ FILTER_INDEXES = {
     "remote": "bool",
 }
 
+#: How many places the Jobs page's location field is offered (see `locations`).
+#: The boards' postings cluster into a handful of cities and countries, so this
+#: covers browsing by place without becoming a dump of every village they publish.
+LOCATION_OPTION_LIMIT = 25
 
-def _result(score: float, payload: Dict[str, Any]) -> Dict[str, Any]:
+#: Extra candidates counted before the list is cut to `LOCATION_OPTION_LIMIT`: a
+#: candidate whose wording does not survive the store's tokenizer (a hyphenated
+#: district, say) counts zero and is dropped, so the spare ones keep the list full
+#: without the caller ever being offered a dead end.
+LOCATION_OPTION_SPARE = 10
+
+#: How many postings the vocabulary is read from. Bounded so a very large index
+#: still answers in one request; the field stays free text, so a place the sample
+#: happens not to mention can still be typed.
+LOCATION_SCAN_LIMIT = 5000
+
+#: Segments the boards put in `location` that name no place at all.
+_NOT_A_PLACE = {"n/a", "na", "none", "unknown", "tbd", "various", "not specified"}
+
+#: One entry: the place vocabulary, keyed by the index state it was read from.
+#: Thirty filtered counts are not free, and the vocabulary only changes when the
+#: postings do, so the last answer is kept rather than recomputed per page view.
+_LOCATION_CACHE: Dict[str, Any] = {}
+
+#: What a query word appearing in a posting's *title* is worth: a tier. The store
+#: ranks by meaning alone, which is not enough for a search box, and not something
+#: a fixed weight can patch — with the offline embedder a description that *repeats*
+#: the word scores 0.55 against 0.21 for the posting whose title says it, while a
+#: hosted embedder's cosines sit in the 0.7s with no such gap. Counting matched
+#: words instead needs no tuning: postings that match on more of the query come
+#: first, and the store's meaning ranks within a tier (see `_rank`).
+RANK_WINDOW = 4
+
+#: And a ceiling on that, so a 50-row page cannot ask the store for 500 rows.
+MAX_RANK_WINDOW = 200
+
+#: Words a title should not be judged on: they are in half of them already.
+_STOP_WORDS = {"a", "an", "and", "at", "for", "in", "of", "on", "or", "the", "to", "with"}
+
+
+def _result(
+    score: float, payload: Dict[str, Any], matched: Optional[List[str]] = None
+) -> Dict[str, Any]:
     """One stored posting, shaped for the response.
 
     Fields are picked one by one rather than forwarded wholesale: the stored
@@ -105,7 +155,15 @@ def _result(score: float, payload: Dict[str, Any]) -> Dict[str, Any]:
         "url": str(payload.get("url") or ""),
         "source": str(payload.get("source") or ""),
         "excerpt": str(payload.get("excerpt") or ""),
+        # The cosine similarity to the search text: how near the posting is in
+        # meaning. Ordering also weighs a title match (see `_rank`), which is why
+        # the words the title carried are reported beside it rather than folded
+        # into this number.
         "similarity": round(float(score), 4),
+        # The query words this posting's title contains, in the order they were
+        # typed. Empty for a read that ranks by meaning alone (`/jobs/for-role`,
+        # and any query none of the titles carries).
+        "matched_terms": list(matched or []),
     }
 
 
@@ -180,6 +238,121 @@ def posting_filter(
     return models.Filter(must=must) if must else None
 
 
+def _is_place(value: str) -> bool:
+    """Whether one comma-separated location segment is worth offering.
+
+    The boards mix postcodes, numbered districts and street addresses into the
+    same field ("9th arrondissement of Paris, 75009, Paris"), and a picker is the
+    wrong place to show them: a segment with a digit in it is a number or a
+    numbered district, never a place someone looks for by name.
+
+    "Remote Switzerland" is dropped for a different reason: `posting_filter`
+    widens any "remote…" place to the boards' own remote flag, so offering it
+    would advertise a count of every remote posting rather than of Swiss ones.
+    "Remote" on its own is offered, and the work-arrangement field is the honest
+    way to ask for the rest.
+    """
+    if not 2 < len(value) <= 40:
+        return False
+    if any(character.isdigit() for character in value):
+        return False
+    key = value.casefold()
+    if key.startswith("remote") and key != "remote":
+        return False
+    return key not in _NOT_A_PLACE
+
+
+def _location_candidates(postings: List[str]) -> List[str]:
+    """The places those postings name, most mentioned first.
+
+    Cut from the boards' own wording rather than a list of our own: they have no
+    location vocabulary, so one city can arrive as "Berlin", "Berlin, Germany" or
+    "Amsterdam, Noord-Holland, Nederland". Segments are counted once per posting,
+    and casing follows the most common spelling, so the list reads the way the
+    boards wrote it instead of the way a normalisation step rewrote it.
+    """
+    spellings: Dict[str, Counter] = {}
+    for location in postings:
+        counted = set()
+        for segment in re.split(r"[;,/|]", location):
+            value = " ".join(segment.split())
+            if not _is_place(value):
+                continue
+            key = value.casefold()
+            if key in counted:
+                continue
+            counted.add(key)
+            spellings.setdefault(key, Counter())[value] += 1
+
+    ranked = []
+    for spellings_for_place in spellings.values():
+        display = sorted(spellings_for_place.items(), key=lambda item: (-item[1], item[0]))[0][0]
+        ranked.append((-sum(spellings_for_place.values()), display.casefold(), display))
+    return [display for _, _, display in sorted(ranked)]
+
+
+def _location_cache_key() -> str:
+    """What a vocabulary depends on: the store, the index, and its recorded state."""
+    meta = vector_store.recorded_meta(vector_store.JOBS_COLLECTION)
+    return "|".join(
+        (
+            vector_store.location(),
+            str(meta.get("harvested_at") or ""),
+            str(meta.get("ingested_at") or ""),
+            str(vector_store.count_points(vector_store.JOBS_COLLECTION)),
+        )
+    )
+
+
+def locations(limit: int = LOCATION_OPTION_LIMIT) -> Dict[str, Any]:
+    """The places the live postings actually name, commonest first, with counts.
+
+    The location field is free text over the boards' wording, which is not a
+    vocabulary — and the page used to fill its suggestions from the fifty postings
+    a previous search happened to return, so it offered whatever ran last rather
+    than what exists. These options come from the collection itself.
+
+    Every count is *asked of the store filter a search would apply*, never guessed
+    from the text: the number beside "Germany" is the number of postings clicking
+    it will return, which is the `matched` that search then reports. A candidate
+    the filter cannot match — a hyphenated district the tokenizer splits, say —
+    counts zero and is dropped rather than offered as a dead end.
+
+    Without an index this answers `available: false` and no options, like every
+    other read here. Reads up to `LOCATION_SCAN_LIMIT` postings, and keeps the
+    answer until the index's recorded state changes.
+    """
+    if not (
+        vector_store.is_available()
+        and vector_store.collection_exists(vector_store.JOBS_COLLECTION)
+    ):
+        return {"available": False, "locations": []}
+
+    key = _location_cache_key()
+    cached = _LOCATION_CACHE.get(key)
+    if cached is not None:
+        return cached
+
+    named = vector_store.payload_values(
+        vector_store.JOBS_COLLECTION, "location", LOCATION_SCAN_LIMIT
+    )
+    candidates = _location_candidates(named)[: limit + LOCATION_OPTION_SPARE]
+
+    options = []
+    for value in candidates:
+        count = vector_store.count_points(
+            vector_store.JOBS_COLLECTION, posting_filter(location=value)
+        )
+        if count:
+            options.append({"value": value, "count": count})
+
+    options.sort(key=lambda option: (-option["count"], option["value"].casefold()))
+    answer = {"available": True, "locations": options[:limit]}
+    _LOCATION_CACHE.clear()
+    _LOCATION_CACHE[key] = answer
+    return answer
+
+
 def age_days(harvested_at: str) -> Optional[int]:
     """Whole UTC days since `harvested_at`, or None when it is not a timestamp.
 
@@ -222,6 +395,85 @@ def freshness(meta: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     }
 
 
+def _words(text: str) -> set:
+    """The token set of a piece of posting text.
+
+    Split the way the store splits text: on anything that is not a letter, digit or
+    one of the characters that *are* part of a language's name ("c++", "c#", ".net",
+    "node.js"). Tokens, never substrings, so "intern" does not match "Internal".
+    """
+    return set(re.split(r"[^0-9a-z+#.]+", str(text).casefold()))
+
+
+def query_terms(query: str) -> List[str]:
+    """The words a posting is judged on, in the order they were typed.
+
+    The two-letter fillers go: a title containing "of" says nothing about the
+    search, and they are in half of the titles already.
+    """
+    terms: List[str] = []
+    for word in re.split(r"[^0-9a-z+#.]+", str(query).casefold()):
+        if len(word) < 2 or word in _STOP_WORDS:
+            continue
+        if word not in terms:
+            terms.append(word)
+    return terms
+
+
+def title_matches(query: str, title: str) -> List[str]:
+    """Which query words that title contains — as tokens, never substrings."""
+    words = _words(title)
+    return [term for term in query_terms(query) if term in words]
+
+
+def posting_text(payload: Dict[str, Any]) -> str:
+    """Everything a posting says about itself, as text to look query words up in.
+
+    Title, company, categories and the excerpt of the description — the parts a
+    search box can be judged against. The excerpt is whatever the ingest stored, so
+    a description long enough to be cut is only ever matched on what was kept.
+    """
+    parts = [str(payload.get("title") or ""), str(payload.get("company") or "")]
+    parts.extend(str(item) for item in payload.get("categories") or [])
+    parts.append(str(payload.get("excerpt") or ""))
+    return " ".join(parts)
+
+
+def _rank(hits: List, query: str, limit: int) -> List:
+    """The store's hits, resorted so a posting that says your words comes first.
+
+    Three keys, in this order: how many of the query's words the posting's *title*
+    carries, how many it carries *anywhere* in its text, and the store's own cosine.
+    A single blended score was tried first and thrown away — no fixed weight suits
+    both the offline embedder, whose term frequency swamps everything, and a hosted
+    one whose cosines barely move. Counting words needs no weight, and the live
+    index needs it: for "python" it puts a German facilities-maintenance listing
+    second, in front of postings that actually name the language.
+
+    Every tier is a no-op on a query none of the postings carry: they all land in
+    one tier and the stable sort returns the index's own order untouched.
+
+    Returned as `(matched words, cosine, payload)`, wider than the page because the
+    window is what lets a posting climb at all.
+    """
+    terms = query_terms(query)
+    scored = []
+    for score, payload in hits:
+        mentioned = _words(posting_text(payload))
+        matched = [term for term in terms if term in _words(payload.get("title") or "")]
+        scored.append(
+            (
+                -len(matched),
+                -sum(1 for term in terms if term in mentioned),
+                -float(score),
+                matched,
+                payload,
+            )
+        )
+    scored.sort(key=lambda row: row[:3])
+    return [(matched, -cosine, payload) for _, _, cosine, matched, payload in scored[:limit]]
+
+
 def search_postings(
     query: str = "",
     limit: int = DEFAULT_LIMIT,
@@ -235,23 +487,38 @@ def search_postings(
     opposed to `count`, which is how many of them came back in this page. Both
     are reported so a client can show "12 of 87 matching, 951 indexed" without
     implying it inspected more than it did.
+
+    The store is asked for a wider window than the page and `_rank` cuts it, so a
+    posting whose title carries the query can be lifted over one the vector store
+    merely placed nearer — the difference between a search box and a similarity
+    list.
     """
     text = ranking_text(query, location, remote, experience)
-    query_filter = posting_filter(location, remote, experience)
     available = vector_store.is_available() and vector_store.collection_exists(
         vector_store.JOBS_COLLECTION
     )
+    # Built only when there is a store to filter. `posting_filter` needs the
+    # qdrant-client models, and `is_available()` only proves an index *directory*
+    # exists, so a deployment with the data but without the client used to raise
+    # here — a 500 where the module promises `available: false` and no rows, the
+    # way `search_for_role` answers. The filters have nothing to narrow without
+    # an index anyway.
+    query_filter = posting_filter(location, remote, experience) if available else None
     hits: List = (
         vector_store.search_records(
-            vector_store.JOBS_COLLECTION, text, limit=limit, query_filter=query_filter
+            vector_store.JOBS_COLLECTION,
+            text,
+            limit=min(limit * RANK_WINDOW, MAX_RANK_WINDOW),
+            query_filter=query_filter,
         )
         if available
         else []
     )
+    ranked = _rank(hits, text, limit)
     return {
         "query": text,
         "available": available,
-        "count": len(hits),
+        "count": len(ranked),
         "matched": (
             vector_store.count_points(vector_store.JOBS_COLLECTION, query_filter)
             if available
@@ -261,7 +528,9 @@ def search_postings(
             vector_store.count_points(vector_store.JOBS_COLLECTION) if available else 0
         ),
         "freshness": freshness(),
-        "results": [_result(score, payload) for score, payload in hits],
+        "results": [
+            _result(cosine, payload, matched) for matched, cosine, payload in ranked
+        ],
     }
 
 

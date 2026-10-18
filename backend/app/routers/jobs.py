@@ -49,6 +49,18 @@ def search_jobs(
     )
 
 
+@router.get("/locations", response_model=schemas.JobLocationsResponse)
+def job_locations():
+    """The places the indexed postings name, most common first.
+
+    Public like `/search`, and equally honest without an index: no postings means
+    no options, not an error. The Jobs page fills its location suggestions from
+    here — the collection's own vocabulary — rather than from the fifty postings
+    a previous search happened to return.
+    """
+    return job_service.locations()
+
+
 @router.post("/for-role", response_model=schemas.RoleJobsResponse)
 def jobs_for_role(payload: schemas.RoleJobsRequest):
     """The live postings closest to one catalogued role, best first.

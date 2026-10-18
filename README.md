@@ -20,7 +20,7 @@ and the original **Streamlit** app preserved in `legacy/` for reference.
 | 🎯 **Interest-first, transparent role matching** | Ranks roles by how well they align with your *stated* interests (65% weight) and your existing skills (35% weight), and filters out roles with zero interest synergy. Every card shows the arithmetic: the two component scores, the interests and skills that counted, and the profile chips that would raise the match. |
 | 🧠 **Semantic recall** | A two-stage matcher: candidates are first *recalled* from a Qdrant vector index (so a role can surface on the meaning of your profile and free-text goal, not only on identical chips), then *scored and explained* by the same transparent formula as ever. Each result says whether it was found by keywords, by meaning, or both. The index is optional and built by an explicit migration — without it, matching is keyword-only. |
 | 📚 **Role catalog** | 100 curated corporate and modern engineering roles across 8 categories — including AI/ML, data, cloud, security, hardware and product tracks — each with responsibilities, qualifications, growth paths, and hiring companies. |
-| 💼 **Live jobs, filtered** | A dedicated **Jobs** page searches the postings collected from the public boards and filters them by role, location, work arrangement and experience — the filters run in the vector store, so the counts cover the whole collection — and a **✨ Use my profile** action runs the search straight off your questionnaire answers. Every match card carries an **Explore Jobs** action that deep-links to the page with that role already filled in and searched, and each role card and role page also lists its own **live openings** inline, ranked with your profile folded in (`POST /jobs/for-role`). Cards show the posting's title, company, location, work arrangement, salary when the board states one, posting date, source and the original application link — and every search says when the postings were **harvested**, with an amber warning once that date is more than two weeks old. |
+| 💼 **Live jobs, filtered** | A dedicated **Jobs** page searches the postings collected from the public boards and filters them by role, location, work arrangement and experience — the filters run in the vector store, so the counts cover the whole collection — and a **✨ Use my profile** action runs the search straight off your questionnaire answers. Location suggestions are the boards' real places, each with the count a search for it returns, and results put postings whose *titles* carry your words first (marked on the card), with the index's meaning ranking the rest. Every match card carries an **Explore Jobs** action that deep-links to the page with that role already filled in and searched, and each role card and role page also lists its own **live openings** inline, ranked with your profile folded in (`POST /jobs/for-role`). Cards show the posting's title, company, location, work arrangement, salary when the board states one, posting date, source and the original application link — and every search says when the postings were **harvested**, with an amber warning once that date is more than two weeks old. |
 | 🔖 **Saved jobs & application tracking** | Every posting carries a **Save job** button, and the saved ones live on an **Applications** page grouped by the stages a search actually follows — Saved → Applied → Interview → Offer, plus Closed for the ones that went nowhere — each with a free-text note, the date it was last moved, and a link back to the original listing. A row is a *snapshot* taken when it was saved, so it survives the board taking the listing down and the index being rebuilt; it is private to the account, and saving the same posting twice can never reset a stage you already advanced. |
 | 💰 **India salary benchmarks** | Fresher (0–1 yr), mid (1–3 yrs) and senior (3+ yrs) CTC bands for every role, each stated as an *envelope* — low end a typical mid-market/services offer, high end a strong product-company or GCC offer — with the market and product-company medians and every source (and its sample size) linked on the role page. |
 | 🤖 **AI skill roadmap** | Google Gemini generates a structured 3-phase plan (Immediate → Level Up → Explore) with one curated free resource per skill. Every role card has a one-click **Generate AI Roadmap** button that lands on the rendered plan. |
@@ -194,18 +194,35 @@ page's filters read (`services.job_service.FILTER_INDEXES`); the embedded store 
 indexes, but a deployment with `QDRANT_URL` set needs those text indexes before Qdrant will run a
 full-text filter at all, so re-run the migration once after pulling a change to the filter fields.
 
-`GET /jobs/search?q=…` serves them: a semantic search returning the stored posting — title, company,
+`GET /jobs/search?q=…` serves them: a search returning the stored posting — title, company,
 location, remote flag, employment type, seniority, categories, rendered salary, publication date,
-the board's own URL and an excerpt — with the cosine `similarity` as its only ranking signal. It also
-takes the structured filters the page offers — `location`, `remote` and `experience` — and applies
-them **in the vector store**, as a Qdrant payload filter, rather than to the results afterwards. That
-is what lets the response report `matched`, the number of postings the filters leave in the whole
-collection, alongside `count` (this page) and `indexed` (the collection). Location and experience are
-matched as whole words, so "Berlin" finds `Berlin, Germany` while `Internal Tools Engineer` is not an
-internship. There is deliberately no fallback here, because unlike the curated catalog the index is
-the *only* copy of this data: when the index has not been built the endpoint still answers `200`, with
-`available: false` and no rows, so a client hides the section instead of surfacing an error. The
-endpoint is public, like `/roles` — these are public listings carrying no user data.
+the board's own URL and an excerpt — ranked by the store's cosine `similarity` **plus a re-rank on
+the words the posting actually says**. The index ranks by meaning, and that is not enough for a
+search box: on the offline embedder a query for "python" comes back with a German
+facilities-maintenance listing second, ahead of postings that name the language. So the store is
+asked for a window four times the page and `job_service._rank` sorts it on three keys — how many of
+the query's words the posting's *title* carries, how many it carries anywhere in its text, then the
+cosine — and each result reports the title words it matched as `matched_terms`, so the order
+explains itself on the card. A query no posting carries leaves every row in one tier, and the stable
+sort returns the index's own order untouched. It also takes the structured filters the page offers —
+`location`, `remote` and `experience` — and applies them **in the vector store**, as a Qdrant
+payload filter, rather than to the results afterwards. That is what lets the response report
+`matched`, the number of postings the filters leave in the whole collection, alongside `count` (this
+page) and `indexed` (the collection). Location and experience are matched as whole words, so
+"Berlin" finds `Berlin, Germany` while `Internal Tools Engineer` is not an internship. There is
+deliberately no fallback here, because unlike the curated catalog the index is the *only* copy of
+this data: when the index has not been built the endpoint still answers `200`, with `available:
+false` and no rows, so a client hides the section instead of surfacing an error. The endpoint is
+public, like `/roles` — these are public listings carrying no user data.
+
+`GET /jobs/locations` is the place vocabulary those filters accept: the boards' own wording, cut
+into comma-separated segments and ranked by how often each appears ("Berlin", "Germany", "United
+States", "Remote"), with the numbers **asked of the same store filter a search applies** — so the
+count beside an option is the `matched` that search then reports. The Jobs page fills its location
+suggestions from this instead of from the fifty postings the last search happened to return, which
+on a fresh page was nothing at all. Candidates the store cannot match are dropped rather than
+offered as dead ends: postcodes, numbered districts, and any "remote…" place, which the filter
+widens to the boards' own remote flag and so would advertise the whole remote feed.
 
 Live postings age, so the feed also carries its own **provenance**. The harvest is stamped when it is
 pulled: `services/job_feed.save` writes `{"harvested_at", "postings"}` rather than a bare list (an
@@ -235,10 +252,13 @@ The React **Jobs** page is that endpoint's front end. It opens from the navbar, 
 carries an **Explore Jobs** action that deep-links to it with the role prefilled (`/jobs?role=…`), so
 going from a match to that role's live openings is one click; the URL stays the committed search, so
 the page is shareable and survives a refresh. When a profile exists, **✨ Use my profile** fills the
-query from the same answers the semantic role match runs on — interests, current skills and the stated
-goal — and searches immediately, so the boards are queried with the questionnaire rather than a typed
-guess. The form's four fields map one-to-one onto the endpoint: the role box is the ranking query, and
-location, experience and work arrangement are the filters the backend applies to the whole collection.
+query from the same answers the semantic role match runs on — the goal first, then up to three
+interests and three skills, capped at 120 characters — and searches immediately, so the boards are
+queried with the questionnaire rather than a typed guess. It is deliberately short: that string is
+the *ranking text*, and with the title-match re-rank above, a focused query gives a sharper page
+than the whole skill list does. The form's four fields map one-to-one onto the endpoint: the role box
+is the ranking query, and location, experience and work arrangement are the filters the backend
+applies to the whole collection.
 The page therefore shows collection-wide numbers — "showing 12 of 87 postings matching your filters ·
 951 indexed" — and the search box is optional: a filter on its own is a valid search, in which case the
 filter terms stand in as the ranking text and the response echoes whichever text it used. It also
@@ -438,7 +458,8 @@ streamlit run app.py        # http://localhost:8501
 | `GET` | `/roles` | — | Full role catalog, each role carrying its salary bands, review date and sources |
 | `GET` | `/roles/categories` | — | Distinct categories |
 | `GET` | `/roles/{role_id}` | — | Single role, including its salary provenance |
-| `GET` | `/jobs/search?q=…&location=…&remote=…&experience=…&limit=…` | — | Live job postings: `q` ranks, the filters are applied by the store, the response reports `count`/`matched`/`indexed` and how old the data is (`freshness`), and it says `available: false` until the `job_role` index is built |
+| `GET` | `/jobs/search?q=…&location=…&remote=…&experience=…&limit=…` | — | Live job postings: `q` ranks (postings whose titles carry its words first, then meaning — the title words come back as `matched_terms`), the filters are applied by the store, the response reports `count`/`matched`/`indexed` and how old the data is (`freshness`), and it says `available: false` until the `job_role` index is built |
+| `GET` | `/jobs/locations` | — | The places the postings actually name, commonest first, each with the count a search for it returns — the Jobs page's location suggestions (`available: false` until the index is built) |
 | `POST` | `/jobs/for-role` | — | Live job postings nearest to one catalogued role, ranked with the candidate's questionnaire answers (`available: false` until the index is built) |
 | `GET` | `/applications` | ✅ | The candidate's saved postings and their stages, most recently touched first |
 | `POST` | `/applications` | ✅ | Save a posting (the snapshot travels in the body). Idempotent by posting id: `201` when the row is new, `200` with the row already stored |

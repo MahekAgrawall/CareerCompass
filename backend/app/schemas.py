@@ -134,9 +134,14 @@ class JobPosting(BaseModel):
     url: str
     source: str = ""
     excerpt: str = ""
-    # Cosine similarity from the job index — the only ranking signal here, since
-    # these are live listings rather than catalogued roles with a fit score.
+    # Cosine similarity from the job index — how near the posting is in meaning.
+    # `POST /jobs/search` also weighs a title match when it orders rows, and
+    # reports the words it matched in `matched_terms`; this number stays the
+    # semantic reading either way.
     similarity: float
+    #: Query words the posting's title contains, in the order they were typed.
+    #: Empty on `/jobs/for-role`, which ranks by meaning alone.
+    matched_terms: List[str] = []
 
 
 class HarvestFreshness(BaseModel):
@@ -185,6 +190,31 @@ class JobSearchResponse(BaseModel):
     # When this data was harvested, and whether that is old enough to warn about.
     freshness: HarvestFreshness
     results: List[JobPosting]
+
+
+class JobLocationOption(BaseModel):
+    """One place the picker offers, with the number of postings it matches.
+
+    `count` is counted by the same store filter a search with this value applies,
+    so it is the `matched` that search reports — not a tally of how often the
+    words appeared in the text.
+    """
+
+    value: str
+    count: int
+
+
+class JobLocationsResponse(BaseModel):
+    """The place vocabulary of the live postings, most common first.
+
+    Read from the collection rather than curated, because the boards publish
+    free-text locations: this is what is indexed, not what someone put in a config
+    file. `available: false` means the `job_role` index has not been built, and a
+    client should offer no options rather than an empty-looking place field.
+    """
+
+    available: bool
+    locations: List[JobLocationOption]
 
 
 class RoleJobsRequest(BaseModel):

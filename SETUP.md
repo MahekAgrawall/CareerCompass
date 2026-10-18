@@ -202,7 +202,7 @@ add a Gemini key after building offline) is refused instead of mixing
 incomparable vectors — re-run with `--rebuild` to replace it. Rebuilding this
 collection never touches the catalog index, and vice versa.
 
-`GET /jobs/search?q=…` serves these postings (public, like `/roles`): semantic search over the
+`GET /jobs/search?q=…` serves these postings (public, like `/roles`): a search over the
 collection, returning each listing with its salary text, publication date and the board's own URL.
 It also takes `location`, `remote` (`true`/`false`) and `experience` (`internship`/`entry`/`senior`),
 which the backend applies to the whole collection in the vector store — so the response reports
@@ -210,6 +210,17 @@ which the backend applies to the whole collection in the vector store — so the
 size). `q` ranks the results and is optional when a filter is given; asking for nothing at all is a
 `400`. Until §2.9 has been run the endpoint still answers `200` with `available: false` and no rows, so
 a client can hide the section instead of surfacing an error — nothing else in the app depends on it.
+
+`q` is not pure vector similarity. The store is asked for four times the page and the results are
+re-sorted on how many of the query's words a posting's *title* carries, then how many it carries
+anywhere in its text, then the cosine — because the offline embedder ranked a German
+facilities-maintenance listing second for "python". The title words come back as `matched_terms`, and a
+query no posting carries falls through to the index's own order.
+
+`GET /jobs/locations` is where the location field's suggestions come from: the places the postings name,
+ranked by how often they appear, each count asked of the same store filter a search applies — so the
+number beside an option is the `matched` that search reports. Nothing to do to enable it; it reads the
+same collection and answers `available: false` until §2.9 has run.
 
 The same migration creates the payload indexes those filters read. The embedded store ignores payload
 indexes and works regardless, but a deployment pointing `QDRANT_URL` at a Qdrant server needs the text
@@ -461,6 +472,7 @@ backend's `CORS_ORIGINS`.
 | `scripts.ingest_jobs` refuses: "was built in embedding space … but the active embeddings are …" | `job_role` already holds vectors from another space (usually you added a `GEMINI_API_KEY` after building offline). Re-run with `--rebuild` to replace the collection, or pin `EMBEDDING_PROVIDER` to the space it holds. |
 | `scripts.ingest_jobs` reports no postings / a board was skipped | A job board was unreachable or returned nothing; the other board was still used. Re-run later, or ingest the saved `data/job_postings.json` with `--from-file`. |
 | `GET /jobs/search` returns `available: false` and no rows | The `job_role` collection has not been built yet. Run §2.9 (or `--from-file data\job_postings.json` if you already collected once). The endpoint answers honestly rather than erroring — nothing else depends on it. |
+| Every `/jobs/search` request is a `500`, and `/health` shows `available: false` with `No module named 'qdrant_client'` | The API was started with a Python that does not have the backend's dependencies — usually the system interpreter instead of the venv (§2.5 vs §2.6). The index directory exists, so the *data* is fine; the process simply cannot read it. Stop it and start again with `.\.venv\Scripts\python.exe -m uvicorn app.main:app` from `backend\`. |
 | `/jobs/search` with a filter returns nothing, and the log says "Text index required" | Only affects `QDRANT_URL` deployments: a Qdrant server refuses a full-text filter unless the field has a text index, and this collection was ingested before the filters existed. Re-run §2.9 — it creates the payload indexes. The embedded store ignores payload indexes, so a default setup is never affected. |
 | The Jobs page says the postings are **getting old** | The feed has not been re-harvested since the date shown. Re-run §2.9 (which records a new harvest date), or wire up the schedule there. Nothing is broken: the page is saying the data is old rather than implying it is current. |
 | `/jobs/search` reports `harvested_at: ""` | Nothing recorded a harvest date for this index — it was built before freshness existed, or the sidecar is missing (with `QDRANT_URL` set it is written next to the *ingest*, not next to the API). Re-run §2.9 on the ingest host to record one; the feed otherwise works normally. |

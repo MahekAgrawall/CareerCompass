@@ -20,7 +20,7 @@ import {
   arrangementFromParam,
   harvestNote,
   hasAnyFilter,
-  locationSuggestions,
+  locationOptionLabel,
   postingParams,
   profileQuery,
   remoteParam,
@@ -36,7 +36,9 @@ import { useProfile } from "@/state/ProfileContext";
  * Every field on the form is a real endpoint parameter: the backend applies the
  * filters to the whole `job_role` collection and reports how many postings are
  * left (`matched`), so the page no longer filters a ranked window down and then
- * has to explain why its numbers only covered fifty postings.
+ * has to explain why its numbers only covered fifty postings. The location field's
+ * suggestions are the collection's own place vocabulary (`GET /jobs/locations`),
+ * not the places the last search happened to return.
  *
  * The URL is the committed search — `/jobs?role=…&location=…&experience=…` — so
  * the "Explore Jobs" action on a match card can prefill it, the page survives a
@@ -77,7 +79,16 @@ export default function JobsPage() {
   });
 
   const ranked = jobsQuery.data?.results ?? [];
-  const suggestions = useMemo(() => locationSuggestions(ranked), [ranked]);
+
+  // The place vocabulary comes from the collection, not from this page's results:
+  // suggestions built from the fifty postings a search happened to return offered
+  // whatever ran last, and nothing at all on a fresh page.
+  const locationsQuery = useQuery({
+    queryKey: ["job-locations"],
+    queryFn: endpoints.jobLocations,
+    staleTime: 30 * 60 * 1000,
+  });
+  const places = locationsQuery.data?.locations ?? [];
 
   const update = (patch: Partial<JobFilters>) => setDraft({ ...draft, ...patch });
 
@@ -97,7 +108,8 @@ export default function JobsPage() {
   };
 
   // The questionnaire answers the semantic role match already runs on, pointed at
-  // the live boards: one click searches with them instead of typing a role.
+  // the live boards: one click searches with the goal, the interests and a few
+  // skills (see `profileQuery`) instead of typing a role.
   const canPersonalise = Boolean(profile?.interests?.length);
   const searchWithProfile = () => {
     const role = profileQuery(profile ?? {});
@@ -124,7 +136,9 @@ export default function JobsPage() {
       <p className="caption mt-1">
         Postings collected from the public Himalayas and Arbeitnow job boards — live
         listings, not the curated role catalog. Boards rotate their openings, so every
-        search says when the postings were harvested.
+        search says when the postings were harvested. These two boards publish mostly
+        European and US roles, so the feed leans international and remote — the Indian
+        market is what the role catalog and its pay bands describe.
       </p>
 
       <form
@@ -153,8 +167,12 @@ export default function JobsPage() {
             onChange={(event) => update({ location: event.target.value })}
           />
           <datalist id="job-location-suggestions">
-            {suggestions.map((value) => (
-              <option key={value} value={value} />
+            {places.map((place) => (
+              <option
+                key={place.value}
+                value={place.value}
+                label={locationOptionLabel(place.count)}
+              />
             ))}
           </datalist>
         </label>
@@ -188,8 +206,14 @@ export default function JobsPage() {
       <p className="caption mb-5">
         Every field above is a real filter on the live board collection, applied by the
         backend before anything is ranked — so the counts below cover every posting held,
-        not just the page you see. “Relevance” is the semantic similarity to your search
-        text (or, when the search box is empty, to the filters) — not a career-fit score.
+        not just the page you see. Postings whose <em>titles</em> carry your words come
+        first, marked on the card, and the index's meaning ranks them within that; the
+        “Semantic” figure is that meaning alone. None of it is a career-fit score — that
+        is what{" "}
+        <Link className="font-semibold text-brand-700 hover:underline" to="/matches">
+          My Matches
+        </Link>{" "}
+        is for.
       </p>
 
       {!searching ? (

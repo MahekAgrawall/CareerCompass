@@ -203,7 +203,8 @@ export interface TrackerState {
 /**
  * One posting from the public job boards, exactly as `GET /jobs/search` returns
  * it (see `backend/app/schemas.py` → `JobPosting`). These are live listings, not
- * catalogued roles: there is no fit score, only the index's cosine `similarity`.
+ * catalogued roles: there is no fit score, only the index's cosine `similarity`
+ * and the query words the title happened to carry.
  */
 export interface JobPosting {
   id: string;
@@ -226,7 +227,18 @@ export interface JobPosting {
   /** Which board it came from, e.g. "himalayas" or "arbeitnow". */
   source: string;
   excerpt: string;
+  /**
+   * Cosine similarity to the search text — how near the posting is *in meaning*.
+   * `GET /jobs/search` ranks title matches above it (see `matched_terms`), so the
+   * cards are not always in descending order of this number.
+   */
   similarity: number;
+  /**
+   * The query words this posting's title contains, in the order they were typed.
+   * Empty when the search ranked by meaning alone: a filter-only browse, a query
+   * no title carries, or `/jobs/for-role`, whose query words are the role's own.
+   */
+  matched_terms: string[];
 }
 
 /**
@@ -270,6 +282,27 @@ export interface JobSearchResponse {
   /** When this data was harvested, and whether that is old enough to warn about. */
   freshness: HarvestFreshness;
   results: JobPosting[];
+}
+
+/**
+ * `GET /jobs/locations` — the place vocabulary of the live postings, commonest
+ * first. The Jobs page's location field suggests from this rather than from the
+ * results it happens to be showing, so a fresh page still offers real places.
+ */
+export interface JobLocationOption {
+  value: string;
+  /**
+   * How many postings a search for this place matches — counted by the backend
+   * with the very filter that search applies, so it is the `matched` a click on
+   * the option will report.
+   */
+  count: number;
+}
+
+export interface JobLocationsResponse {
+  /** False when the `job_role` index has not been built on this server. */
+  available: boolean;
+  locations: JobLocationOption[];
 }
 
 /**

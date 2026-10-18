@@ -5,6 +5,7 @@ import type {
   ApplicationListResponse,
   ApplicationStatus,
   ChatMessage,
+  JobLocationsResponse,
   JobSearchResponse,
   MatchResponse,
   MeResponse,
@@ -91,6 +92,13 @@ export const searchJobs = (params: Record<string, string>, limit = 50) =>
   api.get<JobSearchResponse>(
     `/jobs/search?${new URLSearchParams({ ...params, limit: String(limit) })}`,
   );
+
+/**
+ * `GET /jobs/locations` — the places the indexed postings name, with the count a
+ * search for each one matches. Normally called once per session: the vocabulary
+ * only moves when the postings are re-harvested.
+ */
+export const jobLocations = () => api.get<JobLocationsResponse>("/jobs/locations");
 
 /**
  * `POST /jobs/for-role` — the live postings nearest one catalogued role. The

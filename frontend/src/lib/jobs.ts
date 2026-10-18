@@ -17,7 +17,7 @@
  *   contract does not move when a label is reworded.
  */
 import { formatDate } from "@/lib/format";
-import type { HarvestFreshness, JobPosting, Profile } from "@/api/types";
+import type { HarvestFreshness, Profile } from "@/api/types";
 
 /** The endpoint accepts 1–50; ask for the widest page it will give. */
 export const SEARCH_LIMIT = 50;
@@ -115,14 +115,15 @@ export function hasAnyFilter(filters: JobFilters): boolean {
   );
 }
 
-/** Locations actually present in the results, offered as datalist suggestions. */
-export function locationSuggestions(postings: JobPosting[], max = 40): string[] {
-  const unique = new Set<string>();
-  for (const posting of postings) {
-    const value = posting.location.trim();
-    if (value) unique.add(value);
-  }
-  return [...unique].sort((a, b) => a.localeCompare(b)).slice(0, max);
+/**
+ * The count beside a suggested place, phrased for a datalist option's label.
+ *
+ * The number is the backend's: `GET /jobs/locations` counts each option with the
+ * very filter a search for it applies, so a suggestion advertises what choosing
+ * it will actually return — which is the only reason the number is worth showing.
+ */
+export function locationOptionLabel(count: number): string {
+  return count === 1 ? "1 posting" : `${count} postings`;
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -175,28 +176,57 @@ export function staleNote(freshness: HarvestFreshness | undefined): string {
   );
 }
 
-/**
- * A search string built from the questionnaire answers.
- *
- * The same answers the semantic role match runs on — interests, current skills
- * and the stated goal — are joined into one ranking query and pointed at the
- * live boards. Duplicates are dropped and the result is truncated to the
- * endpoint's limit; location is deliberately left out because the Jobs page has
- * a field of its own for it.
- */
-export function profileQuery(profile: Partial<Profile>): string {
+/** How much of a profile a board search carries (see `profileQuery`). */
+const PROFILE_INTERESTS = 3;
+const PROFILE_SKILLS = 3;
+const PROFILE_QUERY_MAX_LENGTH = 120;
+
+/** The non-empty values of a profile field, trimmed and de-duplicated. */
+function tidy(values: readonly string[]): string[] {
   const seen = new Set<string>();
-  const parts: string[] = [];
-  for (const raw of [
-    ...(profile.interests ?? []),
-    ...(profile.current_skills ?? []),
-    profile.career_goal ?? "",
-  ]) {
+  const kept: string[] = [];
+  for (const raw of values) {
     const value = raw.trim();
-    if (value && !seen.has(value.toLowerCase())) {
-      seen.add(value.toLowerCase());
-      parts.push(value);
+    const key = value.toLowerCase();
+    if (value && !seen.has(key)) {
+      seen.add(key);
+      kept.push(value);
     }
   }
-  return parts.join(", ").slice(0, QUERY_MAX_LENGTH);
+  return kept;
+}
+
+/**
+ * A search string built from the questionnaire answers, for the live boards.
+ *
+ * The same answers the semantic role match runs on, but pointed at listings
+ * rather than at the catalogued roles — and deliberately short. The goal leads,
+ * the interests follow, and the skills come last, because those say what the
+ * candidate *wants* while a full list of skills turns the box into a pile of
+ * technologies. Three of each, and only while they fit: this string is the
+ * ranking text, and the page lifts postings whose titles carry its words, so a
+ * tighter query gives a sharper page than a long one.
+ *
+ * Location is left out — the Jobs page has a field of its own for it — and a goal
+ * long enough to fill the budget on its own still gives the box something to run.
+ */
+export function profileQuery(profile: Partial<Profile>): string {
+  const goal = (profile.career_goal ?? "").trim();
+  const wanted = [
+    goal,
+    ...tidy(profile.interests ?? []).slice(0, PROFILE_INTERESTS),
+    ...tidy(profile.current_skills ?? []).slice(0, PROFILE_SKILLS),
+  ];
+
+  const seen = new Set<string>();
+  const parts: string[] = [];
+  for (const value of wanted) {
+    const key = value.toLowerCase();
+    if (!value || seen.has(key)) continue;
+    if ([...parts, value].join(", ").length > PROFILE_QUERY_MAX_LENGTH) continue;
+    seen.add(key);
+    parts.push(value);
+  }
+  const query = parts.join(", ");
+  return query || goal.slice(0, PROFILE_QUERY_MAX_LENGTH);
 }

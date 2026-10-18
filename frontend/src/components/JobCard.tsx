@@ -16,7 +16,9 @@ function arrangement(posting: JobPosting): string {
  *
  * Unlike `RoleCard` these carry no fit score — only the index's cosine
  * `similarity` to the search text — so the card shows the posting's own facts and
- * links straight out to the original listing.
+ * links straight out to the original listing. The words the title carried are
+ * shown too: they are what put this card above a posting that merely sits near
+ * the query in meaning, and without them that ordering looks arbitrary.
  */
 export default function JobCard({ posting }: { posting: JobPosting }) {
   const board = sourceLabel(posting.source);
@@ -39,6 +41,9 @@ export default function JobCard({ posting }: { posting: JobPosting }) {
         <Badge variant="comp">📍 {posting.location || "Location not stated"}</Badge>
         <Badge variant="future">🧭 {arrangement(posting)}</Badge>
         {salary && <Badge variant="demand">💰 {salary}</Badge>}
+        {posting.matched_terms.length > 0 && (
+          <Badge variant="match">🎯 Title says: {posting.matched_terms.join(", ")}</Badge>
+        )}
       </div>
 
       {posting.excerpt && (
@@ -58,7 +63,7 @@ export default function JobCard({ posting }: { posting: JobPosting }) {
           </>
         )}
         <span className="mx-2 text-slate-300">|</span>
-        Relevance {posting.similarity.toFixed(2)}
+        Semantic {posting.similarity.toFixed(2)}
       </p>
 
       <div className="mt-auto space-y-2 pt-4">
