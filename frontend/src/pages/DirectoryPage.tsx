@@ -21,6 +21,11 @@ export default function DirectoryPage() {
   const rolesQuery = useQuery({ queryKey: ["roles"], queryFn: endpoints.listRoles });
   const categoriesQuery = useQuery({ queryKey: ["categories"], queryFn: endpoints.listCategories });
 
+  // The dropdown's vocabulary comes from the API, and it is a *closed* taxonomy:
+  // the catalog's eight categories followed by "Other / Unclassified" — the
+  // bucket a role lands in when the taxonomy cannot place it, so an unclassified
+  // role is still findable instead of arriving as a ninth category of its own.
+  // "All Categories" stays first, and stays the default.
   const categoryOptions = useMemo(
     () => ["All Categories", ...(categoriesQuery.data ?? [])],
     [categoriesQuery.data],
@@ -51,9 +56,8 @@ export default function DirectoryPage() {
     <div>
       <h1 className="section-title">📚 Comprehensive Technology Roles Catalog</h1>
       <p className="caption mt-1">
-        Browse all corporate, AI, and specialized technology roles with Indian compensation
-        benchmarks — then open one for its roadmap, or the live openings we find for it on the
-        public job boards.
+        Browse every technology role with Indian pay benchmarks — open one for its roadmap and the
+        live openings found for it.
       </p>
       <hr className="my-5 border-slate-200" />
 

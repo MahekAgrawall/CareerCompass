@@ -25,6 +25,8 @@ EXPECTED_TEMPLATES = (
     "system/match_explanation.md",
     "user/match_explanation.md",
     "system/copilot.md",
+    "system/classify_listing.md",
+    "user/classify_listing.md",
 )
 
 PROFILE = {
@@ -49,6 +51,31 @@ VALID_ROADMAP_JSON = {
     "good_to_explore": [],
     "projects": [],
     "motivational_message": "",
+}
+#: The advert as `services.classification` renders it for the prompt, and an answer
+#: in the shape `system/classify_listing.md` asks for.
+ADVERT_VALUES = {
+    "source": "adzuna",
+    "title": "Backend Developer",
+    "company": "Deccan Cloud",
+    "location": "Pune, India",
+    "employment_type": "full-time",
+    "seniority": "not stated",
+    "categories": "none published",
+    "advert_text": "Build APIs in Java and Spring Boot for our payments platform.",
+}
+VALID_CLASSIFICATION_JSON = {
+    "primary_category": "Development",
+    "canonical_role": "Backend Development",
+    "original_title": "Backend Developer",
+    "related_role_titles": [],
+    "required_skills": ["Java"],
+    "preferred_skills": [],
+    "minimum_experience": {"years": None, "as_written": ""},
+    "seniority_level": "mid",
+    "work_arrangement": "hybrid",
+    "classification_confidence": 0.9,
+    "short_match_explanation": "Hires for Java services.",
 }
 
 
@@ -126,6 +153,27 @@ class AiCallPromptTests(unittest.TestCase):
         self.assertIn("Machine Learning, Cloud", captured["prompt"])
         self.assertIn("Machine Learning Engineer", captured["prompt"])
         self.assertNotIn("$", captured["prompt"])
+
+    def test_classify_call_injects_the_advert_and_the_declared_vocabulary(self):
+        captured = {}
+
+        class FakeModel:
+            def generate_content(self, prompt, generation_config=None):
+                captured["prompt"] = prompt
+                return SimpleNamespace(text=json.dumps(VALID_CLASSIFICATION_JSON))
+
+        with mock.patch.object(ai_service, "get_model", return_value=FakeModel()):
+            answer = ai_service.classify_listing(ADVERT_VALUES)
+
+        prompt = captured["prompt"]
+        for expected in ("Deccan Cloud", "Pune, India", "Build APIs in Java"):
+            self.assertIn(expected, prompt)
+        # The vocabulary comes from the declaration the validator uses, so the model
+        # is offered the same families it will be held to.
+        self.assertIn("Backend Development", prompt)
+        self.assertIn("Site Reliability Engineering", prompt)
+        self.assertNotIn("$", prompt)
+        self.assertEqual(answer.canonical_role, "Backend Development")
 
     def test_copilot_persona_travels_as_the_system_instruction(self):
         captured = {}

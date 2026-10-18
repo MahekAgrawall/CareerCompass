@@ -1,12 +1,25 @@
 import Badge from "./Badge";
+import JobClassification from "./JobClassification";
 import SaveJobButton from "./SaveJobButton";
 import type { JobPosting } from "@/api/types";
 import { formatDate, truncate } from "@/lib/format";
-import { sourceLabel } from "@/lib/jobs";
+import { attributionFor, sourceLabel } from "@/lib/jobs";
 
-/** How the board words the arrangement, e.g. "Remote · Full Time". */
+/**
+ * How the posting words the arrangement, e.g. "Remote · Full Time".
+ *
+ * "On-site / not stated" is deliberate for the false case (the boards only ever
+ * flag the remote ones), and so is "Remote (from the ad)" for a board that
+ * publishes no remote flag: Adzuna's API has none, so that marking is read out of
+ * the advert's own text (see `REMOTE_WORDS` in `services/job_feed.py`) and the
+ * card says so rather than passing a reading off as the advertiser's own field.
+ */
 function arrangement(posting: JobPosting): string {
-  return [posting.remote ? "Remote" : "On-site / not stated", posting.employment_type.trim()]
+  const derived = posting.remote && posting.source === "adzuna";
+  return [
+    derived ? "Remote (from the ad)" : posting.remote ? "Remote" : "On-site / not stated",
+    posting.employment_type.trim(),
+  ]
     .filter(Boolean)
     .join(" · ");
 }
@@ -19,11 +32,20 @@ function arrangement(posting: JobPosting): string {
  * links straight out to the original listing. The words the title carried are
  * shown too: they are what put this card above a posting that merely sits near
  * the query in meaning, and without them that ordering looks arbitrary.
+ *
+ * Below the excerpt sits what the classifier made of the advert (`JobClassification`)
+ * — a reading of the *text*, which is why it is not mixed in with the posting's own
+ * badges above, and why a listing nobody has read offers to be read rather than
+ * showing an empty verdict.
+ *
+ * A board that requires attribution gets it here, once per advert and beside the
+ * card's own outbound link (see `attributionFor`).
  */
 export default function JobCard({ posting }: { posting: JobPosting }) {
   const board = sourceLabel(posting.source);
   const salary = posting.salary_text.trim();
   const level = posting.seniority.join(", ");
+  const attribution = attributionFor(posting.source);
 
   return (
     <div className="card card-hover flex h-full flex-col p-5">
@@ -52,6 +74,8 @@ export default function JobCard({ posting }: { posting: JobPosting }) {
         </p>
       )}
 
+      <JobClassification posting={posting} />
+
       <p className="mt-3 text-xs text-slate-500">
         {posting.published
           ? `🕒 Posted ${formatDate(posting.published)}`
@@ -63,7 +87,7 @@ export default function JobCard({ posting }: { posting: JobPosting }) {
           </>
         )}
         <span className="mx-2 text-slate-300">|</span>
-        Semantic {posting.similarity.toFixed(2)}
+        Similarity {posting.similarity.toFixed(2)}
       </p>
 
       <div className="mt-auto space-y-2 pt-4">
@@ -76,6 +100,22 @@ export default function JobCard({ posting }: { posting: JobPosting }) {
           Apply on {board} ↗
         </a>
         <SaveJobButton posting={posting} />
+        {attribution && (
+          /**
+           * Adzuna's terms: every displayed advert carries the word "Adzuna" as a
+           * hyperlink to their site, at least 116×23 px. So this is a requirement,
+           * not a courtesy, and the size is part of it — hence the explicit minimum
+           * rather than whatever the text happens to measure.
+           */
+          <a
+            href={attribution.url}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="flex min-h-[23px] w-full min-w-[116px] items-center justify-center rounded border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:underline"
+          >
+            Jobs by {attribution.label}
+          </a>
+        )}
       </div>
     </div>
   );

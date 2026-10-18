@@ -8,7 +8,7 @@ import re
 from functools import lru_cache
 from typing import List, Dict, Any, Optional
 from app_logging import get_logger
-from config import SKILL_OPTIONS
+from config import ALL_CATEGORIES, OTHER_CATEGORY, ROLE_CATEGORIES, SKILL_OPTIONS
 from database.db import get_connection
 
 log = get_logger("careercompass.matching")
@@ -55,12 +55,26 @@ def _semantic_recall(profile: Dict[str, Any]) -> Dict[str, float]:
     return dict(vector_store.semantic_search(query, limit=SEMANTIC_RECALL_LIMIT))
 
 
+def classify_category(raw: Any) -> str:
+    """The catalog's category for a role — or *Other / Unclassified* when uncertain.
+
+    The taxonomy is closed (`config.ROLE_CATEGORIES`). A label it does not carry
+    — a category a future `roles.json` introduces before the taxonomy is widened,
+    a typo, or a blank — is reported as the escape hatch instead of becoming a
+    category of its own. That keeps the Directory's Category filter *total* (every
+    role is reachable through it) and keeps a role nobody has classified yet
+    honest: it says so rather than wearing a neighbouring category's label.
+    """
+    label = str(raw or "").strip()
+    return label if label in ROLE_CATEGORIES else OTHER_CATEGORY
+
+
 def _row_to_role_dict(row) -> Dict[str, Any]:
     """Converts a SQLite database row into a structured role dictionary."""
     return {
         "id": row["id"],
         "title": row["title"],
-        "category": row["category"],
+        "category": classify_category(row["category"]),
         "icon": row["icon"],
         "market_demand": row["market_demand"],
         "competition_level": row["competition_level"],
@@ -119,19 +133,20 @@ def get_role_by_id(role_id: str) -> Optional[Dict[str, Any]]:
 
 
 def get_all_categories() -> List[str]:
-    """Returns unique categories sorted alphabetically."""
-    conn = get_connection()
-    try:
-        cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT category FROM roles ORDER BY category ASC;")
-        return [r["category"] for r in cursor.fetchall()]
-    finally:
-        conn.close()
+    """The Category filter's vocabulary, in the order the dropdown offers it.
+
+    Declared rather than read back from the rows: this is the taxonomy the
+    catalog is organised into (`config.ROLE_CATEGORIES`), so a role the taxonomy
+    cannot place still has a bucket to appear in (see `classify_category`)
+    instead of a dropdown that would have to invent a category nobody declared.
+    The escape hatch comes last because it is not a peer of the eight.
+    """
+    return [*ROLE_CATEGORIES, OTHER_CATEGORY]
 
 
 def search_and_filter_roles(
     search_query: str = "",
-    category: str = "All Categories",
+    category: str = ALL_CATEGORIES,
     niche_filter: str = "All Roles"
 ) -> List[Dict[str, Any]]:
     """Applies database search and category filters."""
@@ -149,7 +164,10 @@ def search_and_filter_roles(
             or any(q in c.lower() for c in r["top_companies"])
         ]
 
-    if category != "All Categories":
+    # Categories arrive already classified (`_row_to_role_dict`), so the escape
+    # hatch matches like any other option and an unknown label can never slip
+    # past the filter as a category of its own.
+    if category != ALL_CATEGORIES:
         filtered = [r for r in filtered if r["category"] == category]
 
     if niche_filter == "Niche Specialists Only 🎯":

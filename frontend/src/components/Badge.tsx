@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-type Variant = "demand" | "comp" | "future" | "match" | "niche" | "muted";
+type Variant = "demand" | "comp" | "future" | "match" | "niche" | "muted" | "ai";
 
 export default function Badge({
   variant = "muted",

@@ -17,12 +17,19 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from tests.harness import client  # noqa: E402,F401  (points the live DB at a throwaway file)
 
-from config import INTEREST_OPTIONS, SKILL_OPTIONS  # noqa: E402
+from config import (  # noqa: E402
+    ALL_CATEGORIES,
+    INTEREST_OPTIONS,
+    OTHER_CATEGORY,
+    ROLE_CATEGORIES,
+    SKILL_OPTIONS,
+)
 from database import db  # noqa: E402
 from services import career_service  # noqa: E402
 
@@ -81,6 +88,63 @@ class CatalogContentTests(unittest.TestCase):
                     self.assertLess(band["min"], band["max"], "a salary band must have a range")
                 self.assertLess(fresh["max"], mid["max"])
                 self.assertLess(mid["max"], senior["max"])
+
+
+class CategoryVocabularyTests(unittest.TestCase):
+    """The Category filter is a closed taxonomy plus one honest escape hatch.
+
+    The dropdown offers what `ROLE_CATEGORIES` declares rather than whatever
+    labels the rows happen to carry, so a role the taxonomy cannot place is still
+    reachable — under *Other / Unclassified* — instead of arriving as a ninth
+    category nobody declared.
+    """
+
+    def test_the_declared_categories_are_the_ones_the_catalog_uses(self):
+        """Retention: none of the eight may quietly fall out of the vocabulary."""
+        declared = set(ROLE_CATEGORIES)
+        used = {role["category"] for role in load_catalog()}
+        self.assertEqual(used - declared, set(), "a catalog label outside the taxonomy")
+        self.assertEqual(declared - used, set(), "a declared category no role is filed under")
+
+    def test_the_escape_hatch_is_not_a_category(self):
+        self.assertEqual(OTHER_CATEGORY, "Other / Unclassified")
+        self.assertNotIn(OTHER_CATEGORY, ROLE_CATEGORIES)
+        self.assertNotIn(ALL_CATEGORIES, ROLE_CATEGORIES)
+
+    def test_a_declared_label_survives_classification(self):
+        for label in ROLE_CATEGORIES:
+            with self.subTest(label=label):
+                self.assertEqual(career_service.classify_category(label), label)
+
+    def test_a_label_outside_the_taxonomy_reads_as_unclassified(self):
+        """Including a near miss: a label that differs only in case is not the
+        category, so calling it one would hide a catalog typo behind a real chip."""
+        for raw in ("Quantum Engineering", "development", "", "   ", None):
+            with self.subTest(raw=raw):
+                self.assertEqual(career_service.classify_category(raw), OTHER_CATEGORY)
+
+    def test_the_escape_hatch_selects_the_unclassified_roles(self):
+        """The dropdown option has to *do* something, and it has to be the only
+        option that finds an unclassified role."""
+        def role(title: str, category: str) -> dict:
+            return {
+                "title": title, "description": "", "category": category, "is_niche": False,
+                "skills": {"must_have": []}, "matching_skills": [], "top_companies": [],
+            }
+
+        stray = role("Stray", career_service.classify_category("Quantum Engineering"))
+        placed = role("Placed", "Development")
+        with mock.patch.object(career_service, "get_all_roles", return_value=[placed, stray]):
+            found = career_service.search_and_filter_roles(category=OTHER_CATEGORY)
+            self.assertEqual([r["title"] for r in found], ["Stray"])
+            self.assertEqual(
+                [r["title"] for r in career_service.search_and_filter_roles(category="Development")],
+                ["Placed"],
+            )
+            self.assertEqual(len(career_service.search_and_filter_roles(category=ALL_CATEGORIES)), 2)
+
+    def test_the_directory_service_offers_every_declared_category(self):
+        self.assertEqual(career_service.get_all_categories(), [*ROLE_CATEGORIES, OTHER_CATEGORY])
 
 
 class CatalogReachabilityTests(unittest.TestCase):
@@ -205,6 +269,26 @@ class CatalogSyncTests(unittest.TestCase):
         db.init_db()
 
         self.assertIsNotNone(career_service.get_role_by_id("retired_role"))
+
+    def test_a_role_the_catalog_does_not_classify_is_seeded_unclassified(self):
+        """The seed does not guess a category for a role: `roles.json` omitting one
+        makes the role *Other / Unclassified*, which is the truth, instead of
+        quietly filing it under a real category it may not belong to."""
+        db.init_db()
+
+        catalog = os.path.join(self._tmp.name, "roles_without_a_category.json")
+        with open(catalog, "w", encoding="utf-8") as f:
+            json.dump({"roles": [{"id": "mystery_role", "title": "Mystery Role"}]}, f)
+
+        original_catalog = db.ROLES_JSON_PATH
+        db.ROLES_JSON_PATH = catalog
+        self.addCleanup(setattr, db, "ROLES_JSON_PATH", original_catalog)
+
+        db.init_db()
+
+        role = career_service.get_role_by_id("mystery_role")
+        self.assertEqual(role["category"], OTHER_CATEGORY)
+        self.assertIn(role["category"], career_service.get_all_categories())
 
     def test_a_broken_catalog_file_does_not_break_startup(self):
         """The catalog is read on every boot, so a bad edit must not down the API."""

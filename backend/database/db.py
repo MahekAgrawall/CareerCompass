@@ -9,6 +9,7 @@ import json
 from typing import Optional, List, Dict, Any
 
 from app_logging import get_logger
+from config import OTHER_CATEGORY
 
 log = get_logger("careercompass.db")
 
@@ -181,7 +182,33 @@ def init_db():
             );
         """)
 
-        # 8. Upgrade databases created before the questionnaire, the salary
+        # 8. AI Listing Classifications
+        # One row per *listing*, not per user: a classification is a reading of a
+        # public advert, so every caller shares it and none of them pays for the
+        # same advert twice. The key is the listing id, and the row records what it
+        # was derived from — the content hash, the model and the prompt wording — so
+        # a changed advert (or a changed prompt) invalidates the cache by being read
+        # through the same query, without ever deleting a row.
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS listing_classifications (
+                listing_id TEXT PRIMARY KEY,
+                content_hash TEXT NOT NULL,
+                model TEXT NOT NULL,
+                prompt_version TEXT NOT NULL,
+                primary_category TEXT NOT NULL,
+                canonical_role TEXT NOT NULL,
+                confidence REAL NOT NULL,
+                classification_json TEXT NOT NULL,
+                classified_at TEXT NOT NULL
+            );
+        """)
+
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_listing_classifications_category
+                ON listing_classifications (primary_category);
+        """)
+
+        # 9. Upgrade databases created before the questionnaire, the salary
         # provenance or the roadmap provenance grew: existing rows are kept and the
         # new columns are appended in place.
         _add_missing_columns(conn, "profiles", {
@@ -301,7 +328,9 @@ def _sync_roles_from_json(conn: sqlite3.Connection):
             """, (
                 r["id"],
                 r["title"],
-                r.get("category", "Development"),
+                # A catalog that does not state where a role belongs gets an
+                # unclassified role, not one wearing a guessed label.
+                r.get("category") or OTHER_CATEGORY,
                 r.get("icon", "💼"),
                 r.get("market_demand", "High"),
                 r.get("competition_level", "Moderate"),

@@ -15,11 +15,17 @@ weaker search, the response says whether the index answered (`available`) and
 returns no rows when it did not. The endpoint therefore works in every
 deployment, and a client can hide the section instead of surfacing an error.
 
-Location, work arrangement and experience are *store* filters, not post-filters:
-they travel to Qdrant as a payload filter, so they narrow the whole collection
-and `matched` is an honest count of it. Running them in Python over the ranked
-window instead would make every number on the page a statement about the fifty
-postings the search happened to return.
+Location, work arrangement, experience, employment type and posting date are
+*store* filters, not post-filters: they travel to Qdrant as a payload filter, so
+they narrow the whole collection and `matched` is an honest count of it. Running
+them in Python over the ranked window instead would make every number on the page
+a statement about the fifty postings the search happened to return.
+
+Not every board publishes every one of those. That is a fact about the boards, so
+the response carries it: `sources` says what each provider contributed to the last
+harvest and why any is missing (`Freshness`-style sidecar data, not a guess from
+the postings), so a page showing no Indian postings can say "Adzuna is not
+configured on this server" rather than leaving a candidate to wonder.
 
 The search box's words are a filter as well, and they are the one condition the
 store cannot answer. Whether a posting *says* something is a rule about language
@@ -40,14 +46,22 @@ Every response also carries `freshness` (see the function): the date the posting
 were harvested, and whether that is old enough to warn about. Live postings age —
 a board keeps serving a listing after it is filled — so "12 of 87 matching" is
 only half a sentence without "harvested 20 days ago".
+
+The one filter that is not a field of a posting is `category`: what a listing
+*actually is* is a verdict the classifier reached about its advert
+(`services.classification`), so `category` narrows the candidates through that store
+before anything is counted, and a listing nobody has read matches no category at
+all. `classified` is reported beside `matched` for the same reason `freshness` is:
+"4 of 61 matching" means something different when only 61 of 1,690 listings have
+been read.
 """
 
 import re
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from services import vector_store
+from services import classification, job_feed, vector_store
 
 DEFAULT_LIMIT = 10
 MAX_LIMIT = 50
@@ -90,16 +104,46 @@ _EXPERIENCE_RULES: Dict[str, Dict[str, tuple]] = {
     },
 }
 
+#: The employment vocabulary a client may ask for, and the board wording each
+#: bucket is matched by. Like the experience buckets these are a *translation*, not
+#: a lookup: the boards write "Full Time", "full-time" and "full time, permanent"
+#: for the same thing, and Adzuna splits the answer in two (`contract_time` and
+#: `contract_type`) while Arbeitnow sends a list. A bucket is therefore a set of
+#: needles matched as tokens in the store's full-text condition — so "contract"
+#: finds a contract advert and never "Contracting Officer".
+EMPLOYMENT_TYPES = ("full_time", "part_time", "internship", "contract", "permanent")
+
+_EMPLOYMENT_RULES: Dict[str, tuple] = {
+    # Hyphenated and one-word spellings both tokenise to "full time", so one
+    # needle covers them; "fulltime" is its own because nothing splits it.
+    "full_time": ("full time", "fulltime"),
+    "part_time": ("part time", "parttime"),
+    "internship": ("intern", "internship", "working student", "werkstudent", "praktik", "trainee"),
+    "contract": ("contract", "contractor", "freelance", "temporary"),
+    "permanent": ("permanent",),
+}
+
+#: How far back "posted within" is offered, in days. A fixed short list rather than
+#: a free number: the page asks whether a listing is recent enough to act on, and
+#: the harvest only ever reads each board's newest rows anyway.
+POSTED_WITHIN_DAYS = (7, 30, 90)
+
 #: The payload fields the filters above read, and the index each needs. The
 #: ingest applies this (`scripts.ingest_jobs`); the embedded store ignores
 #: payload indexes, but a server-backed one needs the text indexes before it will
-#: run a `MatchText` condition at all.
+#: run a `MatchText` condition at all, and an integer index before it will run a
+#: range.
 FILTER_INDEXES = {
     "location": "text",
     "title": "text",
     "seniority": "text",
     "employment_type": "text",
     "remote": "bool",
+    # The publication date, as an epoch — what "posted within a week" compares.
+    # Written by the ingest (`job_feed.posting_payload`) and absent for a posting
+    # the board never dated, which is what keeps an undated advert out of a date
+    # filter instead of letting it pass on a technicality.
+    "published_ts": "integer",
     # The ranking restricts the search to the postings the keywords kept (see
     # `_id_filter`). That condition is a payload lookup, so a server-backed store
     # wants an index on it; the embedded store scans either way.
@@ -176,7 +220,21 @@ POSTING_TEXT_FIELDS = ("title", "company", "categories", "tags", "excerpt", "sea
 
 #: The fields a keyword scan transfers: the words, plus the id the ranking is then
 #: restricted to. Everything else in a payload would cross the wire to be dropped.
-SCAN_FIELDS = ["id", *POSTING_TEXT_FIELDS]
+#:
+#: The four label fields on the end are here for the classification filter rather
+#: than the keyword one: a stored classification is checked for freshness against the
+#: payload it is decorating (`classification.cached_for`), and a scan that did not
+#: carry every field the classification was derived from would either have to skip
+#: that check or invalidate every verdict it looked at. The scan is served from the
+#: embedded store in this process, so the extra bytes are not billed to anyone.
+SCAN_FIELDS = [
+    "id",
+    *POSTING_TEXT_FIELDS,
+    "source",
+    "location",
+    "employment_type",
+    "seniority",
+]
 
 #: How many postings one search reads to answer a keyword condition. A ceiling
 #: rather than a page — the feed is capped by its own ingest — so a deployment
@@ -189,13 +247,22 @@ _STOP_WORDS = {"a", "an", "and", "at", "for", "in", "of", "on", "or", "the", "to
 
 
 def _result(
-    score: float, payload: Dict[str, Any], matched: Optional[List[str]] = None
+    score: float,
+    payload: Dict[str, Any],
+    matched: Optional[List[str]] = None,
+    verdict: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """One stored posting, shaped for the response.
 
     Fields are picked one by one rather than forwarded wholesale: the stored
     payload stays free to grow, and a client cannot come to depend on internals
     that happen to be in the vector store.
+
+    `verdict` is the listing's stored classification, when it has one. `None` means
+    *not classified* while an Unclassified verdict is a full object — the two are
+    different states (nobody has read this advert yet / the advert was read and could
+    not be placed), and the card needs to tell them apart to know whether offering to
+    classify it again makes sense.
     """
     return {
         "id": str(payload.get("id") or ""),
@@ -210,6 +277,10 @@ def _result(
         "published": str(payload.get("published") or ""),
         "url": str(payload.get("url") or ""),
         "source": str(payload.get("source") or ""),
+        #: The board's own id for the listing, beside our namespaced `id`. Kept
+        #: because a board's id is how the listing is identified *there*, which is
+        #: what anyone reconciling the two would need.
+        "source_job_id": str(payload.get("source_job_id") or ""),
         "excerpt": str(payload.get("excerpt") or ""),
         # The cosine similarity to the search text: how near the posting is in
         # meaning. Ordering also weighs a title match (see `_rank`), which is why
@@ -220,7 +291,36 @@ def _result(
         # typed. Empty for a read that ranks by meaning alone (`/jobs/for-role`,
         # and any query none of the titles carries).
         "matched_terms": list(matched or []),
+        # Whether this advert has been read, and what it turned out to be. Absent
+        # until someone asks (see `POST /jobs/classify` and `scripts.classify_jobs`):
+        # the classification is never guessed here, only reported.
+        "classification": verdict,
     }
+
+
+def _by_category(
+    candidates: List[Dict[str, Any]], category: str
+) -> List[Dict[str, Any]]:
+    """The candidates the classifier filed under one category, and only those.
+
+    Filtered here rather than by the store, because the category is not a field of a
+    posting: it is a *verdict* about one, held in the classification store and tied to
+    the advert's text. It is read through `classification.cached_for`, so the filter
+    uses the same freshness rule as everything else — a listing whose advert has been
+    re-harvested since it was classified drops out of its old category instead of
+    being filed under a reading that no longer describes it.
+
+    A listing nobody has classified belongs to no category — not even "Other /
+    Unclassified", which is a category the classifier *chose* for an advert it could
+    not place, and not a bin for whatever is left over once the others are filtered.
+    """
+    verdicts = classification.cached_for(candidates)
+    return [
+        payload
+        for payload in candidates
+        if (verdicts.get(str(payload.get("id") or "")) or {}).get("primary_category")
+        == category
+    ]
 
 
 def ranking_text(
@@ -228,6 +328,9 @@ def ranking_text(
     location: str = "",
     remote: Optional[bool] = None,
     experience: str = "",
+    employment_type: str = "",
+    posted_within_days: Optional[int] = None,
+    category: str = "",
 ) -> str:
     """The text the ranking runs on: the caller's own words, or the filters.
 
@@ -236,27 +339,72 @@ def ranking_text(
     query when there are none. That keeps one ranking path, and `search_postings`
     echoes whichever text it used, so the response never claims a ranking the
     caller did not ask for.
+
+    A bucket is spelled as the words it means ("full_time" -> "full time"), not as
+    the slug: this text is embedded and compared by meaning, and an underscore is
+    not a word.
+
+    The category joins the words like the other filters do. It names a phrase a job
+    advert genuinely uses ("Backend Development"), so a browse by category alone is
+    ranked by something better than nothing — and where the phrase means little
+    ("Other / Unclassified"), the ranking is merely uninformative over a set the
+    filter has already decided, not wrong.
+
+    The date filter is the one dimension that names no words at all, and the store
+    refuses an empty query outright (see `vector_store.search_records`) — so a
+    date-only browse is given the phrase that describes it. Without that, the one
+    filter a candidate can set with nothing else (\"newest first\") would answer
+    with an empty page.
     """
-    parts = [str(query or "").strip(), str(location or "").strip()]
+    parts = [
+        str(query or "").strip(),
+        str(location or "").strip(),
+        str(category or "").strip(),
+    ]
     if remote is not None:
         parts.append("remote" if remote else "on-site")
     if experience:
         parts.append(str(experience).strip())
-    return " ".join(part for part in parts if part)
+    if employment_type:
+        parts.append(str(employment_type).replace("_", " ").strip())
+    words = [part for part in parts if part]
+    if not words and posted_within_days:
+        words.append("recent jobs")
+    return " ".join(words)
+
+
+def published_floor(days: int) -> int:
+    """The epoch a "posted within" filter counts from: midnight, `days` ago.
+
+    Whole days rather than a timestamp to the second, because a posting's
+    `published_ts` is the date the board gave (see `job_feed.published_epoch`) and
+    comparing a date against a clock would drop a posting dated exactly `days` ago
+    depending on what time of day it was read. The window is therefore at least as
+    wide as it says and never narrower.
+    """
+    today = datetime.now(timezone.utc).date()
+    return int(
+        datetime.combine(today - timedelta(days=days), datetime.min.time())
+        .replace(tzinfo=timezone.utc)
+        .timestamp()
+    )
 
 
 def posting_filter(
     location: str = "",
     remote: Optional[bool] = None,
     experience: str = "",
+    employment_type: str = "",
+    posted_within_days: Optional[int] = None,
 ):
     """The Qdrant filter behind the Jobs page, or `None` when nothing narrows.
 
     Each dimension is a nested `should`, so the conditions *within* one dimension
-    are alternatives ("Berlin" or a remote flag) while the dimensions themselves
-    are all required. An unrecognised experience bucket is ignored here rather
-    than raising: the endpoint types it as a literal, so a client cannot get this
-    far with one, and a store filter is the wrong place to answer 500s.
+    are alternatives ("Berlin" or a remote flag, "full time" or "fulltime") while
+    the dimensions themselves are all required. An unrecognised experience or
+    employment bucket is ignored here rather than raising: the endpoint types them
+    as literals, so a client cannot get this far with one, and a store filter is the
+    wrong place to answer 500s.
     """
     from qdrant_client import models
 
@@ -288,6 +436,27 @@ def posting_filter(
                     for field in ("title", "seniority", "employment_type")
                     for word in rules[field]
                 ]
+            )
+        )
+
+    hiring = _EMPLOYMENT_RULES.get(str(employment_type or "").strip().lower())
+    if hiring:
+        must.append(
+            models.Filter(
+                should=[
+                    models.FieldCondition(
+                        key="employment_type", match=models.MatchText(text=word)
+                    )
+                    for word in hiring
+                ]
+            )
+        )
+
+    if posted_within_days and posted_within_days > 0:
+        must.append(
+            models.FieldCondition(
+                key="published_ts",
+                range=models.Range(gte=published_floor(int(posted_within_days))),
             )
         )
 
@@ -480,6 +649,54 @@ def freshness(meta: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     }
 
 
+def source_status(meta: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    """What each board contributed to the last harvest, and why any is missing.
+
+    Read from the same sidecar as `freshness`, and for the same reason it exists:
+    a board that was never reached and a board that was reached and had nothing new
+    both leave the index short, and only the ingest knows which happened. That
+    distinction is the whole point — a client can then say *"Adzuna is not
+    configured on this server"* instead of showing a feed with no Indian postings
+    in it and no explanation for the absence.
+
+    A board that loaded but contributed nothing is reported too, with `postings: 0`
+    and no error: that is what a market query that found nothing looks like, and it
+    should be as visible as a failure.
+
+    An index built before any of this was recorded answers an empty list, which a
+    client reads as "nothing to report" rather than as a silent all-clear.
+
+    The error text is redacted on the way out (`job_feed.without_credentials`): a
+    board that rejects the harvest's key quotes the request's whole URL in its
+    failure, and that includes the query string the key rides in. This endpoint is
+    unauthenticated, so whatever a harvest recorded is scrubbed before it is served
+    — including an index written before the feed stopped recording the query at all.
+    """
+    meta = vector_store.recorded_meta(vector_store.JOBS_COLLECTION) if meta is None else meta
+    recorded = meta.get("sources")
+    if not isinstance(recorded, list):
+        return []
+    status: List[Dict[str, Any]] = []
+    for entry in recorded:
+        if not isinstance(entry, dict):
+            continue
+        source = str(entry.get("source") or "")
+        if not source:
+            continue
+        try:
+            count = int(entry.get("postings") or 0)
+        except (TypeError, ValueError):
+            count = 0
+        status.append(
+            {
+                "source": source,
+                "postings": max(0, count),
+                "error": job_feed.without_credentials(str(entry.get("error") or "")),
+            }
+        )
+    return status
+
+
 def _words(text: str) -> set:
     """The token set of a piece of posting text.
 
@@ -564,6 +781,10 @@ def _narrow(
     is worse than one that says it had to loosen. It is *reported* rather than
     silent, because a search that quietly drops half the words is lying about what
     it searched.
+
+    `relaxed` is true only when dropping to "any" actually found something. A query
+    no posting mentions at all is a plain miss, not a loosening: flagging it would
+    tell the page every word was dropped to reach rows that do not exist.
     """
     if not terms:
         return list(candidates), False
@@ -573,14 +794,10 @@ def _narrow(
     ]
     if strict:
         return strict, False
-    return (
-        [
-            payload
-            for payload, words in said
-            if any(mentions(words, term) for term in terms)
-        ],
-        True,
-    )
+    loose = [
+        payload for payload, words in said if any(mentions(words, term) for term in terms)
+    ]
+    return loose, bool(loose)
 
 
 def _id_filter(ids: List[str]):
@@ -647,6 +864,9 @@ def search_postings(
     location: str = "",
     remote: Optional[bool] = None,
     experience: str = "",
+    employment_type: str = "",
+    posted_within_days: Optional[int] = None,
+    category: str = "",
 ) -> Dict[str, Any]:
     """The `job_role` postings that satisfy the search, nearest first.
 
@@ -658,29 +878,57 @@ def search_postings(
     so a client can show "12 of 87 matching, 951 indexed" without implying it
     inspected more than it did.
 
+    The structured filters are the store's (see `posting_filter`), including the
+    two that are not a vocabulary lookup: `employment_type` translates the boards'
+    wording for how a job hires ("full time, permanent" answers both buckets), and
+    `posted_within_days` compares the publication date a board gave. A board that
+    published neither — Adzuna states no pay period and no remote flag, and no
+    board but the catalogs state experience — simply does not match those filters,
+    which is why the response carries `sources`.
+
     The store still does the ranking: the surviving postings are ordered by the
     index's meaning, and `_rank` lifts ones whose *title* carries a word. `relaxed`
     says no posting could satisfy every word, so only some were required (see
     `_narrow`) — reported rather than silent, because a page that quietly searches
-    for less than it was asked to is lying about what it found.
+    for less than it was asked to is lying about what it found. A query no posting
+    mentions at all comes back `relaxed: false` with no rows: that is a miss, not a
+    loosening.
 
     The store is asked for a wider window than the page and `_rank` cuts it, so a
     posting whose title carries the query can be lifted over one the vector store
     merely placed nearer — the difference between a search box and a similarity
     list.
+
+    `category` is the one filter the store cannot apply: it is a *classification* of
+    the advert rather than a field on it, so the scanned candidates are narrowed
+    through the classification store (see `_by_category`) before the width of the
+    collection is counted. On a feed where only some listings have been classified,
+    `matched` therefore counts the classified part of the collection and `classified`
+    says how much of it that is — "4 of 61 matching, 61 of 1,690 classified", never a
+    total that implies the whole feed was read.
     """
-    text = ranking_text(query, location, remote, experience)
-    terms = query_terms(query)
-    available = vector_store.is_available() and vector_store.collection_exists(
-        vector_store.JOBS_COLLECTION
+    text = ranking_text(
+        query,
+        location,
+        remote,
+        experience,
+        employment_type,
+        posted_within_days,
+        category,
     )
+    terms = query_terms(query)
+    available = jobs_available()
     # Built only when there is a store to filter. `posting_filter` needs the
     # qdrant-client models, and `is_available()` only proves an index *directory*
     # exists, so a deployment with the data but without the client used to raise
     # here — a 500 where the module promises `available: false` and no rows, the
     # way `search_for_role` answers. The filters have nothing to narrow without
     # an index anyway.
-    filters = posting_filter(location, remote, experience) if available else None
+    filters = (
+        posting_filter(location, remote, experience, employment_type, posted_within_days)
+        if available
+        else None
+    )
 
     kept: Optional[List[Dict[str, Any]]] = None
     relaxed = False
@@ -691,9 +939,19 @@ def search_postings(
             KEYWORD_SCAN_LIMIT,
             keys=SCAN_FIELDS,
         )
+        if category:
+            candidates = _by_category(candidates, category)
         kept, relaxed = _narrow(candidates, terms)
 
-    ids = [str(payload.get("id") or "") for payload in kept or []] if terms else []
+    # Both conditions are decided here rather than by the store, so both travel to
+    # it as the set of ids to rank inside. `category` counts as well as `terms`: a
+    # category no classified posting matches has to answer with no rows at all, not
+    # with the store's nearest rows from outside it.
+    ids = (
+        [str(payload.get("id") or "") for payload in kept or []]
+        if terms or category
+        else []
+    )
     # With words in play the store ranks *inside* them: the other filters are
     # already applied to the set, and a store-side keyword condition would put the
     # matching rules in a tokenizer rather than here (see `matches_token`).
@@ -705,22 +963,36 @@ def search_postings(
             limit=min(limit * RANK_WINDOW, MAX_RANK_WINDOW),
             query_filter=query_filter,
         )
-        if available and (ids or not terms)
+        if available and (ids or not (terms or category))
         else []
     )
     ranked = _rank(hits, query, limit)
+    # The verdicts for this page, looked up once for the whole page rather than per
+    # card, and only for the rows being returned: classifying is the caller's to
+    # ask for (`POST /jobs/classify`), and a search never spends a model call.
+    verdicts = classification.cached_for([payload for _, _, payload in ranked])
     return {
         "query": text,
         "available": available,
         "relaxed": relaxed,
         "count": len(ranked),
         "matched": len(kept or []),
+        "classified": classification.stored_count(),
         "indexed": (
             vector_store.count_points(vector_store.JOBS_COLLECTION) if available else 0
         ),
         "freshness": freshness(),
+        # What each board contributed last time, so a feed that is missing a
+        # provider can say which and why (see `source_status`).
+        "sources": source_status(),
         "results": [
-            _result(cosine, payload, matched) for matched, cosine, payload in ranked
+            _result(
+                cosine,
+                payload,
+                matched,
+                verdicts.get(str(payload.get("id") or "")),
+            )
+            for matched, cosine, payload in ranked
         ],
     }
 
@@ -748,11 +1020,11 @@ def search_for_role(
     """The `job_role` postings nearest to one catalogued role, best first.
 
     Same honesty contract as `search_postings`: no index means no rows and
-    `available: false`, never an invented fallback.
+    `available: false`, never an invented fallback. The rows carry their stored
+    classifications when they have them, so the same posting does not look
+    classified on one page and unread on another.
     """
-    available = vector_store.is_available() and vector_store.collection_exists(
-        vector_store.JOBS_COLLECTION
-    )
+    available = jobs_available()
     hits: List = (
         vector_store.search_records(
             vector_store.JOBS_COLLECTION, role_query(role, profile), limit=limit
@@ -760,10 +1032,46 @@ def search_for_role(
         if available
         else []
     )
+    verdicts = classification.cached_for([payload for _, payload in hits])
     return {
         "role_id": str(role.get("id") or ""),
         "role_title": str(role.get("title") or ""),
         "available": available,
         "count": len(hits),
-        "results": [_result(score, payload) for score, payload in hits],
+        "results": [
+            _result(score, payload, verdict=verdicts.get(str(payload.get("id") or "")))
+            for score, payload in hits
+        ],
     }
+
+
+def posting_by_id(listing_id: str) -> Optional[Dict[str, Any]]:
+    """One stored posting, by the namespaced id the feed uses, or None.
+
+    The whole payload, not the display subset: whoever asks for a posting by id is
+    about to *do* something with it (classify it), and `_result` has already thrown
+    away the text the classification reads.
+
+    None covers both "no such listing" and "no index" — the two are told apart by the
+    caller with `jobs_available`, which is the same pair of facts every read here
+    reports, so a caller can answer 503 for a store that was never built and 404 for
+    an id that is not in it.
+    """
+    if not listing_id:
+        return None
+    rows = vector_store.scroll_payloads(
+        vector_store.JOBS_COLLECTION, _id_filter([listing_id]), 1
+    )
+    return rows[0] if rows else None
+
+
+def jobs_available() -> bool:
+    """Whether the `job_role` index is there to be read at all.
+
+    The check every read in this module makes before it answers; exposed because a
+    caller that is about to explain an empty answer needs to know which of the two
+    empty answers it is giving.
+    """
+    return vector_store.is_available() and vector_store.collection_exists(
+        vector_store.JOBS_COLLECTION
+    )

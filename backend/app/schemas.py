@@ -3,6 +3,8 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from services.classification import ListingClassification
+
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 class SignupRequest(BaseModel):
@@ -133,6 +135,10 @@ class JobPosting(BaseModel):
     published: str = ""
     url: str
     source: str = ""
+    #: The board's own identifier for this listing, beside our namespaced `id`
+    #: (`"adzuna:123456"`). Kept because a board's id is how the listing is
+    #: identified *there*, which is what anyone reconciling the two would need.
+    source_job_id: str = ""
     excerpt: str = ""
     # Cosine similarity from the job index — how near the posting is in meaning.
     # `POST /jobs/search` also weighs a title match when it orders rows, and
@@ -142,6 +148,13 @@ class JobPosting(BaseModel):
     #: Query words the posting's title contains, in the order they were typed.
     #: Empty on `/jobs/for-role`, which ranks by meaning alone.
     matched_terms: List[str] = []
+    #: What the advert turned out to be, once someone has classified it. None means
+    #: *nobody has read this one yet*, which is not the same as an Unclassified
+    #: verdict (`canonical_role: "Unclassified"`) — the difference between offering
+    #: to classify a listing and telling a candidate the advert says too little. The
+    #: classification model is the pipeline's own, so the API serves exactly the
+    #: record that is stored rather than a second shape kept in step by hand.
+    classification: Optional[ListingClassification] = None
 
 
 class HarvestFreshness(BaseModel):
@@ -172,6 +185,27 @@ class HarvestFreshness(BaseModel):
     stale_after_days: int = 14
 
 
+class JobSourceStatus(BaseModel):
+    """What one job board contributed to the last harvest, and why it is missing.
+
+    Recorded by `scripts.ingest_jobs` beside the collection, like
+    `HarvestFreshness`, and for the same reason: only the ingest knows whether a
+    board was never reached and whether it was reached and had nothing new. That
+    distinction is what lets the Jobs page say "Adzuna is not configured on this
+    server" instead of showing a feed with no Indian postings in it and no
+    explanation for their absence.
+    """
+
+    #: The board's source id, e.g. "adzuna".
+    source: str
+    #: How many postings it contributed to the harvest that built this index.
+    postings: int = 0
+    #: Why it contributed none — in wording a reader can act on — or "" when it
+    #: contributed normally. A board that loaded but found nothing reports
+    #: `postings: 0` with an empty error rather than pretending to have failed.
+    error: str = ""
+
+
 class JobSearchResponse(BaseModel):
     #: The text the ranking actually ran on: the caller's query, or their filter
     #: terms when they typed none.
@@ -189,13 +223,39 @@ class JobSearchResponse(BaseModel):
     count: int
     # How many postings the filters and keywords leave in the whole collection.
     # Counted over the collection, so it is a real total, not a property of this
-    # page.
+    # page. When `category` is set this counts the *classified* part of the
+    # collection, which is why `classified` is reported beside it.
     matched: int
+    # How many listings the classifier holds a verdict for — including the ones it
+    # read and reported as Unclassified. Reported so a category-filtered page can
+    # say how much of the feed the filter could possibly have covered instead of
+    # implying every listing was read.
+    classified: int = 0
     # How many postings the collection holds, filters or no filters.
     indexed: int
     # When this data was harvested, and whether that is old enough to warn about.
     freshness: HarvestFreshness
+    #: What each board contributed to that harvest, and why any of them did not.
+    #: Empty when the index was built before this was recorded — "nothing to
+    #: report" rather than a silent all-clear.
+    sources: List[JobSourceStatus] = []
     results: List[JobPosting]
+
+
+class JobClassifyRequest(BaseModel):
+    """One listing to read the advert of, by our namespaced id.
+
+    One listing per request on purpose. Each unclassified listing costs exactly one
+    model call, and the endpoint is metered per call, so a request that named a page
+    of listings would either have to charge a page's budget for one token or answer
+    429 for work it had already done. The client asks for the cards it wants, and the
+    classification store means asking twice is free.
+    """
+
+    id: str = Field(min_length=1, max_length=200)
+    #: Re-ask the model even when the store already answers. The escape hatch for a
+    #: verdict that is not wrong in a way the cache keys can see.
+    force: bool = False
 
 
 class JobLocationOption(BaseModel):

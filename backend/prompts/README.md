@@ -33,8 +33,16 @@ rather than shipping a prompt containing a literal `$role_title`.
 | Roadmap generation | `system/roadmap.md` | `user/roadmap.md` |
 | Role-match explanation | `system/match_explanation.md` | `user/match_explanation.md` |
 | Roadmap copilot | `system/copilot.md` | the candidate's live message |
+| Listing classification | `system/classify_listing.md` | `user/classify_listing.md` |
 
 Loading and rendering live in `services/prompts.py`.
+
+`system/classify_listing.md` is the one template whose *contents* are partly generated:
+the declared role vocabulary is rendered into it from `config.CANONICAL_ROLES` by
+`services.ai_service.classification_vocabulary()`. The list the model chooses from and
+the list the validator accepts are therefore the same list by construction — a
+vocabulary that could drift from its own validator would let an undeclared role be
+stored, or make a declared one look invalid.
 
 ## Versioning
 
@@ -43,6 +51,11 @@ generated roadmap is saved with the fingerprint of `system/roadmap.md` +
 `user/roadmap.md` beside the model id. Prompts are edited as files, so a diff alone
 cannot tell you which wording was live when a given plan was produced; the stored
 fingerprint can.
+
+A stored listing classification records the same fingerprint (of the classification
+pair) beside the advert's content hash and the model id, and is only reused when all
+three still match. Editing the classification wording is therefore enough to have every
+listing read again on its next page view, without deleting anything.
 
 ## Untrusted values
 

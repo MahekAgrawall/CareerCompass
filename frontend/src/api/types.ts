@@ -224,8 +224,14 @@ export interface JobPosting {
   published: string;
   /** The board's own listing — the original application link. */
   url: string;
-  /** Which board it came from, e.g. "himalayas" or "arbeitnow". */
+  /** Which board it came from, e.g. "adzuna", "himalayas" or "arbeitnow". */
   source: string;
+  /**
+   * The board's own identifier for this listing, beside our namespaced `id`
+   * (`"adzuna:5091887331"`). It is how the listing is identified *there*, which
+   * is what anyone reconciling the two would need.
+   */
+  source_job_id: string;
   excerpt: string;
   /**
    * Cosine similarity to the search text — how near the posting is *in meaning*.
@@ -242,6 +248,77 @@ export interface JobPosting {
    * meaning alone.
    */
   matched_terms: string[];
+  /**
+   * What the advert turned out to be, once something has classified it.
+   *
+   * `null` means **nobody has read this one yet**, which is not the same as an
+   * Unclassified verdict (`canonical_role: "Unclassified"`, with an
+   * `unclassified_reason`) — the first is an offer to classify (`POST
+   * /jobs/classify`), the second is an answer that the advert does not say enough.
+   */
+  classification: ListingClassification | null;
+}
+
+/**
+ * One listing's classification: what the advert says the job actually is.
+ *
+ * Read from the advert's own text by `POST /jobs/classify`, not from the title it
+ * was posted under, and stored per listing so the same advert is never classified
+ * twice. `primary_category` is derived from `canonical_role` through the declared
+ * vocabulary rather than paired by the model, so the two can never disagree.
+ */
+export interface ListingClassification {
+  /** The taxonomy of `/roles/categories`, e.g. "Backend Development"'s parent. */
+  primary_category: string;
+  /** The declared role family, e.g. "Backend Development"; "Unclassified" when unplaced. */
+  canonical_role: string;
+  /** The listing's own title, as published. */
+  original_title: string;
+  /** Titles a candidate might search instead — related, never synonyms. */
+  related_role_titles: string[];
+  /** What the advert *demands*. */
+  required_skills: string[];
+  /** What it merely welcomes. Kept apart from `required_skills` on purpose. */
+  preferred_skills: string[];
+  minimum_experience: {
+    /** Only a number the advert actually stated; null for "3+ years" or a range. */
+    years: number | null;
+    /** The advert's own wording, for showing instead of a precision it never gave. */
+    as_written: string;
+  };
+  /** One of `internship`/`entry`/`mid`/`senior`/`lead`/`unknown`. */
+  seniority_level: string;
+  /** One of `remote`/`hybrid`/`onsite`/`unspecified`. */
+  work_arrangement: string;
+  /** 0–1. Under 0.55 the verdict is Unclassified instead of a guess. */
+  classification_confidence: number;
+  /**
+   * One sentence from the model about why: what in the advert made it that role, or
+   * — for an advert it declined to place — what was missing or why no family fits
+   * (a sales job, say). Empty when it was unplaced for another reason (too thin to
+   * send anywhere, too unsure to keep).
+   */
+  short_match_explanation: string;
+  listing_id: string;
+  /** The board the advert came from. */
+  source: string;
+  /** The model that produced this verdict; "" for one no model was needed for. */
+  model: string;
+  /** Fingerprint of the prompt wording it was produced under. */
+  prompt_version: string;
+  classified_at: string;
+  /** True when this response came from the store rather than a fresh model call. */
+  cached: boolean;
+  /**
+   * Why it has no family. Empty when it was placed; otherwise one of `too_thin`,
+   * `declined`, `unsure`, `unreadable`, `unreachable` — where `declined` covers both
+   * "the advert was too vague" and "no declared family covers this job" (the model's
+   * `short_match_explanation` tells those apart), and the last two are not stored, so
+   * they can legitimately come back for the same advert.
+   */
+  unclassified_kind: string;
+  /** The same thing in a sentence meant for a reader. */
+  unclassified_reason: string;
 }
 
 /**
@@ -267,6 +344,25 @@ export interface HarvestFreshness {
   stale_after_days: number;
 }
 
+/**
+ * What one job board contributed to the last harvest, and why it is missing.
+ *
+ * Recorded by the ingest beside the collection, like `HarvestFreshness`, and for
+ * the same reason: only the ingest knows whether a board was never reached or was
+ * reached and had nothing new. `error` is the wording to show when there is one —
+ * it names what to configure, rather than saying "unavailable" and leaving it
+ * there — and `postings: 0` with no error is a board that loaded and found
+ * nothing, which is a fact about the harvest rather than a failure.
+ */
+export interface JobSourceStatus {
+  /** The board's source id, e.g. "adzuna". */
+  source: string;
+  /** How many postings it contributed to the harvest that built this index. */
+  postings: number;
+  /** Why it contributed none, or "" when it contributed normally. */
+  error: string;
+}
+
 export interface JobSearchResponse {
   /**
    * The text the ranking actually ran on (echoed back). It is the caller's own
@@ -287,10 +383,23 @@ export interface JobSearchResponse {
   count: number;
   /** How many the words and filters leave in the whole collection. */
   matched: number;
+  /**
+   * How many listings the classifier holds a verdict for (including the ones it
+   * read and reported as Unclassified). Reported so a category-filtered page can
+   * say how much of the feed the filter could possibly have covered, instead of
+   * implying every listing has been read.
+   */
+  classified: number;
   /** How many postings the collection holds in total. */
   indexed: number;
   /** When this data was harvested, and whether that is old enough to warn about. */
   freshness: HarvestFreshness;
+  /**
+   * What each board contributed to that harvest, and why any of them did not.
+   * Empty when the index was built before this was recorded — "nothing to report"
+   * rather than a silent all-clear.
+   */
+  sources: JobSourceStatus[];
   results: JobPosting[];
 }
 

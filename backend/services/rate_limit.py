@@ -1,10 +1,13 @@
 """A tiny in-process rate limiter for the endpoints that spend AI quota.
 
-The roadmap, the copilot and the match explanation all call Gemini, and this app
-is deliberately open to guests — so the abuse surface is "anyone with the URL",
-not "anyone with an account". Requiring sign-in would break the anonymous-first
-flow (a guest can answer the questionnaire, match and generate a roadmap), so the
-AI endpoints are *budgeted* per caller instead, and only the AI work is refused.
+The roadmap, the copilot, the match explanation and the listing classifier all call
+Gemini, and this app is deliberately open to guests — so the abuse surface is "anyone
+with the URL", not "anyone with an account". Requiring sign-in would break the
+anonymous-first flow (a guest can answer the questionnaire, match and generate a
+roadmap), so the AI endpoints are *budgeted* per caller instead, and only the AI work
+is refused. The classifier's endpoint checks its own store before spending anything
+(see `app/dependencies.spend_ai_quota`), so this counter is charged for model calls
+and not for reads.
 
 Deliberately dependency-free and single-process: two workers each keep their own
 counters, so the effective limit is per worker. That is enough to stop one client

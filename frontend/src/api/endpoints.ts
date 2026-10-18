@@ -7,6 +7,7 @@ import type {
   ChatMessage,
   JobLocationsResponse,
   JobSearchResponse,
+  ListingClassification,
   MatchResponse,
   MeResponse,
   Profile,
@@ -83,11 +84,18 @@ export const matchRoles = (
 // ── Live jobs ─────────────────────────────────────────────────────────────────
 /**
  * `GET /jobs/search` takes the caller's words plus the structured filters the page
- * offers (`q` up to 200 characters, `location`, `experience`, `remote`), and
- * returns `{query, available, relaxed, count, matched, indexed, results}`. Both are
- * conditions: a posting comes back only when it satisfies them, and `matched`
- * counts the whole collection rather than the page — see `lib/jobs.ts` for how the
- * page's wording maps onto the endpoint's slugs.
+ * offers (`q` up to 200 characters, `location`, `experience`, `remote`,
+ * `employment_type`), and returns `{query, available, relaxed, count, matched,
+ * indexed, classified, freshness, sources, results}` — see `lib/jobs.ts` for how
+ * the page's wording maps onto the endpoint's slugs. Both the words and the filters
+ * are conditions: a posting comes back only when it satisfies them, and `matched`
+ * counts the whole collection rather than the page.
+ *
+ * The endpoint also accepts `posted_within_days` and `category`, and the page
+ * offers neither: a harvest holds only recent postings, so no two of the date
+ * windows differ, and `category` reads the classifier's verdict, which exists for
+ * a small, on-demand share of the feed — either one would look like a filter that
+ * finds nothing.
  */
 export const searchJobs = (params: Record<string, string>, limit = 50) =>
   api.get<JobSearchResponse>(
@@ -101,6 +109,22 @@ export const searchJobs = (params: Record<string, string>, limit = 50) =>
  * are re-harvested.
  */
 export const jobLocations = () => api.get<JobLocationsResponse>("/jobs/locations");
+
+/**
+ * `POST /jobs/classify` — read one listing's advert and say what the job actually
+ * is. One listing per call, because each unclassified listing costs exactly one
+ * model token and the endpoint is metered per call; but the verdict is stored per
+ * listing, so a second ask (`force: false`) is answered from the store and spends
+ * nothing. `force` re-reads even a stored verdict — the escape hatch for a reading
+ * the cache keys cannot see is wrong — and the UI leaves it unused: a card offers
+ * to classify only a listing nobody has read.
+ *
+ * An advert the classifier cannot place comes back as an Unclassified verdict with
+ * a reason, not as an error; only a deployment-level failure (no key, no index)
+ * throws.
+ */
+export const classifyJob = (id: string, force = false) =>
+  api.post<ListingClassification>("/jobs/classify", { id, force });
 
 /**
  * `POST /jobs/for-role` — the live postings nearest one catalogued role. The

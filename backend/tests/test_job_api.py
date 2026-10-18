@@ -13,16 +13,22 @@ What this pins down:
   posting that says what was typed;
 * `/jobs/locations` offers the places the collection actually names, commonest
   first, each count asked of the same filter a search with it applies;
-* location, work arrangement and experience are applied by the vector store and
-  the words are narrowed against the payloads it holds, so together they decide
-  `matched` over the whole collection rather than over the page;
+* location, work arrangement, experience, employment type and posting date are
+  applied by the vector store and the words are narrowed against the payloads it
+  holds, so together they decide `matched` over the whole collection rather than
+  over the page;
+* a posting that carries no publication date is *excluded* by a "posted within"
+  filter rather than let through on a technicality;
 * a filter-only browse still works (the filter words stand in for the query), and
   asking for nothing at all is a 400;
 * with no index built, the endpoint still answers honestly (`available: false`)
   rather than erroring or inventing a weaker search — including when the index
   *data* is there but the `qdrant-client` package is not, which is a deployment
   shape that used to raise out of the store filter;
-* the inputs are validated, so an unknown experience bucket is refused.
+* the response says what each provider contributed to the harvest and why any of
+  them is missing, so a thin feed can be explained instead of merely observed;
+* the inputs are validated, so an unknown experience or employment bucket is
+  refused, and the route's literal stays in step with the service's vocabulary.
 
 Isolation (throwaway database and vector index) comes from `tests.harness`; the
 posting fixtures are shared with `test_job_feed`.
@@ -30,12 +36,26 @@ posting fixtures are shared with `test_job_feed`.
 import os
 import sys
 import unittest
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
 from tests.harness import IndexBackedTest, client  # noqa: F401  (isolation first)
+from tests.test_classification import (  # noqa: E402
+    answer,
+    clear_store,
+    fake_model,
+    using,
+)
 from tests.test_job_feed import DESIGNER, PLATFORM, posting_fixture, role_fixture  # noqa: E402
 
-from services import career_service, job_feed, job_service, vector_store  # noqa: E402
+from app import dependencies  # noqa: E402
+from services import (  # noqa: E402
+    ai_service,
+    career_service,
+    job_feed,
+    job_service,
+    vector_store,
+)
 
 QUERY = "kubernetes platform engineer"
 PAID = posting_fixture(
@@ -87,6 +107,56 @@ JUNIOR = posting_fixture(
     remote=False,
 )
 FILTERED = [BERLIN, UTRECHT, STUDENT, JUNIOR]
+
+
+def days_ago(days: int) -> str:
+    """A publication date `days` before today, in the form a posting carries.
+
+    Built relative to the clock rather than pinned to a literal, because the
+    "posted within" filter compares against *now* by definition: a fixture with a
+    fixed date would pass today and start failing next month.
+    """
+    today = datetime.now(timezone.utc).date()
+    return (today - timedelta(days=days)).isoformat()
+
+
+# Three postings that say the same thing and differ only in how old they are —
+# plus one no board dated at all, which is the case a date filter must exclude
+# rather than let through on a technicality.
+RECENT = posting_fixture(
+    "adzuna:recent", "Kubernetes Engineer", "Deccan Cloud",
+    "Operate Kubernetes.", location="Pune, India", remote=False, published=days_ago(2),
+)
+OLD = posting_fixture(
+    "arbeitnow:old", "Kubernetes Engineer", "Rhine Cloud",
+    "Operate Kubernetes.", location="Bonn, Germany", remote=False, published=days_ago(45),
+)
+UNDATED = posting_fixture(
+    "himalayas:undated", "Kubernetes Engineer", "Veldt Cloud",
+    "Operate Kubernetes.", location="Cape Town, South Africa", remote=False, published="",
+)
+DATES = [RECENT, OLD, UNDATED]
+
+# Employment wording as the boards actually send it: Adzuna's two halves joined,
+# Arbeitnow's hyphenated token, Himalayas' one-word label, and an internship the
+# experience vocabulary also reads.
+FULL_TIME_JOB = posting_fixture(
+    "adzuna:full-time", "Kubernetes Engineer", "Deccan Cloud", "Operate Kubernetes.",
+    location="Pune, India", employment_type="full time, permanent",
+)
+PART_TIME_JOB = posting_fixture(
+    "arbeitnow:part-time", "Kubernetes Engineer", "Bright Studio", "Operate Kubernetes.",
+    location="Berlin, Germany", employment_type="part-time",
+)
+CONTRACT_JOB = posting_fixture(
+    "himalayas:contract", "Kubernetes Engineer", "Nimbus Labs", "Operate Kubernetes.",
+    location="Remote", employment_type="Contractor",
+)
+INTERNSHIP = posting_fixture(
+    "adzuna:internship", "Kubernetes Engineer Internship", "Deccan Cloud",
+    "Operate Kubernetes.", location="Pune, India", employment_type="Internship",
+)
+EMPLOYMENTS = [FULL_TIME_JOB, PART_TIME_JOB, CONTRACT_JOB, INTERNSHIP]
 
 
 class JobSearchApiTests(IndexBackedTest):
@@ -531,10 +601,191 @@ class JobSearchApiTests(IndexBackedTest):
         self.assertEqual(body["results"], [])
         self.assertEqual(body["indexed"], len(FILTERED))
 
+    def test_a_query_no_posting_mentions_is_a_miss_not_a_loosening(self):
+        """An empty page must not also claim its words were loosened.
+
+        `relaxed` means words were dropped *and* rows were found; the page shows
+        that notice only beside results, so this never reached a reader — but the
+        flag should say what it means. A query the feed does not carry is a plain
+        miss, and `matched: 0` already answers it.
+        """
+        self._index_postings(FILTERED)
+        body = self._search("zzzqqq").json()
+        self.assertTrue(body["available"])
+        self.assertEqual(body["matched"], 0)
+        self.assertEqual(body["results"], [])
+        self.assertFalse(body["relaxed"])
+
     def test_without_an_index_the_counts_are_zero_rather_than_invented(self):
         body = self._search(location="Berlin", experience="senior").json()
         self.assertFalse(body["available"])
         self.assertEqual((body["count"], body["matched"], body["indexed"]), (0, 0, 0))
+
+    def test_a_posting_reports_the_boards_own_id_for_it(self):
+        """`source_job_id` is the row's identity *there*, beside our `id`."""
+        adzuna = posting_fixture(
+            "adzuna:5091887331", "Backend Engineer", "Nimbus Labs", "Build the payments API.",
+            source="adzuna", source_job_id="5091887331",
+        )
+        self._index_postings([adzuna])
+        result = self._search("backend engineer").json()["results"][0]
+        self.assertEqual(result["id"], "adzuna:5091887331")
+        self.assertEqual(result["source"], "adzuna")
+        self.assertEqual(result["source_job_id"], "5091887331")
+
+    # ── Employment type ───────────────────────────────────────────────────────
+    def test_employment_type_narrows_the_whole_collection(self):
+        self._index_postings(EMPLOYMENTS)
+        for bucket, expected in (
+            ("full_time", FULL_TIME_JOB),
+            ("part_time", PART_TIME_JOB),
+            ("contract", CONTRACT_JOB),
+            ("internship", INTERNSHIP),
+            ("permanent", FULL_TIME_JOB),
+        ):
+            with self.subTest(bucket=bucket):
+                body = self._search("", employment_type=bucket).json()
+                self.assertEqual([item["id"] for item in body["results"]], [expected["id"]])
+                self.assertEqual(body["matched"], 1)
+                self.assertEqual(body["indexed"], len(EMPLOYMENTS))
+
+    def test_employment_type_matches_the_boards_wording_not_a_lookup(self):
+        """The buckets are a translation: Adzuna says "full time", Arbeitnow says
+        "part-time" and Himalayas says "Contractor", and all three have to answer.
+        """
+        self._index_postings(EMPLOYMENTS)
+        self.assertEqual(
+            self._search("", employment_type="full_time").json()["matched"], 1,
+            "Adzuna joins its two halves with a comma",
+        )
+        self.assertEqual(self._search("", employment_type="contract").json()["matched"], 1)
+
+    def test_an_unknown_employment_bucket_is_refused(self):
+        self.assertEqual(self._search(employment_type="gig").status_code, 422)
+        self.assertEqual(self._search(employment_type="permanent").status_code, 200)
+
+    def test_the_endpoint_accepts_every_employment_bucket_the_service_offers(self):
+        """The route's literal and the rule table must not drift apart."""
+        for bucket in job_service.EMPLOYMENT_TYPES:
+            with self.subTest(bucket=bucket):
+                self.assertEqual(
+                    self._search("", employment_type=bucket).status_code, 200
+                )
+
+    # ── Posting date ──────────────────────────────────────────────────────────
+    def test_posted_within_counts_from_todays_date(self):
+        self._index_postings(DATES)
+        recent = self._search("", posted_within_days=7).json()
+        self.assertEqual([item["id"] for item in recent["results"]], [RECENT["id"]])
+        self.assertEqual(recent["matched"], 1)
+        self.assertEqual(recent["indexed"], len(DATES))
+        self.assertEqual(
+            [item["id"] for item in self._search("", posted_within_days=90).json()["results"]],
+            [RECENT["id"], OLD["id"]],
+            "a wider window reaches the older posting but never the undated one",
+        )
+
+    def test_a_posting_no_board_dated_is_never_inside_a_date_filter(self):
+        """Absent, not zero: an undated advert must not pass on a technicality.
+
+        The payload simply has no `published_ts` for it, so the range condition
+        cannot match — which is the honest reading of "posted this week" when
+        nobody said when it was posted.
+        """
+        self._index_postings(DATES)
+        matched = self._search("", posted_within_days=365).json()
+        self.assertEqual([item["id"] for item in matched["results"]], [RECENT["id"], OLD["id"]])
+        self.assertNotIn(UNDATED["id"], [item["id"] for item in matched["results"]])
+
+    def test_the_new_filters_alone_are_enough_to_search(self):
+        """Either of them, on its own, is the filter a browse was asked for."""
+        self._index_postings(DATES + EMPLOYMENTS)
+        self.assertEqual(self._search("", posted_within_days=7).status_code, 200)
+        self.assertEqual(self._search("", employment_type="internship").status_code, 200)
+
+    def test_the_new_filters_narrow_together_with_the_old_ones(self):
+        self._index_postings(DATES + EMPLOYMENTS)
+        body = self._search(
+            "", location="India", employment_type="full_time", posted_within_days=7
+        ).json()
+        self.assertEqual([item["id"] for item in body["results"]], [RECENT["id"]])
+        self.assertEqual(body["matched"], 1)
+
+    # ── Provider status ───────────────────────────────────────────────────────
+    def test_the_response_reports_what_each_provider_contributed(self):
+        """A feed missing a provider can say which one, and why.
+
+        The ingest writes this beside the collection because only it hears from a
+        board that failed: the postings themselves cannot tell "never configured"
+        from "had nothing new".
+        """
+        self._index_postings(FILTERED)
+        vector_store.record_meta(
+            vector_store.JOBS_COLLECTION,
+            {
+                "harvested_at": "2026-10-18T10:00:00+00:00",
+                "ingested_at": "2026-10-18T10:01:00+00:00",
+                "sources": [
+                    {"source": "himalayas", "postings": 4, "error": ""},
+                    {
+                        "source": "adzuna",
+                        "postings": 0,
+                        "error": "Adzuna is not configured on this server: ADZUNA_APP_ID ...",
+                    },
+                ],
+            },
+        )
+        body = self._search().json()
+        self.assertEqual(
+            [(entry["source"], entry["postings"]) for entry in body["sources"]],
+            [("himalayas", 4), ("adzuna", 0)],
+        )
+        self.assertIn("ADZUNA_APP_ID", body["sources"][1]["error"])
+        self.assertEqual(body["sources"][0]["error"], "")
+
+    def test_a_credential_the_harvest_recorded_is_not_served(self):
+        """A public endpoint does not publish the key of the board that refused it.
+
+        A failed Adzuna request quotes the whole URL, and the key is in its query.
+        An index written by such a build — or written before the feed stopped
+        recording the query — would otherwise put that key on the same page that
+        reports the failed provider. The record is scrubbed on the way out.
+        """
+        key = "0123456789abcdef0123456789abcdef"
+        app_id = "abcdef123456"
+        self._index_postings(FILTERED)
+        vector_store.record_meta(
+            vector_store.JOBS_COLLECTION,
+            {
+                "harvested_at": "2026-10-18T10:00:00+00:00",
+                "ingested_at": "2026-10-18T10:01:00+00:00",
+                "sources": [
+                    {
+                        "source": "adzuna",
+                        "postings": 0,
+                        "error": (
+                            "401 Unauthorized from https://api.adzuna.com/v1/api/jobs/"
+                            f"in/search/1?app_id={app_id}&app_key={key}"
+                        ),
+                    }
+                ],
+            },
+        )
+        with mock.patch.dict(os.environ, {"ADZUNA_APP_ID": app_id, "ADZUNA_APP_KEY": key}):
+            served = self._search().json()["sources"][0]["error"]
+        self.assertNotIn(key, served)
+        self.assertNotIn(app_id, served)
+        self.assertIn("401", served, "the reader is still told what happened")
+
+    def test_an_index_that_predates_the_record_has_nothing_to_report(self):
+        """Empty means "nothing recorded", which a client reads as no notice —
+        never as an all-clear that a provider was consulted and answered."""
+        self._index_postings(FILTERED)
+        vector_store.record_meta(
+            vector_store.JOBS_COLLECTION,
+            {"harvested_at": "2026-10-18T10:00:00+00:00", "ingested_at": "2026-10-18T10:01:00+00:00"},
+        )
+        self.assertEqual(self._search().json()["sources"], [])
 
 
 class JobLocationApiTests(IndexBackedTest):
@@ -746,6 +997,33 @@ class JobFilterUnitTests(unittest.TestCase):
             self.assertIsNotNone(built, level)
             self.assertTrue(built.must, level)
 
+    def test_every_offered_employment_bucket_actually_has_rules(self):
+        """A bucket a client can ask for must be a bucket the store can answer."""
+        self.assertTrue(job_service.EMPLOYMENT_TYPES, "there is a bucket to filter on")
+        for bucket in job_service.EMPLOYMENT_TYPES:
+            with self.subTest(bucket=bucket):
+                built = job_service.posting_filter(employment_type=bucket)
+                self.assertIsNotNone(built, bucket)
+                self.assertTrue(built.must, bucket)
+
+    def test_an_unknown_employment_bucket_is_ignored_rather_than_raising(self):
+        self.assertIsNone(job_service.posting_filter(employment_type="gig"))
+        self.assertIsNotNone(job_service.posting_filter(employment_type="permanent"))
+
+    def test_a_date_filter_counts_whole_days_from_midnight(self):
+        """So a posting dated exactly `days` ago is not dropped by the clock.
+
+        `published_ts` is the *date* a board gave, so the floor it is compared
+        against is a date too: comparing a date against a time of day would make
+        the window depend on what hour the search ran at.
+        """
+        floor = job_service.published_floor(7)
+        self.assertEqual(floor % 86400, 0, "midnight, not a moment in the afternoon")
+        self.assertEqual(
+            (datetime.now(timezone.utc).date() - timedelta(days=7)).isoformat(),
+            datetime.fromtimestamp(floor, tz=timezone.utc).date().isoformat(),
+        )
+
     def test_the_ranking_text_falls_back_to_the_filters(self):
         self.assertEqual(job_service.ranking_text("", "Berlin", None, ""), "Berlin")
         self.assertEqual(
@@ -755,6 +1033,34 @@ class JobFilterUnitTests(unittest.TestCase):
             job_service.ranking_text("", "", False, ""), "on-site",
             "a filter-only browse must still give the ranker something to rank on",
         )
+
+    def test_a_filter_only_browse_by_employment_type_still_has_words_to_rank_on(self):
+        """The bucket is spelled as the words it means, not as the slug: this text
+        is embedded and compared by meaning, and an underscore is not a word.
+        """
+        self.assertEqual(
+            job_service.ranking_text("", "", None, "", "full_time"), "full time"
+        )
+        self.assertEqual(
+            job_service.ranking_text("", "", None, "", "permanent"), "permanent"
+        )
+
+    def test_a_date_only_browse_still_has_words_to_rank_on(self):
+        """The one dimension that names no words gets the phrase that describes it.
+
+        The store refuses an empty query outright, so without this \"newest first\"
+        — a filter a candidate can set with nothing else — would answer with an
+        empty page. The response echoes the text, so the page never implies a
+        search box was filled in.
+        """
+        self.assertEqual(
+            job_service.ranking_text("", "", None, "", "", 7), "recent jobs"
+        )
+        self.assertEqual(
+            job_service.ranking_text("", "India", None, "", "", 7), "India",
+            "a filter that does name words still wins",
+        )
+        self.assertEqual(job_service.ranking_text(), "", "nothing to browse, nothing to rank")
 
     def test_the_callers_own_words_win(self):
         text = job_service.ranking_text("data analyst", "Berlin", True, "senior")
@@ -863,6 +1169,18 @@ class JobKeywordTests(unittest.TestCase):
     def test_no_words_keep_everything(self):
         candidates = [{"id": "a", "title": "Anything"}]
         self.assertEqual(job_service._narrow(candidates, []), (candidates, False))
+
+    def test_a_query_nothing_mentions_is_a_miss_not_a_loosening(self):
+        """`relaxed` means words were dropped *and* rows were found.
+
+        A query the feed does not carry at all used to come back `relaxed: true`
+        with no rows — "we loosened, and even that found nothing" — which is a
+        loosening that never happened. The flag is the page's notice that something
+        less than it asked for is on screen; with nothing on screen there is
+        nothing to excuse.
+        """
+        candidates = [{"id": "a", "title": "Python Engineer", "excerpt": "Python only."}]
+        self.assertEqual(job_service._narrow(candidates, ["cobol"]), ([], False))
 
 
 class JobRankTests(unittest.TestCase):
@@ -1074,6 +1392,227 @@ class RoleJobsApiTests(IndexBackedTest):
     def test_the_endpoint_needs_no_account(self):
         role = catalog_role("Platform Engineer")
         self.assertEqual(self._for_role(role["id"]).status_code, 200)
+
+
+# ── AI classification ─────────────────────────────────────────────────────────
+#: Adverts long enough to classify (a title-only posting is *never* classified — see
+#: `classification.MIN_DESCRIPTION_CHARS`), each describing a different kind of job so
+#: that the category filter has something to tell apart.
+JAVA_ADVERT = (
+    "Build and run payment services in Java and Spring Boot. Design REST APIs, own the "
+    "SQL data models, and deploy to a Kubernetes platform. Must have 3+ years of Java, "
+    "strong SQL. Nice to have: fintech exposure."
+)
+SRE_ADVERT = (
+    "Own our Kubernetes platform and Terraform modules. Run the production clusters, "
+    "improve the deployment pipelines, and lead on observability and incident response. "
+    "Must have production on-call experience with Linux."
+)
+JAVA_POSTING = posting_fixture(
+    "adzuna:java-backend", "Backend Developer", "Deccan Cloud", JAVA_ADVERT,
+    location="Pune, India",
+)
+SRE_POSTING = posting_fixture(
+    "himalayas:platform-sre", "Site Reliability Engineer", "Nimbus Labs", SRE_ADVERT,
+    location="Bengaluru, India",
+)
+TITLE_ONLY_POSTING = posting_fixture(
+    "arbeitnow:title-only", "Senior Backend Engineer", "Rhine Cloud", "Apply now.",
+    location="Bonn, Germany",
+)
+
+
+def index_postings(postings) -> int:
+    """Puts fixtures into the throwaway `job_role` collection."""
+    rows = [
+        (row["record_id"], row["document"], row["payload"]) for row in job_feed.rows(postings)
+    ]
+    return vector_store.upsert_records(vector_store.JOBS_COLLECTION, rows)
+
+
+class JobClassifyApiTests(IndexBackedTest):
+    """`POST /jobs/classify` — the one job endpoint that spends anything.
+
+    What this pins down: the verdict is the stored one whether or not the model was
+    reached, a listing the classifier cannot place is answered as Unclassified rather
+    than failed, a missing key or a missing index is the deployment's problem and says
+    so, and the AI budget is charged only when a model call is actually about to
+    happen — which is why reading a verdict (or reading an advert that says too little
+    to classify) is free.
+    """
+
+    def setUp(self):
+        super().setUp()
+        clear_store()
+        self._original_max = dependencies.ai_limiter.max_calls
+        self.addCleanup(self._reset_budget)
+
+    def _reset_budget(self):
+        dependencies.ai_limiter.max_calls = self._original_max
+        dependencies.ai_limiter.reset()
+
+    def _set_budget(self, calls: int):
+        """Gives this test the whole AI budget, so spending can be counted exactly."""
+        dependencies.ai_limiter.max_calls = calls
+        dependencies.ai_limiter.reset()
+
+    def _classify(self, listing_id: str, **body):
+        return client.post("/jobs/classify", json={"id": listing_id, **body})
+
+    def test_without_an_index_it_says_which_command_builds_one(self):
+        response = self._classify("adzuna:java-backend")
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("ingest_jobs", response.json()["detail"])
+
+    def test_an_unknown_listing_is_a_404(self):
+        index_postings([JAVA_POSTING])
+        self.assertEqual(self._classify("adzuna:nobody").status_code, 404)
+
+    def test_without_a_key_it_says_so_instead_of_blaming_the_advert(self):
+        index_postings([JAVA_POSTING])
+        with mock.patch.object(ai_service, "api_key", ""):
+            response = self._classify("adzuna:java-backend")
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("Gemini API key", response.json()["detail"])
+
+    def test_a_listing_comes_back_with_what_the_job_actually_is(self):
+        index_postings([JAVA_POSTING])
+        with using(fake_model(answer())):
+            response = self._classify("adzuna:java-backend")
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["canonical_role"], "Backend Development")
+        self.assertEqual(body["primary_category"], "Development")
+        self.assertEqual(body["required_skills"], ["Java", "Spring Boot", "SQL"])
+        self.assertEqual(body["listing_id"], "adzuna:java-backend")
+        self.assertFalse(body["cached"])
+
+    def test_a_listing_already_classified_is_read_without_any_ai_at_all(self):
+        """The store is the whole point: a page full of classified cards needs no key
+        and no quota, so it keeps working on a deployment whose key has run out."""
+        index_postings([JAVA_POSTING])
+        with using(fake_model(answer())):
+            self._classify("adzuna:java-backend")
+        with mock.patch.object(ai_service, "api_key", ""):
+            response = self._classify("adzuna:java-backend")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["cached"])
+
+    def test_reading_a_verdict_costs_nothing_but_asking_for_one_is_metered(self):
+        index_postings([JAVA_POSTING])
+        self._set_budget(1)
+        with using(fake_model(answer())):
+            first = self._classify("adzuna:java-backend")
+            second = self._classify("adzuna:java-backend")
+            forced = self._classify("adzuna:java-backend", force=True)
+        self.assertEqual(first.status_code, 200)
+        self.assertFalse(first.json()["cached"])
+        # The budget was spent above, so a second *charge* would be a 429.
+        self.assertEqual(second.status_code, 200)
+        self.assertTrue(second.json()["cached"])
+        self.assertEqual(forced.status_code, 429)
+
+    def test_an_advert_too_thin_to_classify_costs_no_budget_either(self):
+        index_postings([TITLE_ONLY_POSTING, JAVA_POSTING])
+        self._set_budget(1)
+        with using(fake_model(answer())):
+            thin = self._classify("arbeitnow:title-only")
+            listed = self._classify("adzuna:java-backend")
+        self.assertEqual(thin.status_code, 200)
+        self.assertEqual(thin.json()["canonical_role"], "Unclassified")
+        self.assertIn("does not describe the job", thin.json()["unclassified_reason"])
+        # It reached no model, so the one token was still there for the listing that
+        # did need reading.
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(listed.json()["canonical_role"], "Backend Development")
+
+    def test_an_unreadable_answer_is_reported_rather_than_failed(self):
+        index_postings([JAVA_POSTING])
+        with using(fake_model(text="I am afraid I cannot do that.")):
+            response = self._classify("adzuna:java-backend")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["canonical_role"], "Unclassified")
+        self.assertEqual(response.json()["unclassified_kind"], "unreadable")
+
+
+class JobClassificationSearchTests(IndexBackedTest):
+    """What a *read* of the feed says about the verdicts it holds."""
+
+    def setUp(self):
+        super().setUp()
+        clear_store()
+
+    def _classify(self, listing_id: str, stated: dict):
+        with using(fake_model(stated)):
+            response = client.post("/jobs/classify", json={"id": listing_id})
+        self.assertEqual(response.status_code, 200, response.text)
+        return response.json()
+
+    def _search(self, **params):
+        return client.get("/jobs/search", params=params)
+
+    def test_a_result_carries_its_verdict_rather_than_a_guess(self):
+        index_postings([JAVA_POSTING])
+        self._classify("adzuna:java-backend", answer())
+        body = self._search(q="java", limit=10).json()
+        self.assertEqual(body["count"], 1)
+        self.assertEqual(body["results"][0]["classification"]["canonical_role"], "Backend Development")
+        self.assertTrue(body["results"][0]["classification"]["cached"])
+        self.assertEqual(body["classified"], 1)
+
+    def test_a_result_nobody_has_read_says_so_with_a_null(self):
+        index_postings([JAVA_POSTING])
+        body = self._search(q="java").json()
+        self.assertIsNone(body["results"][0]["classification"])
+        self.assertEqual(body["classified"], 0)
+
+    def test_the_category_filter_narrows_to_a_filed_listing(self):
+        index_postings([JAVA_POSTING, SRE_POSTING])
+        self._classify("adzuna:java-backend", answer())
+        self._classify(
+            "himalayas:platform-sre",
+            answer(
+                canonical_role="Site Reliability Engineering",
+                primary_category="Infrastructure & Cloud",
+                required_skills=["Kubernetes", "Terraform"],
+            ),
+        )
+        body = self._search(category="Infrastructure & Cloud", limit=10).json()
+        titles = [row["title"] for row in body["results"]]
+        self.assertEqual(titles, ["Site Reliability Engineer"])
+        self.assertEqual(body["matched"], 1)
+        self.assertEqual(body["classified"], 2)
+
+    def test_a_listing_nobody_has_classified_matches_no_category(self):
+        index_postings([JAVA_POSTING])
+        body = self._search(category="Development").json()
+        self.assertEqual(body["count"], 0)
+        self.assertEqual(body["matched"], 0)
+        self.assertTrue(body["available"])
+
+    def test_a_category_alone_is_enough_to_search(self):
+        index_postings([JAVA_POSTING])
+        self._classify("adzuna:java-backend", answer())
+        response = self._search(category="Development")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Development", response.json()["query"])
+
+    def test_an_unknown_category_is_refused_with_the_vocabulary(self):
+        response = self._search(category="Quantum Engineering")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Other / Unclassified", response.json()["detail"])
+
+    def test_the_unclassified_bucket_is_a_category_not_a_leftover_bin(self):
+        """A thin advert is filed under "Other / Unclassified" because the classifier
+        *said so* — and a listing nobody has read is not."""
+        index_postings([TITLE_ONLY_POSTING, JAVA_POSTING])
+        with using(fake_model(answer())):
+            client.post("/jobs/classify", json={"id": "arbeitnow:title-only"})
+        body = self._search(category="Other / Unclassified", limit=10).json()
+        self.assertEqual([row["title"] for row in body["results"]], ["Senior Backend Engineer"])
+        self.assertEqual(body["matched"], 1)
+        # The Java advert has no verdict at all, so no category of any kind holds it.
+        self.assertEqual(self._search(category="Development").json()["matched"], 0)
 
 
 if __name__ == "__main__":

@@ -70,14 +70,10 @@ def consume_ai_quota(request: Request, user: Optional[dict]) -> bool:
     return allowed
 
 
-def ai_quota(request: Request, user: Optional[dict] = Depends(get_optional_user)) -> None:
-    """Rejects with 429 once the caller's AI budget for the window is spent."""
-    allowed, retry_after = _consume_quota(request, user)
-    if allowed:
-        return
-
+def _too_many_requests(retry_after: float) -> HTTPException:
+    """The 429 every AI endpoint refuses with, worded once."""
     wait = max(1, math.ceil(retry_after))
-    raise HTTPException(
+    return HTTPException(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
         detail=(
             "You have made a lot of AI requests in a short time. "
@@ -85,3 +81,22 @@ def ai_quota(request: Request, user: Optional[dict] = Depends(get_optional_user)
         ),
         headers={"Retry-After": str(wait)},
     )
+
+
+def spend_ai_quota(request: Request, user: Optional[dict]) -> Optional[HTTPException]:
+    """The decision `ai_quota` would make, in a form a route can take later.
+
+    For an endpoint where the model is only sometimes reached: `/jobs/classify`
+    answers from the classification store without asking anything, and charges a
+    token only when it actually goes to the model. Returns the refusal to raise, or
+    None when the call is allowed — so the wording and headers stay in one place.
+    """
+    allowed, retry_after = _consume_quota(request, user)
+    return None if allowed else _too_many_requests(retry_after)
+
+
+def ai_quota(request: Request, user: Optional[dict] = Depends(get_optional_user)) -> None:
+    """Rejects with 429 once the caller's AI budget for the window is spent."""
+    refusal = spend_ai_quota(request, user)
+    if refusal:
+        raise refusal

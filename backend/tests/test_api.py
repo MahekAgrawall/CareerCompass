@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from tests.harness import client, signup, unique_email  # noqa: E402
 
-from services import ai_service, auth_service  # noqa: E402
+from services import ai_service, auth_service, career_service  # noqa: E402
 
 
 class AuthFlowTests(unittest.TestCase):
@@ -60,10 +60,27 @@ class RolesTests(unittest.TestCase):
         # The exact catalog size lives in roles.json; this only guards the endpoint contract.
         self.assertGreaterEqual(len(r.json()), 25)
 
-    def test_categories(self):
+    def test_categories_are_the_declared_vocabulary(self):
+        """The Directory's dropdown renders this list, so the endpoint's contract
+        is the *vocabulary*: the eight categories the catalog is organised into,
+        then the escape hatch for a role the taxonomy cannot place."""
         r = client.get("/roles/categories")
         self.assertEqual(r.status_code, 200)
-        self.assertTrue(r.json())
+        self.assertEqual(r.json(), [*career_service.ROLE_CATEGORIES, career_service.OTHER_CATEGORY])
+        self.assertNotIn(
+            career_service.ALL_CATEGORIES, r.json(),
+            "All Categories is the dropdown's default, not a category any role carries",
+        )
+
+    def test_every_served_role_has_a_category_the_dropdown_offers(self):
+        """The filter has to be total: a label the dropdown cannot offer would
+        make that role invisible to anyone filtering by category."""
+        categories = client.get("/roles/categories").json()
+        roles = client.get("/roles").json()
+        self.assertTrue(roles)
+        for role in roles:
+            with self.subTest(role=role["id"]):
+                self.assertIn(role["category"], categories)
 
     def test_get_role(self):
         r = client.get("/roles/backend_dev")
