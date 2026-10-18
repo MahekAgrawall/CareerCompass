@@ -205,8 +205,8 @@ export default function RoleDetailPage() {
 
           <h2 className="text-lg font-bold text-slate-900">💼 Live Openings from the Job Boards</h2>
           <p className="caption mt-0.5">
-            Currently-open postings ranked for this role, with your questionnaire answers taken
-            into account. Each link opens the original listing on the board that published it.
+            Open postings for this role, ranked with your questionnaire answers. Each link opens the
+            original listing.
           </p>
           <div className="mt-3">
             <RoleJobs roleId={role.id} roleTitle={role.title} limit={5} />

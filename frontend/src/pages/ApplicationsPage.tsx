@@ -175,9 +175,8 @@ export default function ApplicationsPage() {
     <div>
       <h1 className="section-title">📋 Applications</h1>
       <p className="caption mt-1">
-        Every posting you saved from the live boards, and how far each one got. Each row keeps a copy
-        of the posting as it looked when you saved it — the boards rotate their listings, and a saved
-        job should not turn into a blank line when one disappears.
+        Every posting you saved, and how far each one got. Each row keeps a copy as it looked when you
+        saved it.
       </p>
 
       <QueryState
@@ -189,7 +188,7 @@ export default function ApplicationsPage() {
           <EmptyState
             icon="🔖"
             title="No saved jobs yet"
-            description="Search the live boards and press “Save job” on anything worth keeping. From here you can move it along as the application progresses — applied, interview, offer."
+            description="Save a posting from the live boards, then move it along here — applied, interview, offer."
             action={
               <Link to="/jobs" className="btn btn-primary">
                 💼 Browse live jobs
@@ -237,12 +236,7 @@ export default function ApplicationsPage() {
 
       <div className="mt-10 border-t border-slate-200 pt-5">
         <p className="caption">
-          Saved jobs are private to your account, and CareerCompass never applies on your behalf. The
-          study side of the same plan lives in the{" "}
-          <Link to="/tracker" className="font-semibold text-brand-700 hover:underline">
-            study tracker
-          </Link>
-          .
+          Saved jobs are private to your account, and CareerCompass never applies on your behalf.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link to="/jobs" className="btn btn-secondary">

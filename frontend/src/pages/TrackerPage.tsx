@@ -107,8 +107,7 @@ export default function TrackerPage() {
         <div>
           <h1 className="section-title">📅 Study Hours Planner & Topic Tracker</h1>
           <p className="caption mt-1">
-            Customize your daily study throughput across weekdays and weekends, and check off syllabus topics as
-            you master them.
+            Set your study hours, then check off topics as you master them.
           </p>
           <hr className="my-5 border-slate-200" />
 
@@ -248,7 +247,7 @@ export default function TrackerPage() {
               <section className="mt-6">
                 <h2 className="text-lg font-bold text-slate-900">📝 3. Detailed Topic & Subtopic Syllabus</h2>
                 <p className="caption mt-0.5">
-                  Check off topics as you finish your study sessions. All progress is automatically stored.
+                  Check off topics as you finish them — progress is saved automatically.
                 </p>
 
                 <div className="mt-4 space-y-4">

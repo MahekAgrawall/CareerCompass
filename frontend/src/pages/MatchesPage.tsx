@@ -101,12 +101,13 @@ export default function MatchesPage() {
     <div>
       <h1 className="section-title">🎯 Step 2 — Roles Matched for {profile.name || "You"}</h1>
       <p className="caption mt-1">
-        Filtered strictly according to your selected career interests and current technical baseline.
+        Matched on your selected interests and your current skill baseline.
       </p>
       {resultsQuery.data && (
         <p className="caption mt-1">
-          Every match is explained: score = {resultsQuery.data.interest_weight}% interest fit +{" "}
-          {resultsQuery.data.skill_weight}% skill fit. Open “Why this matched” on any card to check the arithmetic.
+          Score = {resultsQuery.data.interest_weight}% interest fit +{" "}
+          {resultsQuery.data.skill_weight}% skill fit. Open “Why this matched” on a card to see the
+          arithmetic.
         </p>
       )}
 
