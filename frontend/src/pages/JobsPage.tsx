@@ -13,17 +13,21 @@ import type { JobFilters } from "@/lib/jobs";
 import {
   ANY_EXPERIENCE,
   ARRANGEMENT_OPTIONS,
+  EMPLOYMENT_OPTIONS,
   EXPERIENCE_OPTIONS,
   LOCATION_MAX_LENGTH,
   QUERY_MAX_LENGTH,
   SEARCH_LIMIT,
   arrangementFromParam,
+  employmentFromParam,
+  employmentParam,
   harvestNote,
   hasAnyFilter,
   locationOptionLabel,
   postingParams,
   preferredLocationLabel,
   profileQuery,
+  providerNote,
   relaxedNote,
   remoteParam,
   staleNote,
@@ -41,9 +45,24 @@ import { useProfile } from "@/state/ProfileContext";
  * down and then has to explain why its numbers only covered fifty postings. The
  * location field's suggestions are the collection's own place vocabulary
  * (`GET /jobs/locations`), not the places the last search happened to return — and
- * that same read carries the Indian hubs, offered as preferences whether or not
- * the boards publish into them, because this app's market is India and the boards
- * serve it thinly.
+ * that same read carries the Indian hubs, offered as preferences so the home
+ * market is visible without typing it.
+ *
+ * Two of the filters read fields no board publishes a vocabulary for.
+ * *Experience* and *employment type* are translations of the boards' own wording
+ * ("full time, permanent" answers both of those buckets), and their rules live in
+ * `services/job_service.py`.
+ *
+ * Each card carries the classifier's reading of its advert and offers to make one
+ * for a listing nobody has read yet (`services/classification.py`). That reading is
+ * deliberately *not* a filter here: it exists for a small share of the feed — the
+ * classifier reads one advert per request, on demand — so a category search would
+ * answer from almost nothing and read as "no such jobs" when the truth is "not read
+ * yet". The form above narrows on the fields the boards themselves publish.
+ *
+ * The response also says what each provider contributed and why any of them is
+ * missing (`sources`), which is shown as a notice: Adzuna needs a key, and a feed
+ * with no Indian postings and no explanation would read as "there are none".
  *
  * The URL is the committed search — `/jobs?role=…&location=…&experience=…` — so
  * the "Explore Jobs" action on a match card can prefill it, the page survives a
@@ -56,6 +75,7 @@ function filtersFromParams(params: URLSearchParams): JobFilters {
     location: params.get("location") ?? "",
     experience: params.get("experience") || ANY_EXPERIENCE,
     arrangement: arrangementFromParam(params.get("remote")),
+    employment: employmentFromParam(params.get("employment_type")),
   };
 }
 
@@ -65,14 +85,14 @@ export default function JobsPage() {
   const { profile } = useProfile();
   const [params, setParams] = useSearchParams();
   const committed = useMemo(() => filtersFromParams(params), [params]);
-  const { role, location, experience, arrangement } = committed;
+  const { role, location, experience, arrangement, employment } = committed;
 
   // The form mirrors the URL and follows it when it changes underneath us —
   // e.g. a second "Explore Jobs" click on an already-mounted page.
   const [draft, setDraft] = useState<JobFilters>(committed);
   useEffect(() => {
-    setDraft({ role, location, experience, arrangement });
-  }, [role, location, experience, arrangement]);
+    setDraft({ role, location, experience, arrangement, employment });
+  }, [role, location, experience, arrangement, employment]);
 
   const searchParams = useMemo(() => postingParams(committed), [committed]);
 
@@ -107,6 +127,8 @@ export default function JobsPage() {
     if (filters.experience !== ANY_EXPERIENCE) next.set("experience", filters.experience);
     const remote = remoteParam(filters.arrangement);
     if (remote) next.set("remote", remote);
+    const employment = employmentParam(filters.employment);
+    if (employment) next.set("employment_type", employment);
     setParams(next);
   };
 
@@ -149,21 +171,23 @@ export default function JobsPage() {
   // The words are a condition, so the page can be smaller than what was asked
   // for — and says so rather than letting the reader assume it searched the lot.
   const loosened = relaxedNote(data?.relaxed, committed.role);
+  // A board the harvest could not read is a fact about the feed, so it is stated
+  // where the feed is: without this, "no postings in India" and "this server has
+  // no Adzuna key" look exactly the same to the person reading the page.
+  const providers = providerNote(data?.sources);
 
   return (
     <div>
       <h1 className="section-title">💼 Live Tech Jobs</h1>
       <p className="caption mt-1">
-        Postings collected from the public Himalayas and Arbeitnow job boards — live
-        listings, not the curated role catalog. Boards rotate their openings, so every
-        search says when the postings were harvested. These two boards publish mostly
-        European and US roles, so the feed leans international and remote — the Indian
-        market is what the role catalog and its pay bands describe.
+        Live postings from the public job boards — <strong>Adzuna</strong>, which covers
+        the Indian market, plus Himalayas and Arbeitnow. The boards rotate their
+        openings, so each search shows when the postings were harvested.
       </p>
 
       <form
         onSubmit={submit}
-        className="card mt-5 mb-3 grid gap-3 p-4 lg:grid-cols-[2fr_1.2fr_1.2fr_1.2fr_auto] lg:items-end"
+        className="card mt-5 mb-3 grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3"
       >
         <label className="block">
           <span className="label">Role or keywords</span>
@@ -183,7 +207,7 @@ export default function JobsPage() {
             value={draft.location}
             maxLength={LOCATION_MAX_LENGTH}
             list="job-location-suggestions"
-            placeholder="e.g. Berlin, Remote"
+            placeholder="e.g. Bangalore, India, Remote"
             onChange={(event) => update({ location: event.target.value })}
           />
           <datalist id="job-location-suggestions">
@@ -211,7 +235,14 @@ export default function JobsPage() {
           onChange={(value) => update({ arrangement: value })}
         />
 
-        <div className="flex flex-col gap-2">
+        <SelectField
+          label="Employment type"
+          value={draft.employment}
+          options={EMPLOYMENT_OPTIONS}
+          onChange={(value) => update({ employment: value })}
+        />
+
+        <div className="flex flex-col gap-2 sm:col-span-2 lg:col-span-3">
           <button type="submit" className="btn btn-primary w-full" disabled={!hasAnyFilter(draft)}>
             🔎 Search jobs
           </button>
@@ -245,37 +276,32 @@ export default function JobsPage() {
               );
             })}
           </div>
-          <p className="caption mt-2">
-            The Indian hubs this app is built around, next to the boards' own places
-            above. Both boards publish into India thinly, so most of them say{" "}
-            <em>no live postings</em> — that is the feed, not a missing filter, and
-            the location field stays free text if you want to try a city anyway.
-            What the Indian market <em>does</em> pay is what the role catalog and its
-            salary bands describe.
-          </p>
+          <p className="caption mt-2">Counts are live — click a hub to search it.</p>
         </div>
       )}
 
       <p className="caption mb-5">
-        Every field above is a filter the backend applies to the whole live collection
-        before anything is ranked, so the counts below cover every posting held rather
-        than just this page. The <em>words</em> are a filter as well: a posting comes
-        back only when it says all of them — whole words, plurals included, matched
-        anywhere in the posting, so “java” cannot answer with a listing that never
-        mentions Java. Titles that carry a word are lifted first and marked on the
-        card; the “Semantic” figure is the index’s meaning alone. None of it is a
-        career-fit score — that is what{" "}
+        Every word you type must appear in the posting. Nothing here is a career-fit
+        score — that is what{" "}
         <Link className="font-semibold text-brand-700 hover:underline" to="/matches">
           My Matches
         </Link>{" "}
         is for.
       </p>
 
+      {providers && (
+        <div className="mb-5">
+          <Alert tone="warning" title="A job provider could not be read">
+            {providers}
+          </Alert>
+        </div>
+      )}
+
       {!searching ? (
         <EmptyState
           icon="💼"
           title="Search the live boards"
-          description="Type a role above, or open Jobs from any card in My Matches to start from a role you already matched. A filter on its own is enough — you do not have to type a role."
+          description="Type a role above, or open Jobs from any card in My Matches. A filter on its own is enough."
           action={
             canPersonalise ? (
               <button type="button" className="btn btn-primary" onClick={searchWithProfile}>
@@ -309,8 +335,8 @@ export default function JobsPage() {
               title="No postings matched"
               description={
                 data.matched === 0
-                  ? `These conditions were applied to all ${data.indexed} indexed postings and none of them match — every word you type has to appear in a posting. Try a broader location, fewer words, or drop the experience and arrangement filters.`
-                  : `${data.matched} postings match your words and filters, but the ranking returned none of them for this page. Try broader words.`
+                  ? `None of the ${data.indexed} indexed postings match. Try a broader location, fewer words, or drop a filter.`
+                  : `${data.matched} postings match, but none were returned for this page. Try broader words.`
               }
               action={
                 <button type="button" onClick={clearFilters} className="btn btn-primary">
@@ -325,8 +351,8 @@ export default function JobsPage() {
                 search · {data?.indexed ?? 0} postings indexed
               </p>
               <p className="caption">
-                Ranked by similarity to “{data?.query}”. Each card links straight to the
-                board that published it.
+                Ranked by similarity to “{data?.query}”. Cards link straight to the board
+                that published them.
               </p>
               {loosened && (
                 <div className="mt-3">

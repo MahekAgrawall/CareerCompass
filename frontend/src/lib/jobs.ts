@@ -16,9 +16,15 @@
  *   working;
  * * the endpoint takes stable slugs (`experience=senior`, `remote=true`), so its
  *   contract does not move when a label is reworded.
+ *
+ * Two of the filters search a *filter* rather than a field: experience and
+ * employment type are translations of what the boards wrote, because no board here
+ * publishes either vocabulary. `providerNote` and `attributionFor` are here too —
+ * the first because a provider that could not be read is a fact the page owes the
+ * reader, the second because one board's terms require it.
  */
 import { formatDate, truncate } from "@/lib/format";
-import type { HarvestFreshness, Profile } from "@/api/types";
+import type { HarvestFreshness, JobSourceStatus, Profile } from "@/api/types";
 
 /** The endpoint accepts 1–50; ask for the widest page it will give. */
 export const SEARCH_LIMIT = 50;
@@ -88,11 +94,56 @@ export function arrangementFromParam(value: string | null): string {
   return ANY_ARRANGEMENT;
 }
 
+export const ANY_EMPLOYMENT = "Any employment type";
+
+/**
+ * How a job hires, as a *translation* rather than a lookup.
+ *
+ * No board here publishes a normalised employment type: Adzuna splits the answer
+ * into `contract_time` and `contract_type`, Arbeitnow sends a list ("full-time"),
+ * and Himalayas sends a free-text label ("Contractor"), so "full time, permanent"
+ * is one posting and it answers two of these buckets. The needles live beside the
+ * filter they build, in `backend/services/job_service.py`.
+ */
+export const EMPLOYMENT_OPTIONS = [
+  ANY_EMPLOYMENT,
+  "Full time",
+  "Part time",
+  "Internship",
+  "Contract",
+  "Permanent",
+] as const;
+
+export type EmploymentOption = (typeof EMPLOYMENT_OPTIONS)[number];
+
+/** Label shown in the page -> the slug the endpoint validates. */
+const EMPLOYMENT_SLUGS: Record<string, string> = {
+  "Full time": "full_time",
+  "Part time": "part_time",
+  Internship: "internship",
+  Contract: "contract",
+  Permanent: "permanent",
+};
+
+/** An employment label as the endpoint takes it, or "" for any. */
+export function employmentParam(employment: string): string {
+  return EMPLOYMENT_SLUGS[employment] ?? "";
+}
+
+/** The reverse, for reading an employment choice back out of the URL. */
+export function employmentFromParam(value: string | null): string {
+  for (const [label, slug] of Object.entries(EMPLOYMENT_SLUGS)) {
+    if (slug === value) return label;
+  }
+  return ANY_EMPLOYMENT;
+}
+
 export interface JobFilters {
   role: string;
   location: string;
   experience: string;
   arrangement: string;
+  employment: string;
 }
 
 /** The endpoint's inputs, as the URL carries them. Empty fields are left out. */
@@ -103,6 +154,8 @@ export function postingParams(filters: JobFilters): Record<string, string> {
   if (experience) params.experience = experience;
   const remote = remoteParam(filters.arrangement);
   if (remote) params.remote = remote;
+  const employment = EMPLOYMENT_SLUGS[filters.employment];
+  if (employment) params.employment_type = employment;
   return params;
 }
 
@@ -112,7 +165,8 @@ export function hasAnyFilter(filters: JobFilters): boolean {
     filters.role.trim() ||
       filters.location.trim() ||
       EXPERIENCE_SLUGS[filters.experience] ||
-      ARRANGEMENT_SLUGS[filters.arrangement],
+      ARRANGEMENT_SLUGS[filters.arrangement] ||
+      EMPLOYMENT_SLUGS[filters.employment],
   );
 }
 
@@ -140,6 +194,7 @@ export function preferredLocationLabel(count: number): string {
 }
 
 const SOURCE_LABELS: Record<string, string> = {
+  adzuna: "Adzuna",
   himalayas: "Himalayas",
   arbeitnow: "Arbeitnow",
 };
@@ -148,6 +203,53 @@ const SOURCE_LABELS: Record<string, string> = {
 export function sourceLabel(source: string): string {
   if (!source) return "Unknown board";
   return SOURCE_LABELS[source] ?? source.charAt(0).toUpperCase() + source.slice(1);
+}
+
+/**
+ * A board's attribution requirement, where it has one.
+ *
+ * Adzuna's terms allow its listings to be published only when every displayed
+ * advert carries the word "Adzuna" hyperlinked to the local site, so a card
+ * showing one renders that link (see `JobCard`). The label and the address live
+ * here because they are terms of use rather than styling — `adzuna.in` is the
+ * Indian site, which is the market this app reads.
+ */
+export const ATTRIBUTION: Record<string, { label: string; url: string }> = {
+  adzuna: { label: "Adzuna", url: "https://www.adzuna.in" },
+};
+
+/** The attribution a card owes a board, or null when it owes none. */
+export function attributionFor(source: string): { label: string; url: string } | null {
+  return ATTRIBUTION[source] ?? null;
+}
+
+/**
+ * The notice shown when a provider could not be read, or "" when all is well.
+ *
+ * The harvest records what each board did, including *why* one is missing, and
+ * this is that record turned into a sentence. It exists because the alternative is
+ * worse than a missing feature: a feed with no Indian postings and no explanation
+ * looks like the app found nothing, when in fact the server was never given an
+ * Adzuna key. A board that loaded but contributed nothing is reported too — zero
+ * postings is a fact about the harvest, and the reader is the one who can act on
+ * it (a category tag that market does not carry, for instance).
+ */
+export function providerNote(sources: JobSourceStatus[] | undefined): string {
+  if (!sources?.length) return "";
+  const lines: string[] = [];
+  for (const entry of sources) {
+    if (entry.error) {
+      lines.push(entry.error);
+    }
+  }
+  const quiet = sources.filter((entry) => !entry.error && entry.postings === 0);
+  if (quiet.length) {
+    lines.push(
+      `${quiet.map((entry) => sourceLabel(entry.source)).join(" and ")} ` +
+        "returned no postings in the last harvest.",
+    );
+  }
+  return lines.join(" ");
 }
 
 /**

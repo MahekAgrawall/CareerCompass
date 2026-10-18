@@ -56,7 +56,7 @@ export default function HomePage() {
         </div>
         <p className="mt-6 border-t border-white/10 pt-4 text-sm text-slate-400">
           100 curated roles across 8 categories · India CTC bands with their sources linked · live
-          postings from Himalayas and Arbeitnow · applications tracked from saved to offer
+          postings from Adzuna, Himalayas and Arbeitnow · applications tracked from saved to offer
         </p>
       </section>
 

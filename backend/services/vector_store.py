@@ -485,8 +485,8 @@ def scroll_payloads(
 def ensure_payload_indexes(name: str, fields: Dict[str, str]) -> List[str]:
     """Creates the payload indexes `fields` asks for, given as `{field: kind}`.
 
-    `kind` is "text" (tokenised — what a `MatchText` condition needs), "keyword"
-    or "bool". Idempotent, and best-effort: failures are logged and the remaining
+    `kind` is "text" (tokenised — what a `MatchText` condition needs), "keyword",
+    "bool" or "integer" (a number, which is what a range condition needs). Idempotent, and best-effort: failures are logged and the remaining
     fields still run, because a payload index only ever makes an existing filter
     faster — with one exception. A *server-backed* Qdrant refuses to run
     `MatchText` at all without a text index, so a deployment with `QDRANT_URL`
@@ -505,6 +505,10 @@ def ensure_payload_indexes(name: str, fields: Dict[str, str]) -> List[str]:
         ),
         "keyword": models.PayloadSchemaType.KEYWORD,
         "bool": models.PayloadSchemaType.BOOL,
+        # A range condition ("published within the last week") needs an indexed
+        # number to compare, not a tokenised string: the same fact the display
+        # field carries, stored in the form the filter can read.
+        "integer": models.PayloadSchemaType.INTEGER,
     }
     created: List[str] = []
     try:

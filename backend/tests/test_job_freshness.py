@@ -71,7 +71,33 @@ class ArtifactTests(unittest.TestCase):
         self.assertEqual(
             artifact["harvested_at"], "", "no date is recorded, rather than today's"
         )
+        self.assertEqual(artifact["sources"], [], "no board record either")
         self.assertEqual(job_feed.load(self.path), [PLATFORM])
+
+    def test_a_saved_harvest_records_what_each_board_did(self):
+        """The board record travels in the file, so `--from-file` keeps it.
+
+        Only the harvest hears from a board that failed, and a re-ingest of the
+        file has no network on which to hear it again — so "Adzuna was never
+        configured" has to be written down beside the postings, not looked up.
+        """
+        status = [
+            {"source": "himalayas", "postings": 2, "error": ""},
+            {
+                "source": "adzuna",
+                "postings": 0,
+                "error": "Adzuna is not configured on this server: ADZUNA_APP_ID ...",
+            },
+        ]
+        job_feed.save([PLATFORM, DESIGNER], self.path, sources=status)
+        artifact = job_feed.load_artifact(self.path)
+        self.assertEqual(artifact["sources"], status)
+        self.assertEqual(job_feed.load(self.path), [PLATFORM, DESIGNER])
+
+    def test_a_harvest_saved_without_a_board_record_reloads_without_one(self):
+        """No record reads back as nothing recorded, never as an all-clear."""
+        job_feed.save([PLATFORM], self.path)
+        self.assertEqual(job_feed.load_artifact(self.path)["sources"], [])
 
     def test_the_harvest_stamp_is_utc_iso_8601(self):
         self.assertRegex(
@@ -144,6 +170,46 @@ class IngestFreshnessTests(IndexBackedTest):
         self.assertEqual(
             job_service.freshness()["harvested_at"], result["status"]["harvested_at"]
         )
+
+    def test_a_board_that_could_not_be_read_survives_a_file_reingest(self):
+        """`--from-file` reports the harvest's own board record, not just its rows.
+
+        An index built from a saved file used to be able to name only the boards
+        its rows came from, so a server with no Adzuna key showed an Indian-less
+        feed and said nothing about why — the one case the `sources` block exists
+        for. The record was heard during the harvest and written into the file, so
+        it is there to be re-ingested.
+        """
+        path = os.path.join(self._tmp, "job_postings.json")
+        job_feed.save(
+            [PLATFORM],
+            path,
+            sources=[
+                {"source": "arbeitnow", "postings": 1, "error": ""},
+                {
+                    "source": "adzuna",
+                    "postings": 0,
+                    "error": "Adzuna is not configured on this server: ADZUNA_APP_ID must be set.",
+                },
+            ],
+        )
+        with contextlib.redirect_stdout(io.StringIO()):
+            ingest_jobs.ingest(from_file=path, save_path="")
+        recorded = vector_store.recorded_meta(vector_store.JOBS_COLLECTION)["sources"]
+        self.assertEqual([entry["source"] for entry in recorded], ["arbeitnow", "adzuna"])
+        self.assertIn("ADZUNA_APP_ID", recorded[1]["error"])
+        body = client.get("/jobs/search", params={"q": "platform"}).json()
+        self.assertIn("ADZUNA_APP_ID", body["sources"][1]["error"])
+
+    def test_a_file_reingest_without_a_board_record_still_names_its_boards(self):
+        """An artifact from before the record existed reports what its rows say.
+
+        The fallback is not silent: the boards that are in the file are counted, so
+        an older file loses only the boards that failed to reach it.
+        """
+        self._ingest([PLATFORM, DESIGNER])
+        recorded = vector_store.recorded_meta(vector_store.JOBS_COLLECTION)["sources"]
+        self.assertEqual([(entry["source"], entry["postings"]) for entry in recorded], [("arbeitnow", 2)])
 
     def test_reingesting_an_old_artifact_reports_the_artifacts_date_not_today(self):
         self._ingest([PLATFORM], harvested_at=days_ago(21))

@@ -2,7 +2,7 @@
 Migration: collect live job postings and load them into the `job_role` collection.
 
     cd backend
-    .\\.venv\\Scripts\\python.exe -m scripts.ingest_jobs --limit 2000
+    .\\.venv\\Scripts\\python.exe -m scripts.ingest_jobs --limit 2100
 
 Why a script and not startup work? The API must never depend on a third-party job
 board being up, on an embedding key, or on a network call at boot. This is data
@@ -12,20 +12,32 @@ which is why every ingest records *when* it happened and the API reports it.
 
 What it does:
 
-1. collects postings from the public job-board APIs (see `services.job_feed`);
+1. collects postings from the public job-board APIs (see `services.job_feed`) —
+   Adzuna first, the India-first board, then Himalayas and Arbeitnow supplementing
+   it;
 2. writes them to `data/job_postings.json`, so re-ingesting needs no network, and
-   stamps the file with the harvest time;
+   stamps the file with the harvest time and what each board did — so a `--from-file`
+   ingest still reports the board that could not be read;
 3. embeds each posting and upserts it into the `job_role` collection;
-4. records the harvest and ingest times in `<index>/job_role.meta.json`, which is
-   what `GET /jobs/search`'s `freshness` block reports;
+4. records the harvest and ingest times *and what each board contributed* in
+   `<index>/job_role.meta.json`, which is what `GET /jobs/search`'s `freshness` and
+   `sources` blocks report — including any board that could not be read, and why;
 5. creates the payload indexes the Jobs page's filters read (see
    `services.job_service.FILTER_INDEXES`). Skipping this step breaks nothing in
    the embedded store, which ignores payload indexes — but a `QDRANT_URL`
    deployment needs the text indexes before Qdrant will run a full-text filter.
 
+Adzuna needs credentials, and their absence is not an error: set `ADZUNA_APP_ID`
+and `ADZUNA_APP_KEY` in the backend environment (a free pair comes from
+https://developer.adzuna.com/signup) and it joins the harvest; leave them unset
+and the harvest runs on the other two boards while the API reports exactly that in
+its `sources` block. The same goes for a board that is merely down. Nothing about
+a job board stops this migration from being run.
+
 Options:
-    --limit N          how many postings to collect (default 1000)
-    --source NAME      restrict to one board (himalayas, arbeitnow); repeatable
+    --limit N          how many postings to collect (default 2100)
+    --source NAME      restrict to one board (adzuna, himalayas, arbeitnow);
+                       repeatable
     --rebuild          drop the `job_role` collection first
     --query "text"     run a semantic smoke test afterwards and print the hits
     --from-file PATH   ingest a previously collected JSON file instead of fetching
@@ -50,6 +62,7 @@ process has it open, so stop the API server before running this.
 import argparse
 import os
 import sys
+from typing import Any, Dict, List
 
 from app_logging import get_logger
 from database.db import DATA_DIR
@@ -75,14 +88,59 @@ def _explain(error: Exception) -> str:
     )
 
 
+def _file_sources(
+    postings: List[Dict[str, Any]], recorded: Optional[List[Dict[str, Any]]] = None
+) -> List[Dict[str, Any]]:
+    """What boards a saved harvest holds, and what each of them did.
+
+    A harvest written by `job_feed.save` carries its own per-board record, so this
+    prefers it: a board that could not be read is then reported with its reason on
+    the ingestion of a file that has no network to ask again — the same thing a
+    live harvest would have said. The counts are taken from that record rather than
+    from the rows for the same reason, because a board that contributed nothing
+    leaves no rows to count.
+
+    An artifact written before the record existed — or by a caller with none to
+    give — holds only its rows. Then the boards are counted from them and a board
+    that was never reached leaves no trace: reporting an absence there would be
+    inventing a failure.
+    """
+    if recorded:
+        return [
+            {
+                "source": str(entry.get("source") or ""),
+                "postings": int(entry.get("postings") or 0),
+                "error": str(entry.get("error") or ""),
+            }
+            for entry in recorded
+            if entry.get("source")
+        ]
+    counts: Dict[str, int] = {}
+    for posting in postings:
+        source = str(posting.get("source") or "")
+        if source:
+            counts[source] = counts.get(source, 0) + 1
+    return [
+        {"source": source, "postings": count, "error": ""} for source, count in counts.items()
+    ]
+
+
 def _collect(limit: int, sources, from_file: str, save_path: str) -> tuple:
     """Postings, from the network or from a previously saved artifact.
 
-    Returns `(postings, harvested_at)`. The harvest time is when the data was
-    pulled: now for a fresh collect, and the artifact's own stamp for
+    Returns `(postings, harvested_at, sources_status)`. The harvest time is when
+    the data was pulled: now for a fresh collect, and the artifact's own stamp for
     `--from-file` — which is the point, because re-ingesting a week-old file must
     not present it as today's harvest. An artifact written before the stamp
     existed loads with `""`, which the API reports as "not recorded".
+
+    `sources_status` is what each board did: for a fresh collect, heard straight from
+    the callback — which contributed, how many, and, for a board with no credentials
+    or one that is down, a reason a reader can act on; for a `--from-file` re-ingest,
+    the record that harvest left in the artifact when it had one, and otherwise
+    nothing beyond the boards its rows name. That is what `/jobs/search`'s `sources`
+    block reports back, so the absence of a provider is explained on the page rather
+    than only in this log.
     """
     if from_file:
         artifact = job_feed.load_artifact(from_file)
@@ -90,15 +148,25 @@ def _collect(limit: int, sources, from_file: str, save_path: str) -> tuple:
         harvested_at = artifact["harvested_at"]
         when = f", harvested {harvested_at}" if harvested_at else " (no harvest date in the file)"
         print(f"loaded     : {len(postings)} postings from {from_file}{when}")
-        return postings, harvested_at
+        return postings, harvested_at, _file_sources(postings, artifact["sources"])
 
     print(f"collecting : up to {limit} postings from {', '.join(sources)}")
-    postings = job_feed.collect(limit=limit, sources=sources)
+    status: List[Dict[str, Any]] = []
+    postings = job_feed.collect(
+        limit=limit,
+        sources=sources,
+        on_progress=lambda source, count, error: status.append(
+            {"source": source, "postings": count, "error": error}
+        ),
+    )
     harvested_at = job_feed.harvest_stamp()
     if save_path:
-        job_feed.save(postings, save_path, harvested_at=harvested_at)
+        # The board record goes into the file with the postings and the date: it is
+        # heard here and nowhere else, and a re-ingest of this file has no network
+        # on which to hear it again (see `job_feed.save`).
+        job_feed.save(postings, save_path, harvested_at=harvested_at, sources=status)
         print(f"saved      : {len(postings)} postings to {save_path}")
-    return postings, harvested_at
+    return postings, harvested_at, status
 
 
 def _skip_reason(max_age_days: int) -> str:
@@ -118,7 +186,7 @@ def _skip_reason(max_age_days: int) -> str:
 
 
 def ingest(
-    limit: int = 2000,
+    limit: int = job_feed.HARVEST_LIMIT,
     sources=None,
     rebuild: bool = False,
     query: str = "",
@@ -127,7 +195,7 @@ def ingest(
 ) -> dict:
     """Collects, embeds and stores live postings. Returns a summary."""
     sources = list(sources or job_feed.SOURCES)
-    postings, harvested_at = _collect(limit, sources, from_file, save_path)
+    postings, harvested_at, sources_status = _collect(limit, sources, from_file, save_path)
 
     rows = [
         (row["record_id"], row["document"], row["payload"])
@@ -165,7 +233,13 @@ def ingest(
     ingested_at = job_feed.harvest_stamp()
     vector_store.record_meta(
         collection,
-        {"harvested_at": harvested_at, "ingested_at": ingested_at},
+        {
+            "harvested_at": harvested_at,
+            "ingested_at": ingested_at,
+            # What each board did, so the API can explain a feed that is missing
+            # one instead of just being short (see `job_service.source_status`).
+            "sources": sources_status,
+        },
     )
     payload_indexes = vector_store.ensure_payload_indexes(collection, job_service.FILTER_INDEXES)
     status = {
@@ -179,6 +253,7 @@ def ingest(
         "postings": len(postings),
         "harvested_at": harvested_at,
         "ingested_at": ingested_at,
+        "sources": sources_status,
         "payload_indexes": payload_indexes,
     }
     log.info(
@@ -204,8 +279,8 @@ def main(argv=None) -> int:
         sys.stdout.reconfigure(encoding="utf-8")
 
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
-    parser.add_argument("--limit", type=int, default=2000,
-                        help="how many postings to collect (default 2000)")
+    parser.add_argument("--limit", type=int, default=job_feed.HARVEST_LIMIT,
+                        help=f"how many postings to collect (default {job_feed.HARVEST_LIMIT})")
     parser.add_argument("--source", action="append", dest="sources", default=None,
                         choices=list(job_feed.SOURCES),
                         help="restrict to one board (repeatable)")
@@ -245,6 +320,11 @@ def main(argv=None) -> int:
         print(f"location   : {status['location']}")
         print(f"points     : {status['points']} (wrote {result['written']})")
         print(f"harvested  : {status['harvested_at'] or 'not recorded'}")
+        contributed = [
+            entry["source"] + f" {entry['postings']}" + (f" ({entry['error']})" if entry["error"] else "")
+            for entry in status["sources"]
+        ]
+        print("sources    : " + (", ".join(contributed) or "none recorded"))
         print(f"filters    : payload indexes on {', '.join(status['payload_indexes']) or 'none'}")
 
         if args.query:
