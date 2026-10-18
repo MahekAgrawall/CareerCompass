@@ -97,6 +97,18 @@ GEMINI_API_KEY=your_free_gemini_key
 JWT_SECRET=
 ACCESS_TOKEN_EXPIRE_MINUTES=10080
 CORS_ORIGINS=http://localhost:5173
+
+# Optional — India-first live postings (free key from developer.adzuna.com/signup).
+# Blank means the harvest runs on the other boards and /jobs/search says why.
+ADZUNA_APP_ID=
+ADZUNA_APP_KEY=
+# Market and sector: `in` is India, `it-jobs` is the tag Adzuna itself uses. Set
+# ADZUNA_CATEGORY empty to read every sector (what to try if a market returns
+# nothing at all, since a tag it does not carry would harvest zero postings).
+# ADZUNA_COUNTRY=in
+# ADZUNA_CATEGORY=it-jobs
+# How old an advert may be to be harvested, in days.
+# ADZUNA_MAX_DAYS_OLD=30
 ```
 
 - `JWT_SECRET` is **required** — there is deliberately no fallback. Generate one:
@@ -108,6 +120,12 @@ CORS_ORIGINS=http://localhost:5173
 - Get a free key at **<https://aistudio.google.com>** → *Get API Key*.
 - `GEMINI_API_KEY` is **optional** — without it everything works except AI roadmap
   generation and the copilot, which return a friendly "AI not configured" message.
+- `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` are **optional** too — without them the live
+  feed falls back to the two keyless boards (Himalayas and Arbeitnow) and
+  `GET /jobs/search` reports Adzuna as unconfigured in its `sources` block, which
+  the Jobs page shows as a notice. With them the feed is India-first, because
+  Adzuna is the provider here that covers that market — see §2.9 for the harvest plan
+  and the free tier's limits.
 - The AI endpoints (roadmap, copilot, match explanation) are metered **per caller** —
   by user id when signed in, otherwise by client address — because this app lets
   guests use the AI without an account. Over budget is a **429** with a `Retry-After`;
@@ -150,6 +168,17 @@ Drop `--reload` for a stable run.
     -Body '{"role_id":"platform_engineer","limit":3,"profile":{}}'
   ```
 
+- Classify one listing's advert (after §2.9 and §2.9's pre-fill, or on its own) — the id comes from
+  any search result:
+
+  ```powershell
+  Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/jobs/classify `
+    -ContentType 'application/json' -Body '{"id":"adzuna:123456"}'
+  ```
+
+  (expect `canonical_role` plus its `primary_category`; a second call for the same id returns the
+  same verdict with `"cached": true` and costs nothing)
+
 Leave this terminal running.
 
 ### 2.8 Build the semantic role index (one-off, optional)
@@ -182,14 +211,40 @@ See §8 for what to do if you change keys or models later.
 ### 2.9 Collect live job postings into `job_role` (optional)
 
 A second collection holds real, currently-open postings rather than curated roles.
-It is collected from free public job-board APIs (Himalayas and Arbeitnow) — no key
-and no sign-up — normalised, de-duplicated by title and company, and embedded with
-the same embedder as the catalog:
+It is collected from public job-board APIs, normalised, de-duplicated by title,
+company and place, and embedded with the same embedder as the catalog:
 
 ```powershell
 # With the API stopped, exactly like 2.8
-.\.venv\Scripts\python.exe -m scripts.ingest_jobs --limit 2000 --query "kubernetes platform engineer"
+.\.venv\Scripts\python.exe -m scripts.ingest_jobs --limit 2100 --query "kubernetes platform engineer"
 ```
+
+**Adzuna is the one that needs configuring** (see §2.4), and the one that makes the
+feed India-first: `in` is a market its API documents, and it aggregates Indian
+boards rather than being a single one. Set `ADZUNA_APP_ID` and `ADZUNA_APP_KEY`
+(free at <https://developer.adzuna.com/signup>) and the harvest reads it as a
+bounded plan rather than "everything Adzuna has", because the free tier is 25 hits
+a minute and **250 a day** — twelve pages India-wide, two for each of six hubs, and
+one for `what=remote` is 1,250 adverts for 25 of them (the query plan is
+`ADZUNA_QUERIES`). The daily allowance would afford a deeper read than that; the
+*minute* is what stops it, because pages go out back to back and a longer plan
+would rate-limit itself part-way through and lose the pages it had not reached.
+Leave the keys blank and the harvest still runs on the other boards;
+`GET /jobs/search` then reports Adzuna in its `sources` block with the reason, and
+the Jobs page shows that notice, so a feed with no Indian postings never looks like
+a market with none. Two of Adzuna's terms are honoured in the UI: every advert it
+supplies is shown with a link back to `adzuna.in`, and the listing is reached
+through its own `redirect_url`.
+
+Himalayas and Arbeitnow are kept as supplementary sources, and they need no key —
+neither takes a country, a city or a keyword (Himalayas answers its ordinary
+newest-first feed to `country=India` and `search=` alike), so depth is the only
+lever on *what* a harvest takes from them. They are sized to the supplementary role
+they have now that Adzuna supplies the home market: Himalayas serves 20 postings a
+page, so its ceiling is ten (200 of its newest); Arbeitnow, a German board paging
+300 at a time, takes one (300). Together they are the set an "abroad" answer falls
+back on. `--limit` has to clear all three ceilings together (2,100 does), or the
+first board fills the run and the others contribute nothing.
 
 It fetches politely (descriptive `User-Agent`, a pause between pages, a page
 ceiling per board) and writes what it collected to `data/job_postings.json`
@@ -198,15 +253,6 @@ ceiling per board) and writes what it collected to `data/job_postings.json`
 ```powershell
 .\.venv\Scripts\python.exe -m scripts.ingest_jobs --from-file data\job_postings.json
 ```
-
-Depth is the only lever there is on *what* a harvest holds: neither board accepts a
-country, a city or a keyword (Himalayas answers its ordinary newest-first feed to
-`country=India` and `search=` alike). Himalayas serves 20 postings a page, so its
-ceiling is fifty — a thousand of its newest, about six hours of it — and that is
-what reaches the places it lists thinly, India included at roughly one listing in
-thirty. Arbeitnow, a German board paging 300 at a time, needs four. `--limit` has
-to clear both ceilings together (2,000 does), or the first board fills the run and
-the second contributes nothing.
 
 `job_role` is a plain, human-chosen name, so the embedding space it holds is
 recorded in `<index>/job_role.space`. Ingesting from a *different* space (say you
@@ -226,13 +272,35 @@ The words in `q` are a **filter** — a posting comes back only when it says eve
 as whole words anywhere in the posting (plurals and compounds count: "developer" finds `developers`,
 "node" finds `node.js`; "java" finds neither JavaScript nor a listing that never says it). When
 nothing says all of them the search loosens to requiring any of them and reports `relaxed: true`,
-which is what keeps a goal sentence in the box from emptying the page. It also takes `location`,
-`remote` (`true`/`false`) and `experience` (`internship`/`entry`/`senior`), which the backend applies to
+which is what keeps a goal sentence in the box from emptying the page. It also takes `location`, `remote` (`true`/`false`), `experience`
+(`internship`/`entry`/`senior`), `employment_type`
+(`full_time`/`part_time`/`internship`/`contract`/`permanent`) and
+`posted_within_days` (1–365), which the backend applies to
 the whole collection in the vector store — so the response reports `count` (this page), `matched` (what
 the words and the filters leave collection-wide) and `indexed` (the collection size). `q` is optional
-when a filter is given; asking for nothing at all is a `400`. Until §2.9 has been run the endpoint still
+when a filter is given; asking for nothing at all is a `400`. The Jobs page's own form asks for
+`location`, `remote`, `experience` and `employment_type` — it does not offer `posted_within_days` or
+`category`, because a harvest holds only the boards' newest postings and the classifier's verdict
+covers a small, on-demand share of the feed, so either control would separate nothing there. Both stay
+available to a direct call. Since a date filter names no words, a
+date-only browse is ranked on the phrase "recent jobs" and the response echoes it — the ranking text is
+always reported, so the page never implies a search box was filled in. Nothing dated at all is
+*outside* every window, because the posting simply has no date to compare. Until §2.9 has been run the
+endpoint still
 answers `200` with `available: false` and no rows, so a client can hide the section instead of
 surfacing an error — nothing else in the app depends on it.
+
+The response also carries a **`sources`** block: what each provider contributed to the harvest that
+built the index, and — for one that could not be read — why, in wording a reader can act on
+(`"Adzuna is not configured on this server: ADZUNA_APP_ID and ADZUNA_APP_KEY must be set…"`). A board
+that loaded and found nothing is reported too (`postings: 0`, no error). Only the harvest can record
+this: the postings themselves cannot tell "never configured" from "had nothing new". It is written
+into `data/job_postings.json` beside the postings, so a `--from-file` re-ingest reports it as well
+rather than only naming the boards its rows came from. An index built before the field existed
+answers `[]`, which a client reads as "nothing to report" rather than an all-clear. The reason is
+never allowed to carry the credential itself: a board that refuses a request quotes the whole URL
+back, key and all, so the app id and key are redacted both where the harvest records the message
+and where this endpoint serves it.
 
 The rest is ranking, not filtering: the postings that survived the words are ordered by the store, then
 re-sorted on how many of the query's words a posting's *title* carries, then how many it carries
@@ -248,14 +316,16 @@ answers, and a re-ingest fills it in to widen what a keyword can be matched agai
 ranked by how often they appear, each count asked of the same store filter a search applies — so the
 number beside an option is the `matched` that search reports. The same read returns `preferred`: the
 Indian hubs this app is built around, counted by that same filter but listed even when they count
-zero, because both boards publish into India thinly and the page should say so rather than leave the
-places out. They are spelled one city at a time, not as the questionnaire's labels ("Mumbai / Pune"),
+zero, because a hub Adzuna does not cover this week is still a real place to search and the page
+should say "no live postings" rather than silently leave it out. They are spelled one city at a time,
+not as the questionnaire's labels ("Mumbai / Pune"),
 because the filter requires *every* word it is handed. Nothing to do to enable it; it reads the same
 collection and answers `available: false` until §2.9 has run.
 
-The same migration creates the payload indexes those filters read. The embedded store ignores payload
-indexes and works regardless, but a deployment pointing `QDRANT_URL` at a Qdrant server needs the text
-indexes before Qdrant will accept a full-text filter — so re-run §2.9 once after upgrading.
+The same migration creates the payload indexes those filters read — the text indexes and, for the
+posting-date filter, an integer index on `published_ts`. The embedded store ignores payload
+indexes and works regardless, but a deployment pointing `QDRANT_URL` at a Qdrant server needs them
+before Qdrant will accept a filtered query — so re-run §2.9 once after upgrading.
 
 The React **Jobs** page (§3.4) is the front end for this endpoint, and every match card deep-links
 into it with its role prefilled.
@@ -282,7 +352,7 @@ run is a no-op until the feed is really getting old.
 
 ```powershell
 # Hourly, but only actually harvests once the feed is 3 days old or more
-.\.venv\Scripts\python.exe -m scripts.ingest_jobs --limit 1000 --if-stale 3
+.\.venv\Scripts\python.exe -m scripts.ingest_jobs --limit 2100 --if-stale 3
 ```
 
 Which schedule is possible depends on the store:
@@ -296,17 +366,59 @@ Which schedule is possible depends on the store:
 
 ```bash
 # cron: hourly, and the command itself decides whether there is work to do
-0 * * * * cd /srv/career-compass/backend && .venv/bin/python -m scripts.ingest_jobs --limit 1000 --if-stale 3 >> /var/log/careercompass-harvest.log 2>&1
+0 * * * * cd /srv/career-compass/backend && .venv/bin/python -m scripts.ingest_jobs --limit 2100 --if-stale 3 >> /var/log/careercompass-harvest.log 2>&1
 ```
 
 ```powershell
 # Windows Task Scheduler: one hourly trigger
-schtasks /create /tn "CareerCompass harvest" /sc HOURLY /mo 1 /f /tr "cmd /c cd /d C:\path\to\career-compass\backend && .venv\Scripts\python.exe -m scripts.ingest_jobs --limit 1000 --if-stale 3"
+schtasks /create /tn "CareerCompass harvest" /sc HOURLY /mo 1 /f /tr "cmd /c cd /d C:\path\to\career-compass\backend && .venv\Scripts\python.exe -m scripts.ingest_jobs --limit 2100 --if-stale 3"
 ```
 
 `--rebuild` overrides `--if-stale`, and a run with no recorded date yet (the first one) always does
 the work. To see what a schedule actually did, read the freshness rather than the log:
 <http://127.0.0.1:8000/health> → `job_postings`.
+
+**What each listing actually is.** A board's title is written to attract clicks, so the feed also
+records a reading of each advert — the canonical role family, the related titles, the required and
+preferred skills kept apart, minimum experience, seniority, work arrangement and a confidence.
+
+```powershell
+# Read up to 100 listings that have no verdict yet (newest first)
+.\.venv\Scripts\python.exe -m scripts.classify_jobs --limit 100
+
+# ...or re-read 20 verdicts (after editing the prompt, or pinning a model)
+.\.venv\Scripts\python.exe -m scripts.classify_jobs --force --limit 20
+```
+
+It reads the harvest artifact written by §2.9, so it runs *while the API is up* — the embedded
+Qdrant store is locked by whoever has it open, and this script never opens it. Each listing costs
+one Gemini call with `--delay` seconds between them (4 by default: the free tier meters requests per
+minute, and a batch has the luxury of being slow). Already-classified listings are skipped without a
+call, an advert that says too little is settled without one, and the run stops rather than grinding
+through a spent quota — re-run it to carry on. `--from-index` reads the live collection instead,
+which does need the API stopped.
+
+Verdicts are cached per listing in SQLite (`listing_classifications`), keyed on the advert's text,
+the model id and the prompt fingerprint, so `GET /jobs/search` can decorate each result with the
+reading — and filter by `category` — without any AI call at all. The Jobs page uses the decoration
+rather than that filter: the classifier's coverage is small and grows on demand, so a category search
+would answer from almost nothing. `POST /jobs/classify` does the same thing for one listing on demand:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/jobs/classify `
+  -ContentType 'application/json' -Body '{"id":"adzuna:123456"}' | ConvertTo-Json -Depth 5
+```
+
+It answers from the store when it already has a verdict, and spends an AI token only when it really
+reaches the model — which is why browsing classifications is free and works even without a key.
+`force: true` re-asks anyway. An advert that does not say enough comes back as `Unclassified` with
+`unclassified_kind` / `unclassified_reason` (`too_thin`, `declined`, `unsure`, `unreadable`,
+`unreachable`) rather than a guess, and the five categories of trouble are deliberately not treated
+alike: the first three are answers and are stored, the last two are facts about a moment and are
+asked again next time. `declined` covers both "the advert was too vague" and "no declared family
+covers this job" (the app's vocabulary is 63 tech-role families, so a sales advert is
+Unclassified on purpose rather than stretched into the nearest family); the model's
+`short_match_explanation` says which it was.
 
 ---
 

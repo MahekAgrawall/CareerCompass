@@ -19,14 +19,15 @@ and the original **Streamlit** app preserved in `legacy/` for reference.
 |---|---|
 | 🎯 **Interest-first, transparent role matching** | Ranks roles by how well they align with your *stated* interests (65% weight) and your existing skills (35% weight), and filters out roles with zero interest synergy. Every card shows the arithmetic: the two component scores, the interests and skills that counted, and the profile chips that would raise the match. |
 | 🧠 **Semantic recall** | A two-stage matcher: candidates are first *recalled* from a Qdrant vector index (so a role can surface on the meaning of your profile and free-text goal, not only on identical chips), then *scored and explained* by the same transparent formula as ever. Each result says whether it was found by keywords, by meaning, or both. The index is optional and built by an explicit migration — without it, matching is keyword-only. |
-| 📚 **Role catalog** | 100 curated corporate and modern engineering roles across 8 categories — including AI/ML, data, cloud, security, hardware and product tracks — each with responsibilities, qualifications, growth paths, and hiring companies. |
-| 💼 **Live jobs, filtered** | A dedicated **Jobs** page searches the postings collected from the public boards and filters them by role/keywords, location, work arrangement and experience — every condition has to be satisfied, so a search for "java" cannot answer with a listing that never mentions it, and the counts cover the whole collection because the filters run in the vector store and the words are matched against the eligible payloads — and a **✨ Use my profile** action runs the search straight off your questionnaire answers. Location suggestions are the boards' real places, each with the count a search for it returns, and results put postings whose *titles* carry your words first (marked on the card), with the index's meaning ranking the rest. Every match card carries an **Explore Jobs** action that deep-links to the page with that role already filled in and searched, and each role card and role page also lists its own **live openings** inline, ranked with your profile folded in (`POST /jobs/for-role`). Cards show the posting's title, company, location, work arrangement, salary when the board states one, posting date, source and the original application link — and every search says when the postings were **harvested**, with an amber warning once that date is more than two weeks old. |
+| 📚 **Role catalog** | 100 curated corporate and modern engineering roles across 8 categories — including AI/ML, data, cloud, security, hardware and product tracks — each with responsibilities, qualifications, growth paths, and hiring companies. The Category filter is that closed taxonomy plus one escape hatch: a role the eight cannot place is filed under **Other / Unclassified** rather than becoming a ninth category nobody declared. |
+| 💼 **Live jobs, filtered** | A dedicated **Jobs** page searches the postings collected from the public boards and filters them by role/keywords, location, work arrangement and experience — every condition has to be satisfied, so a search for "java" cannot answer with a listing that never mentions it, and the counts cover the whole collection because the filters run in the vector store and the words are matched against the eligible payloads — and a **✨ Use my profile** action runs the search straight off your questionnaire answers. Location suggestions are the boards' real places, each with the count a search for it returns, and results put postings whose *titles* carry your words first (marked on the card), with the index's meaning ranking the rest. Every match card carries an **Explore Jobs** action that deep-links to the page with that role already filled in and searched, and each role card and role page also lists its own **live openings** inline, ranked with your profile folded in (`POST /jobs/for-role`). Cards show the posting's title, company, location, work arrangement, salary when the board states one, posting date, source and the original application link — and every search says when the postings were **harvested**, with an amber warning once that date is more than two weeks old. Each card also carries the classifier's reading of its advert — the role family and its category, the demanded versus welcomed skills, or **Unclassified** with the reason — and a listing nobody has read yet offers a one-click **🤖 Classify this role** instead, so the reading is made where a reader asks for it rather than assumed across a feed the classifier has only sampled. |
+| 🧭 **AI role classification** | Reads each listing's own advert — description and requirements, not the title it was posted under — and files it in a declared vocabulary of 63 role families across the 8 categories, returning the canonical role, related titles, **required** and **preferred** skills kept apart, minimum experience, seniority, work arrangement and a confidence. Two roles that merely overlap in skills are kept distinct (SRE vs DevOps vs Platform Engineer; Generative AI vs AI Agent Engineer), Java Backend Developer / Backend Engineer / Software Engineer I all land on Backend Development, and a listing whose advert says too little is reported as **Unclassified** with the reason rather than guessed at. Verdicts are stored per listing (keyed on the advert text, the model and the prompt wording) so the same advert is never classified twice, its category becomes a filter over the classified part of the feed through the API (`/jobs/search?category=`) — and `/jobs/classify` spends an AI token only when it actually reaches the model. |
 | 🔖 **Saved jobs & application tracking** | Every posting carries a **Save job** button, and the saved ones live on an **Applications** page grouped by the stages a search actually follows — Saved → Applied → Interview → Offer, plus Closed for the ones that went nowhere — each with a free-text note, the date it was last moved, and a link back to the original listing. A row is a *snapshot* taken when it was saved, so it survives the board taking the listing down and the index being rebuilt; it is private to the account, and saving the same posting twice can never reset a stage you already advanced. |
 | 💰 **India salary benchmarks** | Fresher (0–1 yr), mid (1–3 yrs) and senior (3+ yrs) CTC bands for every role, each stated as an *envelope* — low end a typical mid-market/services offer, high end a strong product-company or GCC offer — with the market and product-company medians and every source (and its sample size) linked on the role page. |
 | 🤖 **AI skill roadmap** | Google Gemini generates a structured 3-phase plan (Immediate → Level Up → Explore) with one curated free resource per skill. Every role card has a one-click **Generate AI Roadmap** button that lands on the rendered plan. |
 | 🛠️ **Portfolio projects** | Each roadmap includes 3 hands-on project ideas with difficulty ratings and validated skills. |
 | 📅 **Study tracker** | Configure weekday vs weekend study hours and a role-specific tech stack. Every one of the 100 roles ships a tailored three-dimension stack (mobile, games, embedded, design, offensive security and more), and each choice maps onto syllabus topics with subtopics. Progress, remaining hours, and projected weeks are computed live. |
-| ⚖️ **Side-by-side comparison** | Compare up to 3 roles on demand, competition, AI-future relevance, salary, and must-have skills. |
+| ⚖️ **Side-by-side comparison** | Compare up to 3 roles on role responsibility, demand, competition, AI-future relevance, salary, must-have skills and top hiring firms. |
 | 💬 **Roadmap Copilot** | A multi-turn Gemini chat pre-loaded with your profile, target role, and roadmap — replies stream in live. It sits **on the roadmap page itself**, beside the plan it is answering questions about, and the thread is remembered for the tab so stepping away and back does not lose it. |
 | ⬇️ **Export & share** | Download any roadmap as a portable Markdown file. |
 | 🔗 **Deep links** | Every view is its own URL (`/roles/backend_dev`, `/tracker/backend_dev`), so refreshing or sharing a link returns you to the same page. |
@@ -175,36 +176,68 @@ with the configured value marked and the best-F1 point named. Three findings it 
 ### 📥 Live job postings (`job_role`)
 
 Alongside the curated catalog there is a second, independent collection holding **real, currently
-open postings**, collected from free public job-board APIs (Himalayas and Arbeitnow) by
-`services/job_feed.py`. Each posting is normalised into one shape — title, company, location,
-remote flag, employment type, seniority, categories, salary, publication date, its own URL — with
-the HTML stripped so the text can be embedded, and de-duplicated by title and company so the same
-opening advertised on two boards counts once. Both boards' terms are respected: a descriptive
-`User-Agent`, a pause between pages, a hard page ceiling per source, and every record keeps its
-board name and original link.
+open postings**, collected from public job-board APIs by `services/job_feed.py`. Each posting is
+normalised into one shape — title, company, location, remote flag, employment type, seniority,
+categories, salary, publication date, its own URL, the board it came from and the *board's own id*
+for it (`source_job_id`, beside the namespaced `id` we key on) — with the HTML stripped so the text
+can be embedded. Every board's terms are respected: a descriptive `User-Agent`, a pause between
+pages, a documented page ceiling per source, and every record keeps its board name and original link.
 
-Neither board takes a country, a city or a keyword — Himalayas answers its ordinary newest-first
-feed to `country=India`, `location=India`, `search=` and `q=` alike — so the only lever on *what* a
-harvest contains is how deep into that feed it reads. Himalayas serves 20 postings a page, so its
-ceiling is set high: fifty pages is a thousand of its newest listings, about six hours of a board
-that publishes a few thousand a day. That depth is what buys the places it lists thinly — roughly
-one listing in thirty names India, where five pages used to find almost none — and Arbeitnow, a
-German board that pages 300 at a time, needs only four to cover its market. The harvest cap has to
-clear both ceilings together, or the first source fills the run and the second is left with nothing.
+**Adzuna leads**, because it is the only one of the three that publishes into India: `in` is one of
+the markets its API documents, and it aggregates Indian boards and employers rather than being a
+single one — so an India-first feed no longer depends on how deep a remote-first global board happens
+to be read. It is keyed (`ADZUNA_APP_ID` / `ADZUNA_APP_KEY`, free from
+`developer.adzuna.com/signup`) and its free tier is small — 25 hits a minute, 250 a day — so the
+harvest is a *bounded plan* (`ADZUNA_QUERIES`) rather than "read everything Adzuna has": twelve pages
+India-wide, two pages for each of six hubs, and one for `what=remote`, which is 1,250 adverts for 25
+of the day's hits. The market is read whole *and* city by city because the newest postings nationally
+are not the newest in Bangalore, and a hub query is the only way to see what a hub itself holds. The
+daily allowance would afford a deeper read; the per-minute one is what stops it, because pages go out
+back to back and a longer plan rate-limits itself part-way through and loses what it has not read yet.
+Two of its terms are honoured in the UI: every displayed advert carries an **"Adzuna"** link back to
+`adzuna.in` (see `JobCard`), and a candidate reaches an advertiser through Adzuna's own
+`redirect_url` rather than around it. Nothing here scrapes `adzuna.in` itself — that site blocks
+automated access, and the API is the permitted route to this data.
 
-A harvest of 2,000 fetched postings de-duplicates by title and company — roughly 5% of what the
-boards return is the same opening advertised twice — and the surviving records are embedded into
-`job_role` with the same embedder as the catalog. Each payload keeps the text it embedded
+Two of its fields need care, and both are recorded as *derived* rather than falling back to a guess.
+Adzuna publishes no remote flag and no experience level at all, so a remote marking on one of its
+cards is read out of the advert's own words (`REMOTE_WORDS`) and the card says "(from the ad)"; the
+experience filter falls back to the title, as it already did. And `salary_is_predicted` marks a
+Jobsworth *estimate* rather than a figure the advertiser stated, so an estimated salary is dropped
+instead of rendered as though it were disclosed — this app already publishes its own modelled bands,
+and a candidate is owed the difference between a number someone offered and a number a model guessed.
+
+The two boards that came first are kept as the **supplementary** sources they have become: Himalayas
+is remote-first and global, Arbeitnow is German, and neither takes a country, a city or even a
+keyword — Himalayas answers its ordinary newest-first feed to `country=India`, `location=India`,
+`search=` and `q=` alike. Their page ceilings are now sized to that role (ten and one), because
+the depth Himalayas used to be read at was bought to reach India, which Adzuna supplies properly.
+They are also what an "abroad" answer falls back on. The harvest cap has to clear all three ceilings
+together (2,100 for 1,750 raw rows), or the first source fills the run and the next is left with
+nothing.
+
+A harvest de-duplicates by title, company **and place** — the same opening, in the same place, is the
+same opening. Title and company alone are not enough: a company advertising one title twice, in Pune
+and again in Hyderabad, is advertising two vacancies, and only one row per key is ever indexed, so
+collapsing them would delete a vacancy the boards had published. The cost is the mirror image and is
+the direction to err in — the same opening written up by two boards in two places stays as two rows,
+which is visible and names its board on the card, while a merged-away vacancy is simply gone. The
+surviving records are embedded into `job_role` with the same embedder as the catalog. Each payload
+keeps the text it embedded
 (`search_text`) beside the 320-character `excerpt` a card displays, because the API answers its
-keyword condition from the payload and a card's first paragraph is not what was ranked on. The two
+keyword condition from the payload and a card's first paragraph is not what was ranked on. It also
+keeps `published_ts` — the publication date as an epoch — which is the form the "posted within"
+filter has to compare, and which is simply *absent* for a posting no board dated, so an undated
+advert cannot pass a date filter on a technicality. The two
 collections share one store but not one
 fate: rebuilding either one leaves the other untouched. Because `job_role` is a plain, human-chosen
 name, which embedding space it holds is recorded in a sidecar file (`<index>/job_role.space`) and
 a later ingest in a different space is refused rather than silently mixing incomparable vectors —
 `--rebuild` is the explicit opt-in to switch. The same run also creates the payload indexes the Jobs
 page's filters read (`services.job_service.FILTER_INDEXES`); the embedded store ignores payload
-indexes, but a deployment with `QDRANT_URL` set needs those text indexes before Qdrant will run a
-full-text filter at all, so re-run the migration once after pulling a change to the filter fields.
+indexes, but a deployment with `QDRANT_URL` set needs those text indexes (and the integer index the
+date filter reads) before Qdrant will run a filter at all, so re-run the migration once after pulling
+a change to the filter fields.
 
 `GET /jobs/search?q=…` serves them, and the search box's words are a **filter**: a posting comes
 back only when it *says* every one of them, matched as whole words anywhere in the posting, with the
@@ -234,14 +267,40 @@ ranked on the filter words too, so searching "java" in Amsterdam answered with p
 said "Amsterdam". A query no posting carries leaves every row in one tier, and the stable sort returns
 the index's own order untouched.
 
-The structured filters the page offers — `location`, `remote` and `experience` — are applied **in the
+The structured filters the page offers — `location`, `remote`, `experience` and
+`employment_type` — are applied **in the
 vector store**, as a Qdrant payload filter, rather than to the results afterwards, so they narrow the
 whole collection as well. Location and experience are matched as whole words, so "Berlin" finds
-`Berlin, Germany` while `Internal Tools Engineer` is not an internship. There is deliberately no
+`Berlin, Germany` while `Internal Tools Engineer` is not an internship. This is where a provider
+that publishes less becomes visible rather than invisible: no board here publishes an experience
+level or an employment *vocabulary*, so both filters are translations of what the boards wrote —
+Adzuna splits how a job hires into `contract_time` and `contract_type`, so "full time, permanent"
+answers two of the buckets and five buckets cover every board's wording. The endpoint also accepts a
+date window (`posted_within_days`) and a `category`, and the page offers neither: a harvest holds
+only the boards' newest postings, so its date windows answer identically, and `category` reads the
+classifier's verdict, which exists for a small, on-demand share of the feed — on the page either
+one would look like a filter that simply finds nothing. There is deliberately no
 fallback here, because unlike the curated catalog the index is the *only* copy of this data: when the
 index has not been built the endpoint still answers `200`, with `available: false` and no rows, so a
 client hides the section instead of surfacing an error. The endpoint is public, like `/roles` — these
 are public listings carrying no user data.
+
+A feed can also be short for a reason worth stating, so the response carries a **`sources`** block:
+what each provider contributed to the harvest that built the index, and — for one that could not be
+read — the reason in wording a reader can act on ("Adzuna is not configured on this server:
+ADZUNA_APP_ID and ADZUNA_APP_KEY must be set…"). That distinction is why the harvest records it at
+all: the postings themselves cannot tell "never configured" from "had nothing new", and only the
+harvest hears from a board that failed. The record is written into the artifact as well as beside
+the collection, so an index built with `--from-file` reports the same thing a live harvest would
+rather than only the boards its rows happen to name. A board that loaded and found nothing is
+reported too, with `postings: 0` and no error — which is what a category tag a market does not
+carry looks like. An index built before any of this was recorded answers an empty list, which a
+client reads as "nothing to report" rather than as a silent all-clear.
+
+A credential never appears in that reason. A board that refuses the request quotes back the whole
+URL it was given, and the key is in that URL's query — so the phrase is redacted of the app id and
+key both where the harvest records it and where this endpoint serves it, including out of an index
+written before either was true.
 
 `GET /jobs/locations` is the place vocabulary those filters accept: the boards' own wording, cut
 into comma-separated segments and ranked by how often each appears ("Berlin", "Germany", "United
@@ -254,12 +313,16 @@ widens to the boards' own remote flag and so would advertise the whole remote fe
 
 The same read carries a second list, `preferred`: the **Indian hubs this app is built around**
 (`job_service.PREFERRED_JOB_LOCATIONS`), counted by that same filter but listed even when they
-count nothing. Both boards publish into India thinly, and a page that answered that with silence
-would be the least honest part of the feature — so "India" shows its real count, the cities show
-zero, and the page says which is which instead of leaving them out. The hubs are spelled out one
-city at a time rather than as the questionnaire's labels ("Mumbai / Pune"), because the store's
-location filter requires *every* word it is handed: a hub name would ask the feed for a posting
-naming both cities and return nothing.
+count nothing. The counts are live — Adzuna covers the Indian market, so the hubs it names are real
+options and the ones nobody lists say *no live postings* rather than being dropped — and a page that
+answered an empty hub with silence would be the least honest part of the feature. The hubs are
+spelled out one city at a time rather than as the questionnaire's labels ("Mumbai / Pune"), because
+the store's location filter requires *every* word it is handed: a hub name would ask the feed for a
+posting naming both cities and return nothing. Adzuna's own place field is what makes this work at
+all: its `area` list arrives country-first ("India", "Karnataka", "Bangalore") and is turned round
+into `"Bangalore, Karnataka, India"`, because the country has to be a segment the page can name —
+otherwise an advert naming only its city would not answer a search for India, and the one board that
+covers the home market would count for nothing in it.
 
 Live postings age, so the feed also carries its own **provenance**. The harvest is stamped when it is
 pulled: `services/job_feed.save` writes `{"harvested_at", "postings"}` rather than a bare list (an
@@ -285,6 +348,54 @@ POST rather than GET because the profile travels with the request, it is what fi
 openings** list on each role card and on the role page, and it keeps `/jobs/search`'s honesty contract:
 no index means `available: false` and no rows.
 
+`POST /jobs/classify` is the one job endpoint that spends anything, and the only one that
+*writes*. It reads a single listing's own advert — the description and requirements as far as
+the payload holds them, not the title it was posted under — and answers with what the job
+actually is: the canonical role family, the titles a candidate might search instead, the
+**required** and the **preferred** skills kept apart, the minimum experience the advert
+states, the seniority level, the work arrangement, a confidence, and a one-line explanation of
+what in the advert said so. The reading is done by Gemini against a **declared vocabulary**
+(`config.CANONICAL_ROLES`: 63 families across the 8 catalog categories) that is rendered into
+the prompt from the same declaration the answer is validated against, so the list the model
+chooses from and the list the code accepts cannot drift apart. `primary_category` is *derived*
+from the chosen role through that vocabulary rather than taken from the model's own pairing —
+the role is the finer claim, so the two stored fields can never contradict each other.
+
+Three decisions keep it honest. Two roles are never merged because their skills overlap: SRE,
+DevOps and Platform Engineer are three families, as are Generative AI Engineering and AI Agent
+Engineering, while Java Backend Developer, Backend Engineer and Software Engineer I all land on
+Backend Development — which is the point of classifying the advert rather than the title.
+Mandatory and preferred requirements are separate fields, because "must have Java" and "nice to
+have Docker" are not the same sentence to someone deciding whether to apply. And an advert that
+does not say enough is reported as **Unclassified** with the reason (`unclassified_kind` /
+`unclassified_reason`: too thin, no declared family fits, confidence under 0.55, an unreadable
+answer, or no answer at all) instead of being filled in from what the title implies — a title-only
+posting is never sent to the model at all, because an advert with nothing in it is not a
+classification problem, it is an advert with nothing in it. The model's own sentence is kept for
+the case where it declined to place a clear advert (a sales role, say), so "we could not place
+this" never has to stand in for two different things.
+
+The verdict is stored once per listing (`listing_classifications`, keyed on the listing id) and
+read through three keys — the advert's content hash, the model id, and the prompt fingerprint —
+so re-harvested text, a pinned model or edited prompt wording misses the store and is read
+again, while an unchanged advert is served without touching the AI. That is what makes a page
+view free, and it is why the endpoint charges its AI token *after* the store has answered:
+reading a verdict somebody else already paid for, or an advert that says too little to classify,
+spends nothing (`app/dependencies.spend_ai_quota`). A failure that is a fact about the moment —
+a 429, a dropped connection, an unreadable answer — is reported as Unclassified and deliberately
+**not** written down, so the next reader asks again rather than inheriting a verdict nothing
+supports. `POST /jobs/search` decorates every row it returns with the stored verdict when there
+is one and takes `category` as a filter over the classified part of the collection: a listing
+nobody has read belongs to no category, and `Other / Unclassified` is a category the classifier
+*chose*, not a bin for the leftovers.
+
+`python -m scripts.classify_jobs` is the other half: it reads the harvest artifact the ingest
+wrote and pre-fills the store in the background (`--limit`, `--source`, `--force`, `--delay`),
+skipping listings that already have a verdict and stopping if the model stops answering. It is
+how a freshly ingested feed becomes a feed whose listings can already say what they are — and it
+reads the artifact rather than the index because the embedded Qdrant store is locked by
+whichever process has it open, which is usually the API.
+
 The React **Jobs** page is that endpoint's front end. It opens from the navbar, and every match card
 carries an **Explore Jobs** action that deep-links to it with the role prefilled (`/jobs?role=…`), so
 going from a match to that role's live openings is one click; the URL stays the committed search, so
@@ -293,9 +404,9 @@ query from the same answers the semantic role match runs on — the goal first, 
 interests and three skills, capped at 120 characters — and searches immediately, so the boards are
 queried with the questionnaire rather than a typed guess. It is deliberately short: that string is
 the *ranking text*, and with the title-match re-rank above, a focused query gives a sharper page
-than the whole skill list does. The form's four fields map one-to-one onto the endpoint: the role box
-carries the words (which filter, and which rank), and location, experience and work arrangement are
-the filters the backend applies to the whole collection.
+than the whole skill list does. The form's five fields map one-to-one onto the endpoint: the role box
+carries the words (which filter, and which rank), and location, experience, work arrangement and
+employment type are the filters the backend applies to the whole collection.
 The page therefore shows collection-wide numbers — "showing 12 of 87 postings matching your search ·
 951 indexed" — and the search box is optional: a filter on its own is a valid search, in which case no
 words are required and the filter terms stand in as the ranking text, with the response echoing
@@ -305,12 +416,15 @@ search runs, `available: false` as a "run the migration" note rather than an err
 that distinguishes "these conditions match nothing in the collection" from "everything matched but
 nothing ranked".
 
-The experience filter deserves one note, because it is a judgement call rather than a board field. Only
-one of the two boards publishes a seniority at all, so filtering on the raw label would hide almost
-everything; instead each of the three buckets matches the title, the seniority label *and* the contract
-wording (`internship`, `entry`, `senior` — the rules are in `services/job_service.py`). "On-site / not
-stated" is worded that way on purpose too: a false remote flag means the listing did not say, not that
-the job is office-based.
+Two of the filters deserve a note each, because they are judgement calls rather than board fields.
+**Experience**: only one of the three boards publishes a seniority at all, so filtering on the raw
+label would hide almost everything; instead each of the three buckets matches the title, the seniority
+label *and* the contract wording (`internship`, `entry`, `senior` — the rules are in
+`services/job_service.py`). **Employment type**: no board publishes the vocabulary either, so the five
+buckets are a translation of how each one words it, and "full time, permanent" answers both of its
+buckets. "On-site / not stated" is worded that way on purpose too: a false remote flag means the
+listing did not say, not that the job is office-based — and on an Adzuna card, which has no flag at
+all, a remote marking says "(from the ad)" because that is what it is.
 
 Finding a posting is only half of a job search, so the feed also keeps what a candidate decides to do
 about it. **Save job** files the posting (`POST /applications`, private) and the **Applications** page
@@ -347,7 +461,7 @@ it: whether a given application exists is itself private.
 | Routing / data | React Router 6 · TanStack Query 5 |
 | Persistence | SQLite (embedded, zero-config) |
 | Retrieval | Qdrant (`qdrant-client`, embedded local mode or a server) + Gemini / offline embeddings |
-| External data | Himalayas · Arbeitnow public job-board APIs (no key required) |
+| External data | Adzuna (India-first, free key) · Himalayas · Arbeitnow public job-board APIs |
 | Config | `python-dotenv` (backend) · Vite env vars (frontend) |
 | CI | GitHub Actions |
 
@@ -417,7 +531,7 @@ python -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
-cp .env.example .env        # set JWT_SECRET (required) and GEMINI_API_KEY (optional)
+cp .env.example .env        # set JWT_SECRET (required); GEMINI + ADZUNA keys optional
 python -m uvicorn app.main:app --reload
 ```
 
@@ -449,21 +563,40 @@ keyword-only — nothing else changes.
 A second, independent collection holds **live job postings** rather than curated roles:
 
 ```bash
-python -m scripts.ingest_jobs --limit 2000 --query "kubernetes platform engineer"
+python -m scripts.ingest_jobs --limit 2100 --query "kubernetes platform engineer"
 ```
 
-It collects postings from free, public job-board APIs (Himalayas, Arbeitnow), normalises and
+It collects postings from public job-board APIs (Adzuna, which needs a free app id and key, plus
+Himalayas and Arbeitnow, which need none), normalises and
 de-duplicates them, writes them to `backend/data/job_postings.json`, and embeds them into the
 `job_role` collection — so the catalog index and the live feed share one store but not one fate.
 Because `job_role` is a plain human-chosen name, the embedding space it holds is recorded in
 `<index>/job_role.space` and a second ingest in a different space is refused rather than mixed;
-pass `--rebuild` to switch. `--from-file` re-ingests the saved JSON with no network at all.
+pass `--rebuild` to switch. `--from-file` re-ingests the saved JSON with no network at all, and
+the file carries the harvest's own board record beside its postings — so a server with no Adzuna
+key still says so on the Jobs page after a file re-ingest, not just after a live one.
+
+Then pre-fill what the listings *are*, so the Jobs page has classifications to show and filter
+on from the first page view:
+
+```bash
+python -m scripts.classify_jobs --limit 100          # newest 100 without a verdict
+python -m scripts.classify_jobs --force --limit 20   # re-read 20 existing verdicts
+```
+
+It reads the harvest artifact by default (so it can run while the API is up), spends one Gemini
+call per listing with a `--delay` between them, skips anything already classified, and is safe to
+re-run: run it again to carry on where it stopped. `--from-index` reads the live collection
+instead, which needs the API stopped first. Nothing here is required — `/jobs/classify` will
+classify a listing on demand too — but a feed that has been pre-filled answers instantly and
+costs no quota to browse.
 
 `JWT_SECRET` is required — generate one with
 `python -c "import secrets; print(secrets.token_urlsafe(48))"`. The API refuses to start without it.
 
 Get a free Gemini key at [aistudio.google.com](https://aistudio.google.com) → **Get API Key**.
-AI features (roadmap, copilot) return `503` until `GEMINI_API_KEY` is set; everything else works without it.
+AI features (roadmap, copilot, job classification) return `503` until `GEMINI_API_KEY` is set;
+everything else works without it — including *reading* classifications that already exist.
 
 ### 3. Frontend (React)
 
@@ -495,9 +628,10 @@ streamlit run app.py        # http://localhost:8501
 | `POST` | `/auth/login` | — | Authenticate, returns a JWT |
 | `GET` | `/auth/me` | ✅ | Current user + profile |
 | `GET` | `/roles` | — | Full role catalog, each role carrying its salary bands, review date and sources |
-| `GET` | `/roles/categories` | — | Distinct categories |
+| `GET` | `/roles/categories` | — | The Category filter's vocabulary: the catalog's eight categories, then `Other / Unclassified` for a role the taxonomy cannot place |
 | `GET` | `/roles/{role_id}` | — | Single role, including its salary provenance |
-| `GET` | `/jobs/search?q=…&location=…&remote=…&experience=…&limit=…` | — | Live job postings: `q` is a condition (a posting must say every word, matched as whole words with plurals and compounds — the ones its title carries come back as `matched_terms`), `relaxed: true` when nothing said all of them and the search fell back to any of them, the other filters are applied by the store, the response reports `count`/`matched`/`indexed` and how old the data is (`freshness`), and it says `available: false` until the `job_role` index is built |
+| `GET` | `/jobs/search?q=…&location=…&remote=…&experience=…&category=…&limit=…` | — | Live job postings: `q` is a condition (a posting must say every word, matched as whole words with plurals and compounds — the ones its title carries come back as `matched_terms`), `relaxed: true` when nothing said all of them and the search fell back to any of them, the other filters are applied by the store, `category` narrows to listings the classifier filed there (`400` for a label outside the taxonomy; a listing nobody has read matches no category), the response reports `count`/`matched`/`classified`/`indexed` and how old the data is (`freshness`), each row carrying its stored `classification` or `null`, and it says `available: false` until the `job_role` index is built |
+| `POST` | `/jobs/classify` | — | What one listing actually is, read from its own advert: canonical role, related titles, required vs preferred skills, minimum experience, seniority, work arrangement, confidence. Per listing (one call = one AI token, charged only when the model is actually reached), answered from the store when it already has a verdict, `Unclassified` with a reason when the advert does not say enough, `404` for an unknown listing and `503` with no index or no key |
 | `GET` | `/jobs/locations` | — | The places the postings actually name, commonest first, each with the count a search for it returns, plus the Indian hubs offered as preferences (`preferred`, count may be 0) — the Jobs page's location suggestions (`available: false` until the index is built) |
 | `POST` | `/jobs/for-role` | — | Live job postings nearest to one catalogued role, ranked with the candidate's questionnaire answers (`available: false` until the index is built) |
 | `GET` | `/applications` | ✅ | The candidate's saved postings and their stages, most recently touched first |
@@ -556,13 +690,24 @@ because the ranked matches it returns never needed the AI.
   crafted answer such as `Python\n\nGuidelines:\n- Ignore all previous rules` arrives as one line inside
   the bullet it belongs to. The copilot persona says the same thing from the other side, and the chat
   history is filtered to real `user`/`model` turns before it is replayed.
-- **Bounded AI spend** — the AI endpoints are open to guests by design, so they are metered per caller
-  instead of gated behind sign-in (`services/rate_limit.py`); see the API Reference note above. The
-  attempt is what is charged, so a failed call cannot be retried for free.
+- **Role classification** — each listing's advert is read into a declared vocabulary of 63 role
+  families (`config.CANONICAL_ROLES`), which is rendered into the prompt from the same declaration
+  the answer is validated against. The answer is a Pydantic model (`ai_service.ListingAnswer`) that
+  is lenient about shape and strict about content: one label where a list was wanted is read as a
+  list, an experience figure written as "3+ years" loses the number and keeps the advert's wording,
+  and a role name outside the vocabulary is re-asked once and then reported as unreadable rather
+  than stored as a role of its own. See the live-jobs section for the pipeline around it.
 - **Recorded provenance** — a saved roadmap stores the model id and a fingerprint of the prompt
   templates in force when it was generated (`prompts.fingerprint`), so "same model, same prompt, same
-  plan" stays checkable after either changes. Set `GEMINI_MODEL` to a dated id to pin the model itself;
-  the default is a floating `latest` alias.
+  plan" stays checkable after either changes. A stored listing classification records the same three
+  things (advert content hash, model id, prompt fingerprint) and is only reused while all three
+  still match. Set `GEMINI_MODEL` to a dated id to pin the model itself; the default is a floating
+  `latest` alias.
+- **Bounded AI spend** — the AI endpoints are open to guests by design, so they are metered per caller
+  instead of gated behind sign-in (`services/rate_limit.py`); see the API Reference note above. The
+  attempt is what is charged, so a failed call cannot be retried for free. Classification is the one
+  metered endpoint that checks first: a stored verdict, or an advert too thin to send anywhere, costs
+  no token at all (`app/dependencies.spend_ai_quota` is called only once the store has passed).
 - **Graceful degradation** — a missing key surfaces a friendly `503`; the frontend shows setup
   guidance, and the match grid still renders because the AI assessment loads independently.
 
@@ -611,7 +756,18 @@ index intact. Its network layer is replaced, so no test reaches a job board.
 `tests/test_job_api.py` guards the read path over those postings: results never bleed in from the
 catalog index sitting beside them in the same store, the nearest posting wins for a platform query,
 the inputs are validated, and with no index built the endpoint answers `available: false` instead of
-erroring. `tests/test_rate_limit.py` guards the AI budget: the sliding window
+erroring. It also covers `/jobs/classify` and the classification-aware reads: the verdict is the
+stored one whether or not the model was reached, a listing the classifier cannot place is answered
+as `Unclassified` rather than failed, a missing key or index says so as a `503`, and the AI budget
+is charged only when a model call is actually about to happen — reading a stored verdict, or an
+advert too thin to classify, is free. `tests/test_classification.py` guards the pipeline itself, with
+the model faked: the vocabulary the prompt offers is generated from the declaration the validator
+checks against, the prompt documents every field the answer model requires, an advert containing a
+command reaches the model as one flattened line, a hedged or unreadable answer is never dressed up as
+a verdict, and the store is proven to miss on a changed advert, a changed model and changed prompt
+wording (and to keep a thin verdict across a model change, because no model was involved in it). It
+ends with the pre-fill script: an artifact of raw postings produces exactly the verdicts the API
+would, under the ids the API looks up. `tests/test_rate_limit.py` guards the AI budget: the sliding window
 allows exactly its quota, frees slots as they age, meters callers separately, and does not let a
 rejected call push its own retry further away — then, at the endpoint level, that an over-budget
 caller gets a `429` with a `Retry-After` from the copilot and the roadmap while `/match` still returns
@@ -661,11 +817,13 @@ GitHub Actions runs both on every push and pull request (see `.github/workflows/
   needs a quota-free Gemini key: a full run costs ~135 embed items, against a free-tier budget of
   1,000 per day for `gemini-embedding-001` (about seven runs), which is also why the harness is
   deliberately outside CI — its numbers depend on the provider, the catalogue and the network.
-- **The live feed reflects its sources** — the public boards it harvests skew towards remote and
-  European/North-American postings, so `/jobs/search` is a window onto *those* boards rather than a
-  complete picture of the market, and the two collections must be re-ingested separately when the
-  embedding space changes. The postings are shown as the boards published them: no salary
-  normalisation and no cross-board de-duplication beyond title and company.
+- **The live feed reflects its sources** — Adzuna is read as the Indian market and is the largest
+  share of the harvest, but it is still one aggregator's view of that market, and the two
+  supplementary boards skew towards remote and European/North-American postings, so `/jobs/search` is
+  a window onto *those* sources rather than a complete picture of hiring anywhere. The two collections
+  must be re-ingested separately when the embedding space changes. The postings are shown as the
+  boards published them: Adzuna's are truncated to 500 characters by its API, salaries are not
+  normalised across currencies, and de-duplication goes exactly as far as title, company and place.
 - **The live feed is refreshed by hand** — nothing in the app re-harvests on its own. It does now
   *report* the harvest date (`freshness` on `/jobs/search`, `job_postings` on `/health`) and warns
   past two weeks, and the migration takes `--if-stale N` so a scheduled run can be a cheap no-op —
@@ -685,6 +843,22 @@ GitHub Actions runs both on every push and pull request (see `.github/workflows/
 - **Per-role openings are ranked, not curated** — `POST /jobs/for-role` orders postings by cosine
   similarity to the role document plus the questionnaire; a posting ranking first is a similarity
   result, not a claim that the candidate is qualified for it.
+- **Classification covers what has actually been read, and a card says which** — the classifier reads
+  one advert per request, on demand, so its verdicts cover a small share of the feed; `/jobs/search`
+  reports `classified` alongside `matched` (a search can be "61 matching of 1,690 classified") instead
+  of implying the whole feed was read, and that is also why the Jobs page shows the reading *on a
+  card* rather than offering a category filter over it. Coverage grows as listings are classified
+  (`scripts.classify_jobs` for the bulk,
+  `POST /jobs/classify` for one at a time), and the store is shared, so it never has to be paid for
+  twice. The model only reads what the payload kept — the description excerpt and the text that was
+  embedded, and Adzuna truncates descriptions at 500 characters — so a terse advert legitimately
+  comes back **Unclassified** rather than being padded out from its title. So does an advert that
+  is perfectly clear but describes a job outside the declared families — a sales, marketing or
+  support role — because the vocabulary is the app's scope rather than a guess at where those jobs
+  "fit"; the model's own sentence says which of the two happened. A verdict under the 0.55
+  confidence floor is deliberately pessimistic: it is stored as Unclassified and stays that way
+  until something real changes (a different model, edited wording, or `--force`), because re-rolling
+  for a friendlier answer is how a classifier starts inventing detail.
 - **Application tracking needs an account, and is a tracker rather than a CRM** — saved jobs and their
   stages are per-user rows behind a bearer token, so the guest path (questionnaire, match, roadmap)
   cannot write them; the Jobs page says "Sign in to save" rather than offering a button that would
@@ -696,7 +870,9 @@ GitHub Actions runs both on every push and pull request (see `.github/workflows/
   allow the full limit, and every caller behind one address (a campus NAT, say) shares the guest
   allowance. It is enough to stop a single client draining the quota; a shared store would be the next
   step if the API ever ran behind more than one process. The limit is charged on the attempt, so a
-  request that fails for an unrelated reason (a bad `role_id`) still costs the caller one.
+  request that fails for an unrelated reason (a bad `role_id`) still costs the caller one —
+  classification is the exception: it consults its store first, so a request it can answer for free
+  is never charged at all.
 - **Prompt scrubbing is defence in depth, not a guarantee** — flattening and label-capping remove the
   structure an injected instruction needs to read as a new section, but they cannot stop a model from
   being persuaded by a cleverly worded sentence inside a skill label. Sign-in is deliberately *not*
