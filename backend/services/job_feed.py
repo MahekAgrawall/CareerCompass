@@ -54,7 +54,9 @@ PAUSE_SECONDS = 0.4
 PAGE_SIZE = {SOURCE_HIMALAYAS: 20, SOURCE_ARBEITNOW: 300}
 MAX_PAGES = {SOURCE_HIMALAYAS: 5, SOURCE_ARBEITNOW: 4}
 
-# How much listing text is kept in the payload, and how much is embedded.
+# How much listing text a card displays, and how much is embedded. The embedded
+# text is also kept in the payload, because the API answers its keyword condition
+# from the payload and a card's 320-character excerpt is not what was ranked on.
 PAYLOAD_EXCERPT = 320
 DOCUMENT_EXCERPT = 700
 
@@ -272,10 +274,17 @@ def posting_document(posting: Dict[str, Any]) -> str:
 
 
 def posting_payload(posting: Dict[str, Any]) -> Dict[str, Any]:
-    """The stored, displayable record: everything but the long description."""
+    """The stored, displayable record: everything but the long description.
+
+    `excerpt` is what a card shows; `search_text` is the text that was embedded,
+    kept so the API can answer a keyword question against the same words the index
+    ranked on instead of against the first 320 characters of them. A display field
+    and a search field, deliberately separate.
+    """
     payload = {key: value for key, value in posting.items() if key != "description"}
     payload["excerpt"] = _truncate(str(posting.get("description") or ""), PAYLOAD_EXCERPT)
     payload["salary_text"] = salary_text(posting)
+    payload["search_text"] = posting_document(posting)
     return payload
 
 

@@ -234,9 +234,12 @@ export interface JobPosting {
    */
   similarity: number;
   /**
-   * The query words this posting's title contains, in the order they were typed.
-   * Empty when the search ranked by meaning alone: a filter-only browse, a query
-   * no title carries, or `/jobs/for-role`, whose query words are the role's own.
+   * The query words this posting's title carries, in the order they were typed.
+   *
+   * The words are matched against the whole posting, so a result can be here
+   * without any of them appearing in its title — this badge reports the hits a
+   * reader can see for themselves. Empty on `/jobs/for-role`, which ranks by
+   * meaning alone.
    */
   matched_terms: string[];
 }
@@ -273,9 +276,16 @@ export interface JobSearchResponse {
   query: string;
   /** False when the `job_role` index has not been built on this server. */
   available: boolean;
+  /**
+   * True when no posting said *all* of the caller's words, so the search fell
+   * back to requiring only some of them. Worth showing: the page then found less
+   * than it was asked for, and saying so is the difference between a loosened
+   * search and a misleading one.
+   */
+  relaxed: boolean;
   /** How many postings this page returned (never more than the limit asked for). */
   count: number;
-  /** How many the filters leave in the whole collection, counted in the store. */
+  /** How many the words and filters leave in the whole collection. */
   matched: number;
   /** How many postings the collection holds in total. */
   indexed: number;

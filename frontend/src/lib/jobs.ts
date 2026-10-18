@@ -1,12 +1,13 @@
 /**
  * The Jobs page's filters, and the vocabulary they translate into.
  *
- * `GET /jobs/search` takes a ranking query (`q`) plus the structured filters the
- * backend applies as a Qdrant payload filter — so the filters narrow the whole
- * `job_role` collection, and the response's `matched` is a count of that
- * collection rather than of the window a search happened to rank. Nothing here
- * filters postings any more: the page can only report what the server looked at,
- * which is the point of moving the rules to `services/job_service.py`.
+ * `GET /jobs/search` takes the caller's words (`q`) plus the structured filters,
+ * and the backend applies both to the whole `job_role` collection — so a posting
+ * comes back only when it satisfies every condition, and the response's `matched`
+ * is a count of that collection rather than of the window a search happened to
+ * rank. Nothing here filters postings any more: the page can only report what the
+ * server looked at, which is the point of moving the rules to
+ * `services/job_service.py`.
  *
  * Two vocabularies meet here, deliberately:
  *
@@ -16,7 +17,7 @@
  * * the endpoint takes stable slugs (`experience=senior`, `remote=true`), so its
  *   contract does not move when a label is reworded.
  */
-import { formatDate } from "@/lib/format";
+import { formatDate, truncate } from "@/lib/format";
 import type { HarvestFreshness, Profile } from "@/api/types";
 
 /** The endpoint accepts 1–50; ask for the widest page it will give. */
@@ -173,6 +174,26 @@ export function staleNote(freshness: HarvestFreshness | undefined): string {
     `These postings were harvested ${freshness.age_days} days ago — older than the ` +
     `${weeks}-week mark. Boards fill, withdraw and re-post their listings, so some of ` +
     "what you see here has almost certainly gone. Re-run the harvest to refresh it."
+  );
+}
+
+/**
+ * The line shown when the search had to loosen its words, or "" when it did not.
+ *
+ * The backend requires every word typed and only falls back to requiring some of
+ * them when nothing carries all of them (a goal sentence, for instance, is not a
+ * keyword). Saying so is the difference between a loosened search and a misleading
+ * one: the page found less than it was asked for, and the reader should know which
+ * words to drop or fix. The query is truncated because a profile search can be a
+ * whole sentence, and it is quoted back only to make the point concrete.
+ */
+export function relaxedNote(relaxed: boolean | undefined, role: string): string {
+  if (!relaxed) return "";
+  const words = role.trim();
+  if (!words) return "";
+  return (
+    `No posting says every word of “${truncate(words, 60)}”, so these are the ` +
+    "postings that say any of it. Drop a word or two for exact matches."
   );
 }
 

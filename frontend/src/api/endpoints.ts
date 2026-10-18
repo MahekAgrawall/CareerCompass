@@ -82,11 +82,12 @@ export const matchRoles = (
 
 // ── Live jobs ─────────────────────────────────────────────────────────────────
 /**
- * `GET /jobs/search` takes a ranking query plus the structured filters the page
+ * `GET /jobs/search` takes the caller's words plus the structured filters the page
  * offers (`q` up to 200 characters, `location`, `experience`, `remote`), and
- * returns `{query, available, count, matched, indexed, results}`. The filters are
- * applied by the vector store, so `matched` counts the whole collection — see
- * `lib/jobs.ts` for how the page's wording maps onto the endpoint's slugs.
+ * returns `{query, available, relaxed, count, matched, indexed, results}`. Both are
+ * conditions: a posting comes back only when it satisfies them, and `matched`
+ * counts the whole collection rather than the page — see `lib/jobs.ts` for how the
+ * page's wording maps onto the endpoint's slugs.
  */
 export const searchJobs = (params: Record<string, string>, limit = 50) =>
   api.get<JobSearchResponse>(

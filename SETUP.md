@@ -135,7 +135,10 @@ Drop `--reload` for a stable run.
 
 - Health check → <http://127.0.0.1:8000/health>  (expect `{"status":"ok",...}`)
 - Interactive API docs → <http://127.0.0.1:8000/docs>
-- Live job search (after §2.9) → <http://127.0.0.1:8000/jobs/search?q=kubernetes+platform+engineer>
+- Live job search (after §2.9) → <http://127.0.0.1:8000/jobs/search?q=java&location=Amsterdam>
+  (expect only postings that *say* Java: `matched` is the number returned here, and `relaxed` is `false`)
+- A query no posting carries every word of → <http://127.0.0.1:8000/jobs/search?q=python+terraform>
+  (expect `relaxed: true`, and the postings that say one of the words — not an empty page)
 - Live job search with the filters, and no search text at all (after §2.9) →
   <http://127.0.0.1:8000/jobs/search?location=berlin&remote=true&experience=senior>
   (expect `count <= limit`, and `matched` / `indexed` describing the whole collection)
@@ -202,20 +205,35 @@ add a Gemini key after building offline) is refused instead of mixing
 incomparable vectors — re-run with `--rebuild` to replace it. Rebuilding this
 collection never touches the catalog index, and vice versa.
 
+The ingest also stores the text it embedded in each payload (`search_text`), which
+is what the keyword condition is judged against. An index built before that field
+existed keeps working — the words are then read from the title, company,
+categories and excerpt — so re-ingesting widens what a search can match on rather
+than being required.
+
 `GET /jobs/search?q=…` serves these postings (public, like `/roles`): a search over the
 collection, returning each listing with its salary text, publication date and the board's own URL.
-It also takes `location`, `remote` (`true`/`false`) and `experience` (`internship`/`entry`/`senior`),
-which the backend applies to the whole collection in the vector store — so the response reports
-`count` (this page), `matched` (what the filters leave collection-wide) and `indexed` (the collection
-size). `q` ranks the results and is optional when a filter is given; asking for nothing at all is a
-`400`. Until §2.9 has been run the endpoint still answers `200` with `available: false` and no rows, so
-a client can hide the section instead of surfacing an error — nothing else in the app depends on it.
+The words in `q` are a **filter** — a posting comes back only when it says every one of them, matched
+as whole words anywhere in the posting (plurals and compounds count: "developer" finds `developers`,
+"node" finds `node.js`; "java" finds neither JavaScript nor a listing that never says it). When
+nothing says all of them the search loosens to requiring any of them and reports `relaxed: true`,
+which is what keeps a goal sentence in the box from emptying the page. It also takes `location`,
+`remote` (`true`/`false`) and `experience` (`internship`/`entry`/`senior`), which the backend applies to
+the whole collection in the vector store — so the response reports `count` (this page), `matched` (what
+the words and the filters leave collection-wide) and `indexed` (the collection size). `q` is optional
+when a filter is given; asking for nothing at all is a `400`. Until §2.9 has been run the endpoint still
+answers `200` with `available: false` and no rows, so a client can hide the section instead of
+surfacing an error — nothing else in the app depends on it.
 
-`q` is not pure vector similarity. The store is asked for four times the page and the results are
+The rest is ranking, not filtering: the postings that survived the words are ordered by the store, then
 re-sorted on how many of the query's words a posting's *title* carries, then how many it carries
 anywhere in its text, then the cosine — because the offline embedder ranked a German
-facilities-maintenance listing second for "python". The title words come back as `matched_terms`, and a
-query no posting carries falls through to the index's own order.
+facilities-maintenance listing second for "python". Only the caller's own words are judged: a filter
+decides what is eligible, never the order. The title words come back as `matched_terms`, and a query no
+posting carries falls through to the index's own order. The keyword condition is decided in Python over
+the eligible payloads (`vector_store.scroll_payloads`), so the rule belongs to the app rather than to a
+tokenizer and the count covers the whole collection; an index built before `search_text` existed still
+answers, and a re-ingest fills it in to widen what a keyword can be matched against.
 
 `GET /jobs/locations` is where the location field's suggestions come from: the places the postings name,
 ranked by how often they appear, each count asked of the same store filter a search applies — so the

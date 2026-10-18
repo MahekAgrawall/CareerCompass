@@ -5,13 +5,17 @@ What this pins down:
 * the endpoint is public, like `/roles`, and needs no account;
 * results come from the `job_role` collection and never from the curated role
   index sitting beside it in the same store;
+* the search box's words are a **filter**: only postings that say every one of
+  them come back, and when none says all of them the search loosens to any of
+  them and reports it (`relaxed`), because a dead end is worse than a loose page;
 * ranking is the index's cosine, lifted by a query word appearing in a posting's
   title (reported back as `matched_terms`), so a search box answers with the
   posting that says what was typed;
 * `/jobs/locations` offers the places the collection actually names, commonest
   first, each count asked of the same filter a search with it applies;
-* location, work arrangement and experience are applied by the vector store, so
-  they narrow the whole collection and `matched` counts that, not the page;
+* location, work arrangement and experience are applied by the vector store and
+  the words are narrowed against the payloads it holds, so together they decide
+  `matched` over the whole collection rather than over the page;
 * a filter-only browse still works (the filter words stand in for the query), and
   asking for nothing at all is a 400;
 * with no index built, the endpoint still answers honestly (`available: false`)
@@ -131,10 +135,19 @@ class JobSearchApiTests(IndexBackedTest):
         self.assertEqual(body["results"], [])
 
     def test_results_are_the_nearest_postings(self):
+        """The postings that say the words, nearest first.
+
+        The designer is indexed and the index has an opinion about it, but it says
+        none of "kubernetes platform engineer" — and the words are a condition, so
+        it is not a result at all (see
+        `test_a_posting_that_never_says_the_word_is_not_a_result`).
+        """
         self._index_postings([PLATFORM, DESIGNER])
         body = self._search().json()
         self.assertTrue(body["available"])
-        self.assertEqual(body["count"], 2)
+        self.assertEqual(body["count"], 1)
+        self.assertEqual(body["matched"], 1)
+        self.assertEqual([item["id"] for item in body["results"]], [PLATFORM["id"]])
         first = body["results"][0]
         self.assertEqual(first["id"], PLATFORM["id"])
         self.assertEqual(first["title"], "Senior Platform Engineer")
@@ -172,7 +185,9 @@ class JobSearchApiTests(IndexBackedTest):
         self.assertEqual(body["results"], [])
 
     def test_limit_is_honoured_and_bounded(self):
-        self._index_postings([PLATFORM, DESIGNER])
+        # Both say the query's words, so the page is a choice about the *limit*
+        # and not about which postings qualified.
+        self._index_postings([PLATFORM, PAID])
         self.assertEqual(self._search(limit=1).json()["count"], 1)
         self.assertEqual(self._search(limit=2).json()["count"], 2)
         self.assertEqual(self._search(limit=0).status_code, 422)
@@ -294,6 +309,147 @@ class JobSearchApiTests(IndexBackedTest):
         self.assertEqual(results[0]["id"], analytics["id"])
         self.assertGreaterEqual(results[0]["similarity"], results[1]["similarity"])
 
+    # ── Keywords ──────────────────────────────────────────────────────────────
+    def test_a_posting_that_never_says_the_word_is_not_a_result(self):
+        """The reported bug: searching "java" in Amsterdam answered with a Dutch
+        AI internship.
+
+        The internship is an Amsterdam tech role, so the index places it near the
+        search text and the location filter lets it through — but it never says
+        Java, and the words are a condition rather than a hint. The keyword filter
+        is what removes it.
+        """
+        java = posting_fixture(
+            "arbeitnow:kotlin-java",
+            "Kotlin/Java Back-end Engineer",
+            "Wypoon",
+            "Build back-end services in Kotlin and Java for our platform.",
+            location="Amsterdam, Netherlands",
+        )
+        internship = posting_fixture(
+            "arbeitnow:ai-intern",
+            "Stage AI & Automatisering",
+            "Flagship",
+            "Wij automatiseren ons werk met AI en slimme tooling.",
+            location="Amsterdam, Noord-Holland, Nederland",
+        )
+        self._index_postings([internship, java])
+        body = self._search("java", location="Amsterdam").json()
+        self.assertEqual([item["id"] for item in body["results"]], [java["id"]])
+        self.assertEqual(body["matched"], 1)
+        self.assertFalse(body["relaxed"])
+
+    def test_every_word_typed_is_required(self):
+        """Not any of them: a posting has to say the whole query."""
+        both = posting_fixture(
+            "arbeitnow:both",
+            "Backend Engineer",
+            "Wypoon",
+            "Python and Kubernetes services at scale.",
+        )
+        half = posting_fixture(
+            "arbeitnow:python-only",
+            "Python Engineer",
+            "Wypoon",
+            "Python services at scale.",
+        )
+        self._index_postings([both, half])
+        body = self._search("python kubernetes").json()
+        self.assertEqual([item["id"] for item in body["results"]], [both["id"]])
+        self.assertEqual(body["matched"], 1)
+        self.assertFalse(body["relaxed"])
+
+    def test_a_word_the_description_carries_is_enough(self):
+        """The condition is about the whole posting, not only about its title."""
+        self._index_postings(
+            [
+                posting_fixture(
+                    "arbeitnow:body-terraform",
+                    "Systems Engineer",
+                    "Wypoon",
+                    "Own our Terraform modules and the deployment pipeline.",
+                )
+            ]
+        )
+        body = self._search("terraform").json()
+        self.assertEqual(body["count"], 1)
+        # It is a result, but the card's badge stays about the *title*, which does
+        # not say it — explained by the caption rather than on the card.
+        self.assertEqual(body["results"][0]["matched_terms"], [])
+
+    def test_when_nothing_says_every_word_the_search_loosens_and_says_so(self):
+        """A goal sentence is not a keyword, and a dead end would be worse.
+
+        An empty page would be the strict answer, but answering a reasonable query
+        with nothing is a worse one. The search loosens to the postings that say
+        any of the words — and reports that it did, rather than quietly searching
+        for less than it was asked to.
+        """
+        python = posting_fixture(
+            "arbeitnow:python", "Python Engineer", "Wypoon", "Python services at scale."
+        )
+        terraform = posting_fixture(
+            "arbeitnow:terraform",
+            "Systems Engineer",
+            "Wypoon",
+            "Terraform modules at scale.",
+        )
+        self._index_postings([python, terraform])
+        body = self._search("python terraform").json()
+        self.assertTrue(body["relaxed"])
+        self.assertEqual(body["matched"], 2)
+        self.assertEqual(
+            {item["id"] for item in body["results"]}, {python["id"], terraform["id"]}
+        )
+
+    def test_an_index_built_before_search_text_still_answers_keywords(self):
+        """The field is an improvement, not a requirement.
+
+        An index built by an older ingest has no `search_text` in its payloads, and
+        its postings have to stay searchable: the words are read from whatever text
+        the payload does hold.
+        """
+        rows = []
+        for row in job_feed.rows([PLATFORM]):
+            payload = {k: v for k, v in row["payload"].items() if k != "search_text"}
+            self.assertNotIn("search_text", payload)
+            rows.append((row["record_id"], row["document"], payload))
+        vector_store.upsert_records(vector_store.JOBS_COLLECTION, rows)
+        body = self._search().json()
+        self.assertEqual([item["id"] for item in body["results"]], [PLATFORM["id"]])
+        self.assertFalse(body["relaxed"])
+
+    def test_a_filter_word_is_never_a_title_match(self):
+        """The other half of the reported bug: the city outranked the language.
+
+        With "java" typed in Amsterdam, the postings whose *titles* said
+        "Amsterdam" were ranked first. A filter decides what is eligible; it must
+        not also decide the order, or the page rewards a posting for the city it
+        sits in.
+        """
+        city_titled = posting_fixture(
+            "arbeitnow:amsterdam-role",
+            "Amsterdam Backend Engineer",
+            "Canal Systems",
+            "We build our services in Java.",
+            location="Amsterdam, Netherlands",
+        )
+        word_titled = posting_fixture(
+            "arbeitnow:java-role",
+            "Java Back-end Engineer",
+            "Wypoon",
+            "Build services for our clients.",
+            location="Amsterdam, Netherlands",
+        )
+        self._index_postings([city_titled, word_titled])
+        results = self._search("java", location="Amsterdam").json()["results"]
+        self.assertEqual([item["id"] for item in results],
+                         [word_titled["id"], city_titled["id"]])
+        self.assertEqual(results[0]["matched_terms"], ["java"])
+        self.assertEqual(
+            [word for item in results for word in item["matched_terms"]], ["java"]
+        )
+
     # ── Filters ───────────────────────────────────────────────────────────────
     def test_location_filters_the_whole_collection(self):
         self._index_postings(FILTERED)
@@ -303,9 +459,10 @@ class JobSearchApiTests(IndexBackedTest):
         self.assertEqual(body["indexed"], len(FILTERED))
 
     def test_a_location_is_matched_as_a_token_not_a_substring(self):
+        """A filter-only browse, so the assertion is about the filter alone."""
         self._index_postings(FILTERED)
-        self.assertEqual(self._search(location="germany").json()["matched"], 2)
-        self.assertEqual(self._search(location="Munchen").json()["matched"], 0)
+        self.assertEqual(self._search("", location="germany").json()["matched"], 2)
+        self.assertEqual(self._search("", location="Munchen").json()["matched"], 0)
 
     def test_a_location_of_remote_also_accepts_the_boards_own_flag(self):
         """The boards say "Remote" in the text and set a flag; either counts."""
@@ -327,10 +484,10 @@ class JobSearchApiTests(IndexBackedTest):
 
     def test_experience_buckets_narrow_by_the_wording_the_boards_use(self):
         self._index_postings(FILTERED)
-        self.assertEqual(self._search(experience="internship").json()["matched"], 1)
-        self.assertEqual(self._search(experience="entry").json()["matched"], 1)
-        self.assertEqual(self._search(experience="senior").json()["matched"], 2)
-        senior = self._search(experience="senior").json()
+        self.assertEqual(self._search("", experience="internship").json()["matched"], 1)
+        self.assertEqual(self._search("", experience="entry").json()["matched"], 1)
+        self.assertEqual(self._search("", experience="senior").json()["matched"], 2)
+        senior = self._search("", experience="senior").json()
         self.assertEqual(
             {item["id"] for item in senior["results"]}, {BERLIN["id"], UTRECHT["id"]}
         )
@@ -349,15 +506,20 @@ class JobSearchApiTests(IndexBackedTest):
 
     def test_filters_narrow_together(self):
         self._index_postings(FILTERED)
-        body = self._search(location="germany", experience="internship").json()
+        body = self._search("", location="germany", experience="internship").json()
         self.assertEqual([item["id"] for item in body["results"]], [STUDENT["id"]])
         self.assertEqual(body["matched"], 1)
 
     def test_matched_counts_the_collection_even_when_the_page_is_small(self):
+        """`matched` is about the collection; `count` is about this page.
+
+        Only two of the fixtures say every word of the query — that is what the
+        number reports now, and the page shows one of those two.
+        """
         self._index_postings(FILTERED)
         body = self._search(limit=1).json()
         self.assertEqual(body["count"], 1)
-        self.assertEqual(body["matched"], len(FILTERED))
+        self.assertEqual(body["matched"], 2)
         self.assertEqual(body["indexed"], len(FILTERED))
 
     def test_filters_that_match_nothing_answer_honestly(self):
@@ -589,6 +751,60 @@ class JobTitleMatchTests(unittest.TestCase):
 
     def test_no_query_means_nothing_to_match_on(self):
         self.assertEqual(job_service.query_terms("  "), [])
+
+
+class JobKeywordTests(unittest.TestCase):
+    """The keyword rule (`job_service.matches_token`) — what counts as saying a word.
+
+    Whole words, with the two allowances a job board needs and the one refusal it
+    needs more: "developer" has to find "Developers" and "node" has to find
+    "Node.js", while "java" must not find JavaScript.
+    """
+
+    def test_a_whole_word_counts(self):
+        self.assertTrue(job_service.matches_token("java", "java"))
+
+    def test_a_plural_of_the_word_counts(self):
+        self.assertTrue(job_service.matches_token("developer", "developers"))
+        self.assertTrue(job_service.matches_token("technician", "technicians"))
+
+    def test_a_compound_the_word_introduces_counts(self):
+        self.assertTrue(job_service.matches_token("node", "node.js"))
+        self.assertTrue(job_service.matches_token("front", "front-end"))
+
+    def test_a_longer_word_that_merely_starts_the_same_does_not(self):
+        self.assertFalse(job_service.matches_token("java", "javascript"))
+        self.assertFalse(job_service.matches_token("data", "database"))
+        self.assertFalse(job_service.matches_token("intern", "internal"))
+
+    def test_a_posting_is_read_as_lower_case_words(self):
+        """The boards mix their cases; the rule must not care."""
+        words = job_service.posting_words({"title": "Senior Python Engineer"})
+        self.assertIn("python", words)
+        self.assertNotIn("Python", words)
+
+    def test_the_body_counts_as_well_as_the_title(self):
+        words = job_service.posting_words(
+            {"title": "Engineer", "excerpt": "Terraform modules."}
+        )
+        self.assertTrue(job_service.mentions(words, "terraform"))
+
+    def test_the_rule_requires_every_word_and_loosens_to_any(self):
+        candidates = [
+            {"id": "a", "title": "Python Engineer", "excerpt": "Python and Kubernetes."},
+            {"id": "b", "title": "Python Developer", "excerpt": "Python only."},
+        ]
+        kept, relaxed = job_service._narrow(candidates, ["python", "kubernetes"])
+        self.assertEqual([payload["id"] for payload in kept], ["a"])
+        self.assertFalse(relaxed)
+
+        kept, relaxed = job_service._narrow(candidates, ["python", "terraform"])
+        self.assertEqual(sorted(payload["id"] for payload in kept), ["a", "b"])
+        self.assertTrue(relaxed)
+
+    def test_no_words_keep_everything(self):
+        candidates = [{"id": "a", "title": "Anything"}]
+        self.assertEqual(job_service._narrow(candidates, []), (candidates, False))
 
 
 class JobRankTests(unittest.TestCase):

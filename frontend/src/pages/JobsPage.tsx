@@ -23,6 +23,7 @@ import {
   locationOptionLabel,
   postingParams,
   profileQuery,
+  relaxedNote,
   remoteParam,
   staleNote,
 } from "@/lib/jobs";
@@ -34,11 +35,11 @@ import { useProfile } from "@/state/ProfileContext";
  * job_feed.py`) and served by `GET /jobs/search`.
  *
  * Every field on the form is a real endpoint parameter: the backend applies the
- * filters to the whole `job_role` collection and reports how many postings are
- * left (`matched`), so the page no longer filters a ranked window down and then
- * has to explain why its numbers only covered fifty postings. The location field's
- * suggestions are the collection's own place vocabulary (`GET /jobs/locations`),
- * not the places the last search happened to return.
+ * filters and the words to the whole `job_role` collection and reports how many
+ * postings are left (`matched`), so the page no longer filters a ranked window
+ * down and then has to explain why its numbers only covered fifty postings. The
+ * location field's suggestions are the collection's own place vocabulary
+ * (`GET /jobs/locations`), not the places the last search happened to return.
  *
  * The URL is the committed search — `/jobs?role=…&location=…&experience=…` — so
  * the "Explore Jobs" action on a match card can prefill it, the page survives a
@@ -129,6 +130,9 @@ export default function JobsPage() {
   // and an explicit warning once the backend judges it too old to trust.
   const harvest = harvestNote(data?.freshness);
   const stale = staleNote(data?.freshness);
+  // The words are a condition, so the page can be smaller than what was asked
+  // for — and says so rather than letting the reader assume it searched the lot.
+  const loosened = relaxedNote(data?.relaxed, committed.role);
 
   return (
     <div>
@@ -204,12 +208,14 @@ export default function JobsPage() {
       </form>
 
       <p className="caption mb-5">
-        Every field above is a real filter on the live board collection, applied by the
-        backend before anything is ranked — so the counts below cover every posting held,
-        not just the page you see. Postings whose <em>titles</em> carry your words come
-        first, marked on the card, and the index's meaning ranks them within that; the
-        “Semantic” figure is that meaning alone. None of it is a career-fit score — that
-        is what{" "}
+        Every field above is a filter the backend applies to the whole live collection
+        before anything is ranked, so the counts below cover every posting held rather
+        than just this page. The <em>words</em> are a filter as well: a posting comes
+        back only when it says all of them — whole words, plurals included, matched
+        anywhere in the posting, so “java” cannot answer with a listing that never
+        mentions Java. Titles that carry a word are lifted first and marked on the
+        card; the “Semantic” figure is the index’s meaning alone. None of it is a
+        career-fit score — that is what{" "}
         <Link className="font-semibold text-brand-700 hover:underline" to="/matches">
           My Matches
         </Link>{" "}
@@ -254,8 +260,8 @@ export default function JobsPage() {
               title="No postings matched"
               description={
                 data.matched === 0
-                  ? `These filters were applied to all ${data.indexed} indexed postings and none of them match. Try a broader location, or drop the experience and arrangement filters.`
-                  : `${data.matched} postings match your filters, but none of them ranked against that search text. Try broader words.`
+                  ? `These conditions were applied to all ${data.indexed} indexed postings and none of them match — every word you type has to appear in a posting. Try a broader location, fewer words, or drop the experience and arrangement filters.`
+                  : `${data.matched} postings match your words and filters, but the ranking returned none of them for this page. Try broader words.`
               }
               action={
                 <button type="button" onClick={clearFilters} className="btn btn-primary">
@@ -267,12 +273,19 @@ export default function JobsPage() {
             <>
               <p className="mb-1 text-sm font-semibold text-slate-700">
                 Showing {data?.count ?? 0} of {data?.matched ?? 0} postings matching your
-                filters · {data?.indexed ?? 0} postings indexed
+                search · {data?.indexed ?? 0} postings indexed
               </p>
               <p className="caption">
                 Ranked by similarity to “{data?.query}”. Each card links straight to the
                 board that published it.
               </p>
+              {loosened && (
+                <div className="mt-3">
+                  <Alert tone="info" title="No posting says all of your words">
+                    {loosened}
+                  </Alert>
+                </div>
+              )}
               {harvest && <p className="caption mt-1">🗓️ {harvest}</p>}
               {stale && (
                 <div className="mt-3">

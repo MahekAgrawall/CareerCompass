@@ -21,6 +21,16 @@ and `matched` is an honest count of it. Running them in Python over the ranked
 window instead would make every number on the page a statement about the fifty
 postings the search happened to return.
 
+The search box's words are a filter as well, and they are the one condition the
+store cannot answer. Whether a posting *says* something is a rule about language
+rather than a payload lookup, and the rule this app wants is wider than a
+tokenizer's: whole words, their plurals and the compounds they introduce ("node"
+finds "node.js") but never a longer word that merely starts the same ("java" must
+not find JavaScript). So the eligible payloads are read out
+(`vector_store.scroll_payloads`), narrowed here, and only then is the store asked
+to rank what survived, restricted to those ids. Meaning orders the results; what
+they say decides who is in them.
+
 The places the search box suggests come from the collection too, and each count is
 asked of that same filter (`locations`), because the boards publish free-text
 locations — "Berlin" and "Berlin, Germany" are two strings for one city — and a
@@ -35,7 +45,7 @@ only half a sentence without "harvested 20 days ago".
 import re
 from collections import Counter
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from services import vector_store
 
@@ -90,6 +100,10 @@ FILTER_INDEXES = {
     "seniority": "text",
     "employment_type": "text",
     "remote": "bool",
+    # The ranking restricts the search to the postings the keywords kept (see
+    # `_id_filter`). That condition is a payload lookup, so a server-backed store
+    # wants an index on it; the embedded store scans either way.
+    "id": "keyword",
 }
 
 #: How many places the Jobs page's location field is offered (see `locations`).
@@ -127,6 +141,23 @@ RANK_WINDOW = 4
 
 #: And a ceiling on that, so a 50-row page cannot ask the store for 500 rows.
 MAX_RANK_WINDOW = 200
+
+#: What a posting's words are read from: the fields the payload displays, plus
+#: `search_text` — the text the ingest embedded, so a keyword is judged against
+#: what the job ad actually says rather than against the first 320 characters of
+#: it. That field is absent until an index is built by an ingest that writes it,
+#: which is why this is read as "whichever of these are there".
+POSTING_TEXT_FIELDS = ("title", "company", "categories", "tags", "excerpt", "search_text")
+
+#: The fields a keyword scan transfers: the words, plus the id the ranking is then
+#: restricted to. Everything else in a payload would cross the wire to be dropped.
+SCAN_FIELDS = ["id", *POSTING_TEXT_FIELDS]
+
+#: How many postings one search reads to answer a keyword condition. A ceiling
+#: rather than a page — the feed is capped by its own ingest — so a deployment
+#: that ever outgrows it would have its counts describe the first this-many
+#: postings rather than pretending to cover the collection.
+KEYWORD_SCAN_LIMIT = 20000
 
 #: Words a title should not be judged on: they are in half of them already.
 _STOP_WORDS = {"a", "an", "and", "at", "for", "in", "of", "on", "or", "the", "to", "with"}
@@ -420,23 +451,96 @@ def query_terms(query: str) -> List[str]:
     return terms
 
 
-def title_matches(query: str, title: str) -> List[str]:
-    """Which query words that title contains — as tokens, never substrings."""
-    words = _words(title)
-    return [term for term in query_terms(query) if term in words]
+def matches_token(term: str, token: str) -> bool:
+    """Whether one of the query's words is one of the posting's.
 
-
-def posting_text(payload: Dict[str, Any]) -> str:
-    """Everything a posting says about itself, as text to look query words up in.
-
-    Title, company, categories and the excerpt of the description — the parts a
-    search box can be judged against. The excerpt is whatever the ingest stored, so
-    a description long enough to be cut is only ever matched on what was kept.
+    Whole words, with two deliberate allowances: a plural counts ("developer"
+    finds "developers") and a compound the word introduces counts ("node" finds
+    "node.js", "front" finds "front-end"). What is *not* allowed is a longer word
+    that merely starts the same way — a search for "java" must not answer with
+    JavaScript, and "data" must not answer with databases.
     """
-    parts = [str(payload.get("title") or ""), str(payload.get("company") or "")]
-    parts.extend(str(item) for item in payload.get("categories") or [])
-    parts.append(str(payload.get("excerpt") or ""))
-    return " ".join(parts)
+    if token == term:
+        return True
+    if not token.startswith(term):
+        return False
+    rest = token[len(term):]
+    if rest in ("s", "es"):
+        return True
+    return rest[0] in ".-_/"
+
+
+def mentions(words: set, term: str) -> bool:
+    """Whether those words carry one of the query's."""
+    return any(matches_token(term, token) for token in words)
+
+
+def posting_words(payload: Dict[str, Any]) -> set:
+    """Every word a posting says: what a keyword is matched against.
+
+    The displayable fields plus `search_text` (see `POSTING_TEXT_FIELDS`), because
+    a job ad says what it is offering in its description and not only in its
+    title. Set semantics: a word said twice is still the word it says.
+    """
+    parts: List[str] = []
+    for field in POSTING_TEXT_FIELDS:
+        value = payload.get(field)
+        if isinstance(value, (list, tuple)):
+            parts.extend(str(item) for item in value)
+        elif value:
+            parts.append(str(value))
+    return _words(" ".join(parts))
+
+
+def title_matches(query: str, title: str) -> List[str]:
+    """Which query words that title carries — whole words, as `matches_token`."""
+    words = _words(title)
+    return [term for term in query_terms(query) if mentions(words, term)]
+
+
+def _narrow(
+    candidates: List[Dict[str, Any]], terms: List[str]
+) -> Tuple[List[Dict[str, Any]], bool]:
+    """The postings that say every one of `terms` — or, when none does, any.
+
+    Returns `(kept, relaxed)`. Requiring all of them is what makes the search box
+    a filter: "java" cannot answer with a listing that never mentions Java. The
+    relaxation is the safety valve, not a nicety — a candidate's goal sentence is
+    not a keyword, and a page that answers "nothing found" to a reasonable query
+    is worse than one that says it had to loosen. It is *reported* rather than
+    silent, because a search that quietly drops half the words is lying about what
+    it searched.
+    """
+    if not terms:
+        return list(candidates), False
+    said = [(payload, posting_words(payload)) for payload in candidates]
+    strict = [
+        payload for payload, words in said if all(mentions(words, term) for term in terms)
+    ]
+    if strict:
+        return strict, False
+    return (
+        [
+            payload
+            for payload, words in said
+            if any(mentions(words, term) for term in terms)
+        ],
+        True,
+    )
+
+
+def _id_filter(ids: List[str]):
+    """A store condition keeping only these postings, for the ranking to run in.
+
+    The keyword decision is already made (see `_narrow`); this is how the semantic
+    ranking is told *which* postings survived it, so the store never has to know
+    the matching rules.
+    """
+    from qdrant_client import models
+
+    return models.Filter(
+        must=[models.FieldCondition(key="id", match=models.MatchAny(any=ids))]
+    )
 
 
 def _rank(hits: List, query: str, limit: int) -> List:
@@ -450,6 +554,11 @@ def _rank(hits: List, query: str, limit: int) -> List:
     index needs it: for "python" it puts a German facilities-maintenance listing
     second, in front of postings that actually name the language.
 
+    The words come from the *search box only*, never from the filters: an earlier
+    version ranked on the location too, so searching "java" in Amsterdam answered
+    with titles containing "Amsterdam". A filter has already decided what is
+    eligible; letting it also decide the order contradicts what was asked for.
+
     Every tier is a no-op on a query none of the postings carry: they all land in
     one tier and the stable sort returns the index's own order untouched.
 
@@ -459,12 +568,16 @@ def _rank(hits: List, query: str, limit: int) -> List:
     terms = query_terms(query)
     scored = []
     for score, payload in hits:
-        mentioned = _words(posting_text(payload))
-        matched = [term for term in terms if term in _words(payload.get("title") or "")]
+        said = posting_words(payload)
+        in_title = _words(payload.get("title") or "")
+        # `matched` is what the *card* reports, so it stays title-only: the words
+        # the posting says in the body explain an ordering nobody can see, and
+        # reporting them as a title match would be a lie about the posting.
+        matched = [term for term in terms if mentions(in_title, term)]
         scored.append(
             (
                 -len(matched),
-                -sum(1 for term in terms if term in mentioned),
+                -sum(1 for term in terms if mentions(said, term)),
                 -float(score),
                 matched,
                 payload,
@@ -481,12 +594,21 @@ def search_postings(
     remote: Optional[bool] = None,
     experience: str = "",
 ) -> Dict[str, Any]:
-    """The `job_role` postings nearest to the search text, narrowed by filters.
+    """The `job_role` postings that satisfy the search, nearest first.
 
-    `matched` counts the postings the filters leave *in the whole collection*, as
-    opposed to `count`, which is how many of them came back in this page. Both
-    are reported so a client can show "12 of 87 matching, 951 indexed" without
-    implying it inspected more than it did.
+    The words are a **filter**, not a ranking hint: a posting comes back only when
+    it says every one of them (as whole words — see `matches_token`), so "java"
+    cannot answer with a listing that never mentions Java. `matched` counts what
+    the words *and* the filters leave in the whole collection, as opposed to
+    `count`, which is how many of those came back in this page. Both are reported
+    so a client can show "12 of 87 matching, 951 indexed" without implying it
+    inspected more than it did.
+
+    The store still does the ranking: the surviving postings are ordered by the
+    index's meaning, and `_rank` lifts ones whose *title* carries a word. `relaxed`
+    says no posting could satisfy every word, so only some were required (see
+    `_narrow`) — reported rather than silent, because a page that quietly searches
+    for less than it was asked to is lying about what it found.
 
     The store is asked for a wider window than the page and `_rank` cuts it, so a
     posting whose title carries the query can be lifted over one the vector store
@@ -494,6 +616,7 @@ def search_postings(
     list.
     """
     text = ranking_text(query, location, remote, experience)
+    terms = query_terms(query)
     available = vector_store.is_available() and vector_store.collection_exists(
         vector_store.JOBS_COLLECTION
     )
@@ -503,7 +626,24 @@ def search_postings(
     # here — a 500 where the module promises `available: false` and no rows, the
     # way `search_for_role` answers. The filters have nothing to narrow without
     # an index anyway.
-    query_filter = posting_filter(location, remote, experience) if available else None
+    filters = posting_filter(location, remote, experience) if available else None
+
+    kept: Optional[List[Dict[str, Any]]] = None
+    relaxed = False
+    if available:
+        candidates = vector_store.scroll_payloads(
+            vector_store.JOBS_COLLECTION,
+            filters,
+            KEYWORD_SCAN_LIMIT,
+            keys=SCAN_FIELDS,
+        )
+        kept, relaxed = _narrow(candidates, terms)
+
+    ids = [str(payload.get("id") or "") for payload in kept or []] if terms else []
+    # With words in play the store ranks *inside* them: the other filters are
+    # already applied to the set, and a store-side keyword condition would put the
+    # matching rules in a tokenizer rather than here (see `matches_token`).
+    query_filter = _id_filter(ids) if ids else filters
     hits: List = (
         vector_store.search_records(
             vector_store.JOBS_COLLECTION,
@@ -511,19 +651,16 @@ def search_postings(
             limit=min(limit * RANK_WINDOW, MAX_RANK_WINDOW),
             query_filter=query_filter,
         )
-        if available
+        if available and (ids or not terms)
         else []
     )
-    ranked = _rank(hits, text, limit)
+    ranked = _rank(hits, query, limit)
     return {
         "query": text,
         "available": available,
+        "relaxed": relaxed,
         "count": len(ranked),
-        "matched": (
-            vector_store.count_points(vector_store.JOBS_COLLECTION, query_filter)
-            if available
-            else 0
-        ),
+        "matched": len(kept or []),
         "indexed": (
             vector_store.count_points(vector_store.JOBS_COLLECTION) if available else 0
         ),

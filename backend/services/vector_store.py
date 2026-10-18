@@ -436,6 +436,52 @@ def payload_values(name: str, key: str, limit: int) -> List[str]:
     return values
 
 
+def scroll_payloads(
+    name: str,
+    query_filter: Any,
+    limit: int,
+    keys: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
+    """The payloads a filter allows, over up to `limit` points.
+
+    A bounded scroll like `payload_values`, and it exists for the same reason:
+    some conditions cannot be answered *by the store*. Whether a posting actually
+    says a word is one of them — that is this module's caller's rule, not a
+    tokenizer's — and the count still has to be about the whole collection rather
+    than about a ranked window. Reading the payloads lets the caller decide and
+    count for itself.
+
+    `keys` narrows what is transferred; `None` fetches whole payloads. Points with
+    no payload are skipped, and an absent collection or an unreachable store
+    yields [] rather than raising, like every other read here.
+    """
+    payloads: List[Dict[str, Any]] = []
+    try:
+        client = _client()
+        if not client.collection_exists(name):
+            return []
+        offset = None
+        while len(payloads) < limit:
+            points, offset = client.scroll(
+                collection_name=name,
+                scroll_filter=query_filter,
+                limit=min(SCROLL_PAGE, limit - len(payloads)),
+                offset=offset,
+                with_payload=keys if keys else True,
+                with_vectors=False,
+            )
+            for point in points:
+                payload = getattr(point, "payload", None)
+                if payload:
+                    payloads.append(dict(payload))
+            if offset is None or not points:
+                break
+    except Exception as exc:  # noqa: BLE001 - a read that cannot answer says nothing
+        log.warning("Could not read %s payloads (%s)", name, exc)
+        return []
+    return payloads
+
+
 def ensure_payload_indexes(name: str, fields: Dict[str, str]) -> List[str]:
     """Creates the payload indexes `fields` asks for, given as `{field: kind}`.
 

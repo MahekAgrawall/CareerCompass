@@ -190,6 +190,14 @@ class NormalisationTests(unittest.TestCase):
         self.assertLessEqual(len(payload["excerpt"]), job_feed.PAYLOAD_EXCERPT)
         self.assertEqual(payload["title"], "P")
 
+    def test_payload_keeps_the_text_it_embedded_for_keyword_matching(self):
+        """The API judges a keyword against the payload, so it must hold what the
+        index actually ranked on — the card's 320-character excerpt does not."""
+        posting = posting_fixture("p", "P", "Co", "word " * 500)
+        payload = job_feed.posting_payload(posting)
+        self.assertEqual(payload["search_text"], job_feed.posting_document(posting))
+        self.assertGreater(len(payload["search_text"]), len(payload["excerpt"]))
+
 
 class DedupeTests(unittest.TestCase):
     def test_the_same_opening_on_two_boards_collapses(self):

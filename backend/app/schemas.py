@@ -180,10 +180,16 @@ class JobSearchResponse(BaseModel):
     # The endpoint still answers 200 — it simply has nothing to search — so a
     # client can hide the section instead of showing an error.
     available: bool
+    #: True when no posting said *all* of the caller's words, so the search fell
+    #: back to requiring only some of them. Worth showing: the page then found
+    #: less than it was asked for, and saying so is the difference between a
+    #: loosened search and a misleading one.
+    relaxed: bool = False
     # How many postings this page returned (never more than `limit`).
     count: int
-    # How many postings the filters leave in the whole collection. Counted in the
-    # vector store, so it is a real total rather than a property of this page.
+    # How many postings the filters and keywords leave in the whole collection.
+    # Counted over the collection, so it is a real total, not a property of this
+    # page.
     matched: int
     # How many postings the collection holds, filters or no filters.
     indexed: int
